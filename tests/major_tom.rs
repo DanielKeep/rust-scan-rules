@@ -38,6 +38,11 @@ fn test_tom() {
     );
 
     assert_match!(
+        scan!(inp; "Hi, my name is Major", let name: &str, ^..tail => (name, tail)),
+        Ok(("Tom", "! I was born in 1969."))
+    );
+
+    assert_match!(
         scan!(inp; "Hi, my name is Major", let name, ..tail => {
             let name: &str = name;
             (name, tail)
