@@ -1,34 +1,35 @@
 use std::error::Error;
 use std::fmt;
 use std::io;
+use ::Cursor;
 
 #[derive(Debug)]
 pub struct ScanError<'a> {
-    pub at: &'a str,
+    pub at: Cursor<'a>,
     pub kind: ScanErrorKind,
 }
 
 impl<'a> ScanError<'a> {
-    pub fn new(at: &'a str, kind: ScanErrorKind) -> Self {
+    pub fn new(at: Cursor<'a>, kind: ScanErrorKind) -> Self {
         ScanError {
             at: at,
             kind: kind,
         }
     }
 
-    pub fn expected_end(at: &'a str) -> Self {
+    pub fn expected_end(at: Cursor<'a>) -> Self {
         Self::new(at, ScanErrorKind::ExpectedEnd)
     }
 
-    pub fn literal_mismatch(at: &'a str) -> Self {
+    pub fn literal_mismatch(at: Cursor<'a>) -> Self {
         Self::new(at, ScanErrorKind::LiteralMismatch)
     }
 
-    pub fn missing(at: &'a str) -> Self {
+    pub fn missing(at: Cursor<'a>) -> Self {
         Self::new(at, ScanErrorKind::Missing)
     }
 
-    pub fn other<E: Into<Box<Error>>>(at: &'a str, err: E) -> Self {
+    pub fn other<E: Into<Box<Error>>>(at: Cursor<'a>, err: E) -> Self {
         Self::new(at, ScanErrorKind::from_other(err))
     }
 
@@ -45,8 +46,8 @@ impl<'a> fmt::Display for ScanError<'a> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         try!("scan error: ".fmt(fmt));
         try!(self.kind.fmt(fmt));
-        try!(", at: ".fmt(fmt));
-        fmt::Debug::fmt(&self.at, fmt)
+        try!(", at offset: ".fmt(fmt));
+        fmt::Debug::fmt(&self.at.offset(), fmt)
     }
 }
 

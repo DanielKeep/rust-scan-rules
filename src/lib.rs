@@ -5,7 +5,7 @@ extern crate regex;
 #[macro_use] mod macros;
 
 pub use error::{ScanError, ScanErrorKind};
-pub use input::ScanInput;
+pub use input::{Cursor, ScanInput};
 pub use scanner::{ScanFromStr, ScanSelfFromStr, Word};
 
 mod error;

@@ -5,7 +5,7 @@ macro_rules! scan {
         $(, ($($tail_patterns:tt)*) => $tail_bodies:expr)* $(,)*
     ) => {
         {
-            let cur = $input;
+            let cur: $crate::Cursor = ::std::convert::Into::into($input);
 
             let result = quickscan_impl!(@scan (cur.clone()); ($($head_pattern)*,) => $head_body);
 
@@ -138,7 +138,12 @@ macro_rules! quickscan_impl {
             let max: ::std::option::Option<usize> = $max;
             quickscan_impl!(@with_bindings ($($pat)*), then: quickscan_impl!(@repeat.define_cols $col_ty,););
 
-            let break_err;
+            match (min, max) {
+                (a, Some(b)) if a > b => panic!("assertion failed: `(min <= max)` (min: `{:?}`, max: `{:?}`)", a, b),
+                _ => ()
+            }
+
+            let mut break_err: Option<$crate::ScanError> = None;
 
             loop {
                 match max {
@@ -158,16 +163,15 @@ macro_rules! quickscan_impl {
                         quickscan_impl!(@with_bindings ($($pat)*), then: quickscan_impl!(@repeat.push elems,););
                         repeats += 1;
                     },
-                    err @ ::std::result::Result::Err(_) => {
-                        break_err = err;
+                    ::std::result::Result::Err(err) => {
+                        break_err = Some(err);
                         break;
                     }
                 }
             }
 
             if repeats < min {
-                let _ = break_err; // TODO
-                Err($crate::ScanError::missing(cur))
+                Err(break_err.unwrap())
             } else {
                 quickscan_impl!(@scan (cur); $($tail)*)
             }
