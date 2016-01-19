@@ -1,6 +1,7 @@
 #[macro_use] extern crate lazy_static;
 extern crate itertools;
 extern crate regex;
+extern crate strcursor;
 
 #[macro_use] mod macros;
 

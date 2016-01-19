@@ -1,5 +1,9 @@
 pub use self::misc::Word;
 
+#[macro_use] mod macros;
+
+pub mod util;
+
 mod lang;
 mod misc;
 mod std;
