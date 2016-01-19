@@ -108,32 +108,97 @@ macro_rules! quickscan_impl {
     /*
     ## Repeating entry.
     */
+    /*
+    ### No separator.
+    */
     (@scan ($cur:expr); ([$($pat:tt)*]?, $($tail:tt)*) => $body:expr) => {
-        quickscan_impl!(@repeat ($cur), [$($pat)*], {0, Some(1)}, Vec<_>; ($($tail)*) => $body)
+        quickscan_impl!(@repeat ($cur), [$($pat)*], (), {0, Some(1)}, Vec<_>; ($($tail)*) => $body)
     };
 
     (@scan ($cur:expr); ([$($pat:tt)*]*, $($tail:tt)*) => $body:expr) => {
-        quickscan_impl!(@repeat ($cur), [$($pat)*], {0, None}, Vec<_>; ($($tail)*) => $body)
+        quickscan_impl!(@repeat ($cur), [$($pat)*], (), {0, None}, Vec<_>; ($($tail)*) => $body)
     };
 
     (@scan ($cur:expr); ([$($pat:tt)*]+, $($tail:tt)*) => $body:expr) => {
-        quickscan_impl!(@repeat ($cur), [$($pat)*], {1, None}, Vec<_>; ($($tail)*) => $body)
+        quickscan_impl!(@repeat ($cur), [$($pat)*], (), {1, None}, Vec<_>; ($($tail)*) => $body)
     };
 
     (@scan ($cur:expr); ([$($pat:tt)*]{,$max:expr}, $($tail:tt)*) => $body:expr) => {
-        quickscan_impl!(@repeat ($cur), [$($pat)*], {0, Some($max)}, Vec<_>; ($($tail)*) => $body)
+        quickscan_impl!(@repeat ($cur), [$($pat)*], (), {0, Some($max)}, Vec<_>; ($($tail)*) => $body)
     };
 
     (@scan ($cur:expr); ([$($pat:tt)*]{$n:expr}, $($tail:tt)*) => $body:expr) => {
-        quickscan_impl!(@repeat ($cur), [$($pat)*], {$n, Some($n)}, Vec<_>; ($($tail)*) => $body)
+        quickscan_impl!(@repeat ($cur), [$($pat)*], (), {$n, Some($n)}, Vec<_>; ($($tail)*) => $body)
     };
 
     (@scan ($cur:expr); ([$($pat:tt)*]{$min:expr,}, $($tail:tt)*) => $body:expr) => {
-        quickscan_impl!(@repeat ($cur), [$($pat)*], {$min, None}, Vec<_>; ($($tail)*) => $body)
+        quickscan_impl!(@repeat ($cur), [$($pat)*], (), {$min, None}, Vec<_>; ($($tail)*) => $body)
     };
 
     (@scan ($cur:expr); ([$($pat:tt)*]{$min:expr, $max:expr}, $($tail:tt)*) => $body:expr) => {
-        quickscan_impl!(@repeat ($cur), [$($pat)*], {$min, Some($max)}, Vec<_>; ($($tail)*) => $body)
+        quickscan_impl!(@repeat ($cur), [$($pat)*], (), {$min, Some($max)}, Vec<_>; ($($tail)*) => $body)
+    };
+
+    /*
+    ### Comma separator.
+    */
+    (@scan ($cur:expr); ([$($pat:tt)*],?, $($tail:tt)*) => $body:expr) => {
+        quickscan_impl!(@repeat ($cur), [$($pat)*], (","), {0, Some(1)}, Vec<_>; ($($tail)*) => $body)
+    };
+
+    (@scan ($cur:expr); ([$($pat:tt)*],*, $($tail:tt)*) => $body:expr) => {
+        quickscan_impl!(@repeat ($cur), [$($pat)*], (","), {0, None}, Vec<_>; ($($tail)*) => $body)
+    };
+
+    (@scan ($cur:expr); ([$($pat:tt)*],+, $($tail:tt)*) => $body:expr) => {
+        quickscan_impl!(@repeat ($cur), [$($pat)*], (","), {1, None}, Vec<_>; ($($tail)*) => $body)
+    };
+
+    (@scan ($cur:expr); ([$($pat:tt)*],{,$max:expr}, $($tail:tt)*) => $body:expr) => {
+        quickscan_impl!(@repeat ($cur), [$($pat)*], (","), {0, Some($max)}, Vec<_>; ($($tail)*) => $body)
+    };
+
+    (@scan ($cur:expr); ([$($pat:tt)*],{$n:expr}, $($tail:tt)*) => $body:expr) => {
+        quickscan_impl!(@repeat ($cur), [$($pat)*], (","), {$n, Some($n)}, Vec<_>; ($($tail)*) => $body)
+    };
+
+    (@scan ($cur:expr); ([$($pat:tt)*],{$min:expr,}, $($tail:tt)*) => $body:expr) => {
+        quickscan_impl!(@repeat ($cur), [$($pat)*], (","), {$min, None}, Vec<_>; ($($tail)*) => $body)
+    };
+
+    (@scan ($cur:expr); ([$($pat:tt)*],{$min:expr, $max:expr}, $($tail:tt)*) => $body:expr) => {
+        quickscan_impl!(@repeat ($cur), [$($pat)*], (","), {$min, Some($max)}, Vec<_>; ($($tail)*) => $body)
+    };
+
+    /*
+    ### Sub-pattern separator.
+    */
+    (@scan ($cur:expr); ([$($pat:tt)*]($($sep:tt)*)?, $($tail:tt)*) => $body:expr) => {
+        quickscan_impl!(@repeat ($cur), [$($pat)*], ($($sep)*), {0, Some(1)}, Vec<_>; ($($tail)*) => $body)
+    };
+
+    (@scan ($cur:expr); ([$($pat:tt)*]($($sep:tt)*)*, $($tail:tt)*) => $body:expr) => {
+        quickscan_impl!(@repeat ($cur), [$($pat)*], ($($sep)*), {0, None}, Vec<_>; ($($tail)*) => $body)
+    };
+
+    (@scan ($cur:expr); ([$($pat:tt)*]($($sep:tt)*)+, $($tail:tt)*) => $body:expr) => {
+        quickscan_impl!(@repeat ($cur), [$($pat)*], ($($sep)*), {1, None}, Vec<_>; ($($tail)*) => $body)
+    };
+
+    (@scan ($cur:expr); ([$($pat:tt)*]($($sep:tt)*){,$max:expr}, $($tail:tt)*) => $body:expr) => {
+        quickscan_impl!(@repeat ($cur), [$($pat)*], ($($sep)*), {0, Some($max)}, Vec<_>; ($($tail)*) => $body)
+    };
+
+    (@scan ($cur:expr); ([$($pat:tt)*]($($sep:tt)*){$n:expr}, $($tail:tt)*) => $body:expr) => {
+        quickscan_impl!(@repeat ($cur), [$($pat)*], ($($sep)*), {$n, Some($n)}, Vec<_>; ($($tail)*) => $body)
+    };
+
+    (@scan ($cur:expr); ([$($pat:tt)*]($($sep:tt)*){$min:expr,}, $($tail:tt)*) => $body:expr) => {
+        quickscan_impl!(@repeat ($cur), [$($pat)*], ($($sep)*), {$min, None}, Vec<_>; ($($tail)*) => $body)
+    };
+
+    (@scan ($cur:expr); ([$($pat:tt)*]($($sep:tt)*){$min:expr, $max:expr}, $($tail:tt)*) => $body:expr) => {
+        quickscan_impl!(@repeat ($cur), [$($pat)*], ($($sep)*), {$min, Some($max)}, Vec<_>; ($($tail)*) => $body)
     };
 
     /*
@@ -152,7 +217,7 @@ macro_rules! quickscan_impl {
 
     */
     (@repeat ($cur:expr),
-        [$($pat:tt)*], {$min:expr, $max:expr}, $col_ty:ty;
+        [$($pat:tt)*], ($($sep:tt)*), {$min:expr, $max:expr}, $col_ty:ty;
         $($tail:tt)*
     ) => {
         {
@@ -161,6 +226,7 @@ macro_rules! quickscan_impl {
             let min: usize = $min;
             let max: ::std::option::Option<usize> = $max;
             quickscan_impl!(@with_bindings ($($pat)*), then: quickscan_impl!(@repeat.define_cols $col_ty,););
+            quickscan_impl!(@with_bindings ($($sep)*), then: quickscan_impl!(@repeat.define_cols $col_ty,););
 
             match (min, max) {
                 (a, Some(b)) if a > b => panic!("assertion failed: `(min <= max)` (min: `{:?}`, max: `{:?}`)", a, b),
@@ -168,12 +234,39 @@ macro_rules! quickscan_impl {
             }
 
             let mut break_err: Option<$crate::ScanError> = None;
+            let mut break_after_sep;
 
             loop {
+                // Doing this here prevents an "does not need to be mut" warning.
+                break_after_sep = false;
+
                 match max {
                     ::std::option::Option::Some(max) if max == repeats => break,
                     _ => ()
                 }
+
+                quickscan_impl!(@if_empty.expr ($($sep)*) {
+                    () // Do nothing.
+                } else {
+                    if repeats > 0 {
+                        match quickscan_impl!(@scan (cur);
+                            ($($sep)*, ^..after,) => {
+                                cur = after;
+                                quickscan_impl!(@with_bindings ($($sep)*), then: quickscan_impl!(@repeat.tuple))
+                            }
+                        ) {
+                            ::std::result::Result::Ok(elems) => {
+                                // See below about black-holing.
+                                let _ = elems.0;
+                                quickscan_impl!(@with_bindings ($($sep)*), then: quickscan_impl!(@repeat.push elems,););
+                            },
+                            ::std::result::Result::Err(err) => {
+                                break_err = Some(err);
+                                break;
+                            }
+                        }
+                    }
+                });
 
                 match quickscan_impl!(@scan (cur);
                     ($($pat)*, ^..after,) => {
@@ -188,13 +281,18 @@ macro_rules! quickscan_impl {
                         repeats += 1;
                     },
                     ::std::result::Result::Err(err) => {
+                        quickscan_impl!(@if_empty.expr ($($sep)*) {
+                            () // Do nothing
+                        } else {
+                            break_after_sep = true
+                        });
                         break_err = Some(err);
                         break;
                     }
                 }
             }
 
-            if repeats < min {
+            if repeats < min || break_after_sep {
                 Err(break_err.unwrap())
             } else {
                 quickscan_impl!(@scan (cur); $($tail)*)
@@ -265,7 +363,7 @@ macro_rules! quickscan_impl {
     (@with_bindings.step
         $_i:expr,
         ($($names:tt)*),
-        ($cb_name:ident ($($cb_args:tt)*));
+        ($cb_name:ident ($($cb_args:tt)*)); $(,)*
     ) => {
         quickscan_impl!(@as_expr $cb_name!($($cb_args)* $($names)*))
     };
@@ -273,7 +371,7 @@ macro_rules! quickscan_impl {
     (@with_bindings.step
         $_i:expr,
         ($($names:tt)*),
-        ($cb_name:ident ($($cb_args:tt)*););
+        ($cb_name:ident ($($cb_args:tt)*);); $(,)*
     ) => {
         quickscan_impl!(@as_stmt $cb_name!($($cb_args)* $($names)*))
     };
@@ -343,6 +441,14 @@ macro_rules! quickscan_impl {
     */
     (@as_expr $e:expr) => {$e};
     (@as_stmt $s:stmt) => {$s};
+
+    (@if_empty.expr () {$($th:tt)*} else {$($_el:tt)*}) => {
+        quickscan_impl!(@as_expr $($th)*)
+    };
+
+    (@if_empty.expr ($($_tts:tt)+) {$($_th:tt)*} else {$($el:tt)*}) => {
+        quickscan_impl!(@as_expr $($el)*)
+    };
 
     // /*
     // # `@err` - Process error for return to caller.

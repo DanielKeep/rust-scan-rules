@@ -130,4 +130,59 @@ fn test_repeating() {
         scan!("0 1 2 3"; ([ let ns: i32 ]{,3}, ..tail) => (ns, tail)),
         Ok((ref ns, " 3")) if *ns == vec![0, 1, 2]
     );
+
+    assert_match!(
+        scan!("0, 1, 2, 3"; ([ let ns: i32 ],*, ..tail) => (ns, tail)),
+        Ok((ref ns, "")) if *ns == vec![0, 1, 2, 3]
+    );
+
+    assert_match!(
+        scan!("0, 1, 2 3"; ([ let ns: i32 ],*, ..tail) => (ns, tail)),
+        Ok((ref ns, " 3")) if *ns == vec![0, 1, 2]
+    );
+
+    assert_match!(
+        scan!("0, 1 2, 3"; ([ let ns: i32 ],*, ..tail) => (ns, tail)),
+        Ok((ref ns, " 2, 3")) if *ns == vec![0, 1]
+    );
+
+    assert_match!(
+        scan!("0 1, 2, 3"; ([ let ns: i32 ],*, ..tail) => (ns, tail)),
+        Ok((ref ns, " 1, 2, 3")) if *ns == vec![0]
+    );
+
+    assert_match!(
+        scan!("0, 1, 2, 3,"; ([ let ns: i32 ],*, ..tail) => (ns, tail)),
+        Err(SE { ref at, kind: SEK::Missing }) if at.offset() == 11
+    );
+
+    assert_match!(
+        scan!("0 and 1 and 2 and 3"; ([ let ns: i32 ]("and")*, ..tail) => (ns, tail)),
+        Ok((ref ns, "")) if *ns == vec![0, 1, 2, 3]
+    );
+
+    assert_match!(
+        scan!("0 and 1 and 2 3"; ([ let ns: i32 ]("and")*, ..tail) => (ns, tail)),
+        Ok((ref ns, " 3")) if *ns == vec![0, 1, 2]
+    );
+
+    assert_match!(
+        scan!("0 and 1 2 and 3"; ([ let ns: i32 ]("and")*, ..tail) => (ns, tail)),
+        Ok((ref ns, " 2 and 3")) if *ns == vec![0, 1]
+    );
+
+    assert_match!(
+        scan!("0 1 and 2 and 3"; ([ let ns: i32 ]("and")*, ..tail) => (ns, tail)),
+        Ok((ref ns, " 1 and 2 and 3")) if *ns == vec![0]
+    );
+
+    assert_match!(
+        scan!("0 and 1 and 2 and 3 and"; ([ let ns: i32 ]("and")*, ..tail) => (ns, tail)),
+        Err(SE { ref at, kind: SEK::Missing }) if at.offset() == 23
+    );
+
+    assert_match!(
+        scan!("0 and 1 and 2 and 3"; ([ let ns: i32 ]( let sep: &str )*, ..tail) => (ns, sep, tail)),
+        Ok((ref ns, ref sep, "")) if *ns == vec![0, 1, 2, 3] && *sep == vec!["and", "and", "and"]
+    );
 }
