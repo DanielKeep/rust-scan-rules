@@ -108,8 +108,32 @@ macro_rules! quickscan_impl {
     /*
     ## Repeating entry.
     */
+    (@scan ($cur:expr); ([$($pat:tt)*]?, $($tail:tt)*) => $body:expr) => {
+        quickscan_impl!(@repeat ($cur), [$($pat)*], {0, Some(1)}, Vec<_>; ($($tail)*) => $body)
+    };
+
     (@scan ($cur:expr); ([$($pat:tt)*]*, $($tail:tt)*) => $body:expr) => {
         quickscan_impl!(@repeat ($cur), [$($pat)*], {0, None}, Vec<_>; ($($tail)*) => $body)
+    };
+
+    (@scan ($cur:expr); ([$($pat:tt)*]+, $($tail:tt)*) => $body:expr) => {
+        quickscan_impl!(@repeat ($cur), [$($pat)*], {1, None}, Vec<_>; ($($tail)*) => $body)
+    };
+
+    (@scan ($cur:expr); ([$($pat:tt)*]{,$max:expr}, $($tail:tt)*) => $body:expr) => {
+        quickscan_impl!(@repeat ($cur), [$($pat)*], {0, Some($max)}, Vec<_>; ($($tail)*) => $body)
+    };
+
+    (@scan ($cur:expr); ([$($pat:tt)*]{$n:expr}, $($tail:tt)*) => $body:expr) => {
+        quickscan_impl!(@repeat ($cur), [$($pat)*], {$n, Some($n)}, Vec<_>; ($($tail)*) => $body)
+    };
+
+    (@scan ($cur:expr); ([$($pat:tt)*]{$min:expr,}, $($tail:tt)*) => $body:expr) => {
+        quickscan_impl!(@repeat ($cur), [$($pat)*], {$min, None}, Vec<_>; ($($tail)*) => $body)
+    };
+
+    (@scan ($cur:expr); ([$($pat:tt)*]{$min:expr, $max:expr}, $($tail:tt)*) => $body:expr) => {
+        quickscan_impl!(@repeat ($cur), [$($pat)*], {$min, Some($max)}, Vec<_>; ($($tail)*) => $body)
     };
 
     /*

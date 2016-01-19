@@ -1,8 +1,56 @@
 #[macro_use] extern crate quickscan;
 #[macro_use] mod util;
 
+use quickscan::ScanError as SE;
+use quickscan::ScanErrorKind as SEK;
+
 #[test]
 fn test_repeating() {
+    assert_match!(
+        scan!("[]"; ("[", [ let ns: i32 ]?, "]") => ns),
+        Ok(ref ns) if *ns == vec![]
+    );
+
+    assert_match!(
+        scan!("[]"; ("[", [ let ns: i32 ]*, "]") => ns),
+        Ok(ref ns) if *ns == vec![]
+    );
+
+    assert_match!(
+        scan!("[]"; ("[", [ let ns: i32 ]+, "]") => ns),
+        Err(SE { ref at, kind: SEK::Missing }) if at.offset() == 1
+    );
+
+    assert_match!(
+        scan!("[0]"; ("[", [ let ns: i32 ]?, "]") => ns),
+        Ok(ref ns) if *ns == vec![0]
+    );
+
+    assert_match!(
+        scan!("[0]"; ("[", [ let ns: i32 ]*, "]") => ns),
+        Ok(ref ns) if *ns == vec![0]
+    );
+
+    assert_match!(
+        scan!("[0]"; ("[", [ let ns: i32 ]+, "]") => ns),
+        Ok(ref ns) if *ns == vec![0]
+    );
+
+    assert_match!(
+        scan!("[0 1]"; ("[", [ let ns: i32 ]?, "]") => ns),
+        Err(SE { ref at, kind: SEK::LiteralMismatch }) if at.offset() == 3
+    );
+
+    assert_match!(
+        scan!("[0 1]"; ("[", [ let ns: i32 ]*, "]") => ns),
+        Ok(ref ns) if *ns == vec![0, 1]
+    );
+
+    assert_match!(
+        scan!("[0 1]"; ("[", [ let ns: i32 ]+, "]") => ns),
+        Ok(ref ns) if *ns == vec![0, 1]
+    );
+
     assert_match!(
         scan!("[0 1 2 3]"; ("[", [ let _: i32 ]*, "]") => ()),
         Ok(())
@@ -26,5 +74,60 @@ fn test_repeating() {
     assert_match!(
         scan!("[0 [1 2] 3 [4 5]]"; ("[", [let xs: i32, "[", [let yss: i32]*, "]"]*, "]") => (xs, yss)),
         Ok((ref xs, ref yss)) if *xs == vec![0, 3] && *yss == vec![vec![1, 2], vec![4, 5]]
+    );
+
+    assert_match!(
+        scan!("0"; ([ let ns: i32 ]{2}, ..tail) => (ns, tail)),
+        Err(SE { ref at, kind: SEK::Missing }) if at.offset() == 1
+    );
+
+    assert_match!(
+        scan!("0 1"; ([ let ns: i32 ]{2}, ..tail) => (ns, tail)),
+        Ok((ref ns, "")) if *ns == vec![0, 1]
+    );
+
+    assert_match!(
+        scan!("0 1 2"; ([ let ns: i32 ]{2}, ..tail) => (ns, tail)),
+        Ok((ref ns, " 2")) if *ns == vec![0, 1]
+    );
+
+    assert_match!(
+        scan!("0"; ([ let ns: i32 ]{2, 3}, ..tail) => (ns, tail)),
+        Err(SE { ref at, kind: SEK::Missing }) if at.offset() == 1
+    );
+
+    assert_match!(
+        scan!("0 1"; ([ let ns: i32 ]{2, 3}, ..tail) => (ns, tail)),
+        Ok((ref ns, "")) if *ns == vec![0, 1]
+    );
+
+    assert_match!(
+        scan!("0 1 2"; ([ let ns: i32 ]{2, 3}, ..tail) => (ns, tail)),
+        Ok((ref ns, "")) if *ns == vec![0, 1, 2]
+    );
+
+    assert_match!(
+        scan!("0 1 2 3"; ([ let ns: i32 ]{2, 3}, ..tail) => (ns, tail)),
+        Ok((ref ns, " 3")) if *ns == vec![0, 1, 2]
+    );
+
+    assert_match!(
+        scan!("0"; ([ let ns: i32 ]{,3}, ..tail) => (ns, tail)),
+        Ok((ref ns, "")) if *ns == vec![0]
+    );
+
+    assert_match!(
+        scan!("0 1"; ([ let ns: i32 ]{,3}, ..tail) => (ns, tail)),
+        Ok((ref ns, "")) if *ns == vec![0, 1]
+    );
+
+    assert_match!(
+        scan!("0 1 2"; ([ let ns: i32 ]{,3}, ..tail) => (ns, tail)),
+        Ok((ref ns, "")) if *ns == vec![0, 1, 2]
+    );
+
+    assert_match!(
+        scan!("0 1 2 3"; ([ let ns: i32 ]{,3}, ..tail) => (ns, tail)),
+        Ok((ref ns, " 3")) if *ns == vec![0, 1, 2]
     );
 }
