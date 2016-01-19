@@ -25,3 +25,9 @@ pub fn strip_line_term(s: &str) -> &str {
         s
     }
 }
+
+#[doc(hidden)]
+pub fn subslice_offset(a: &str, b: &str) -> Option<usize> {
+    use scanner::util::StrUtil;
+    a.subslice_offset(b)
+}

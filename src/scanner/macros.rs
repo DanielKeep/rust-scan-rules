@@ -74,3 +74,38 @@ macro_rules! parse_scanner {
         }
     };
 }
+
+macro_rules! scanner {
+    (@as_item $i:item) => {$i};
+
+    (
+        impl<$lt:tt $(, $ty_params:ident)*> ScanFromStr for $ty:ty { $($patterns:tt)* }
+    ) => {
+        scanner! { impl<$lt $(, $ty_params)*> ScanFromStr for $ty where {} { $($patterns)* } }
+    };
+
+    (
+        impl<$lt:tt $(, $ty_params:ident)*> ScanFromStr for $ty:ty where {$($clauses:tt)*} { $($patterns:tt)* }
+    ) => {
+        scanner! {
+            @as_item
+            impl<$lt $(, $ty_params)*> $crate::ScanFromStr<$lt> for $ty
+            where
+                $($ty_params: $crate::ScanFromStr<$lt, Output=$ty_params>,)*
+                $($clauses)*
+            {
+                type Output = Self;
+
+                fn scan_from(s: &$lt str) -> Result<(Self::Output, usize), $crate::ScanErrorKind> {
+                    match scan! { s; $($patterns)* } {
+                        Ok((v, tail)) => {
+                            let off = ::std::option::Option::expect($crate::subslice_offset(s, tail), "scanner returned tail that wasn't part of the original input");
+                            Ok((v, off))
+                        },
+                        Err(err) => Err(err.kind),
+                    }
+                }
+            }
+        }
+    };
+}

@@ -1,3 +1,4 @@
+mod collections;
 mod net;
 
 use ::ScanErrorKind;

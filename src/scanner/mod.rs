@@ -1,4 +1,4 @@
-pub use self::misc::Word;
+pub use self::misc::{KeyValuePair, Word};
 
 #[macro_use] mod macros;
 

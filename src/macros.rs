@@ -155,94 +155,94 @@ macro_rules! scan_rules_impl {
     /*
     ### No separator.
     */
-    (@scan ($cur:expr); ([$($pat:tt)*]?, $($tail:tt)*) => $body:expr) => {
-        scan_rules_impl!(@repeat ($cur), [$($pat)*], (), {0, Some(1)}, Vec<_>; ($($tail)*) => $body)
+    (@scan ($cur:expr); ([$($pat:tt)*]? $(: $col_ty:ty)*, $($tail:tt)*) => $body:expr) => {
+        scan_rules_impl!(@repeat ($cur), [$($pat)*], (), {0, Some(1)}, ($($col_ty)*); ($($tail)*) => $body)
     };
 
-    (@scan ($cur:expr); ([$($pat:tt)*]*, $($tail:tt)*) => $body:expr) => {
-        scan_rules_impl!(@repeat ($cur), [$($pat)*], (), {0, None}, Vec<_>; ($($tail)*) => $body)
+    (@scan ($cur:expr); ([$($pat:tt)*]* $(: $col_ty:ty)*, $($tail:tt)*) => $body:expr) => {
+        scan_rules_impl!(@repeat ($cur), [$($pat)*], (), {0, None}, ($($col_ty)*); ($($tail)*) => $body)
     };
 
-    (@scan ($cur:expr); ([$($pat:tt)*]+, $($tail:tt)*) => $body:expr) => {
-        scan_rules_impl!(@repeat ($cur), [$($pat)*], (), {1, None}, Vec<_>; ($($tail)*) => $body)
+    (@scan ($cur:expr); ([$($pat:tt)*]+ $(: $col_ty:ty)*, $($tail:tt)*) => $body:expr) => {
+        scan_rules_impl!(@repeat ($cur), [$($pat)*], (), {1, None}, ($($col_ty)*); ($($tail)*) => $body)
     };
 
-    (@scan ($cur:expr); ([$($pat:tt)*]{,$max:expr}, $($tail:tt)*) => $body:expr) => {
-        scan_rules_impl!(@repeat ($cur), [$($pat)*], (), {0, Some($max)}, Vec<_>; ($($tail)*) => $body)
+    (@scan ($cur:expr); ([$($pat:tt)*]{,$max:expr} $(: $col_ty:ty)*, $($tail:tt)*) => $body:expr) => {
+        scan_rules_impl!(@repeat ($cur), [$($pat)*], (), {0, Some($max)}, ($($col_ty)*); ($($tail)*) => $body)
     };
 
-    (@scan ($cur:expr); ([$($pat:tt)*]{$n:expr}, $($tail:tt)*) => $body:expr) => {
-        scan_rules_impl!(@repeat ($cur), [$($pat)*], (), {$n, Some($n)}, Vec<_>; ($($tail)*) => $body)
+    (@scan ($cur:expr); ([$($pat:tt)*]{$n:expr} $(: $col_ty:ty)*, $($tail:tt)*) => $body:expr) => {
+        scan_rules_impl!(@repeat ($cur), [$($pat)*], (), {$n, Some($n)}, ($($col_ty)*); ($($tail)*) => $body)
     };
 
-    (@scan ($cur:expr); ([$($pat:tt)*]{$min:expr,}, $($tail:tt)*) => $body:expr) => {
-        scan_rules_impl!(@repeat ($cur), [$($pat)*], (), {$min, None}, Vec<_>; ($($tail)*) => $body)
+    (@scan ($cur:expr); ([$($pat:tt)*]{$min:expr,} $(: $col_ty:ty)*, $($tail:tt)*) => $body:expr) => {
+        scan_rules_impl!(@repeat ($cur), [$($pat)*], (), {$min, None}, ($($col_ty)*); ($($tail)*) => $body)
     };
 
-    (@scan ($cur:expr); ([$($pat:tt)*]{$min:expr, $max:expr}, $($tail:tt)*) => $body:expr) => {
-        scan_rules_impl!(@repeat ($cur), [$($pat)*], (), {$min, Some($max)}, Vec<_>; ($($tail)*) => $body)
+    (@scan ($cur:expr); ([$($pat:tt)*]{$min:expr, $max:expr} $(: $col_ty:ty)*, $($tail:tt)*) => $body:expr) => {
+        scan_rules_impl!(@repeat ($cur), [$($pat)*], (), {$min, Some($max)}, ($($col_ty)*); ($($tail)*) => $body)
     };
 
     /*
     ### Comma separator.
     */
-    (@scan ($cur:expr); ([$($pat:tt)*],?, $($tail:tt)*) => $body:expr) => {
-        scan_rules_impl!(@repeat ($cur), [$($pat)*], (","), {0, Some(1)}, Vec<_>; ($($tail)*) => $body)
+    (@scan ($cur:expr); ([$($pat:tt)*],? $(: $col_ty:ty)*, $($tail:tt)*) => $body:expr) => {
+        scan_rules_impl!(@repeat ($cur), [$($pat)*], (","), {0, Some(1)}, ($($col_ty)*); ($($tail)*) => $body)
     };
 
-    (@scan ($cur:expr); ([$($pat:tt)*],*, $($tail:tt)*) => $body:expr) => {
-        scan_rules_impl!(@repeat ($cur), [$($pat)*], (","), {0, None}, Vec<_>; ($($tail)*) => $body)
+    (@scan ($cur:expr); ([$($pat:tt)*],* $(: $col_ty:ty)*, $($tail:tt)*) => $body:expr) => {
+        scan_rules_impl!(@repeat ($cur), [$($pat)*], (","), {0, None}, ($($col_ty)*); ($($tail)*) => $body)
     };
 
-    (@scan ($cur:expr); ([$($pat:tt)*],+, $($tail:tt)*) => $body:expr) => {
-        scan_rules_impl!(@repeat ($cur), [$($pat)*], (","), {1, None}, Vec<_>; ($($tail)*) => $body)
+    (@scan ($cur:expr); ([$($pat:tt)*],+ $(: $col_ty:ty)*, $($tail:tt)*) => $body:expr) => {
+        scan_rules_impl!(@repeat ($cur), [$($pat)*], (","), {1, None}, ($($col_ty)*); ($($tail)*) => $body)
     };
 
-    (@scan ($cur:expr); ([$($pat:tt)*],{,$max:expr}, $($tail:tt)*) => $body:expr) => {
-        scan_rules_impl!(@repeat ($cur), [$($pat)*], (","), {0, Some($max)}, Vec<_>; ($($tail)*) => $body)
+    (@scan ($cur:expr); ([$($pat:tt)*],{,$max:expr} $(: $col_ty:ty)*, $($tail:tt)*) => $body:expr) => {
+        scan_rules_impl!(@repeat ($cur), [$($pat)*], (","), {0, Some($max)}, ($($col_ty)*); ($($tail)*) => $body)
     };
 
-    (@scan ($cur:expr); ([$($pat:tt)*],{$n:expr}, $($tail:tt)*) => $body:expr) => {
-        scan_rules_impl!(@repeat ($cur), [$($pat)*], (","), {$n, Some($n)}, Vec<_>; ($($tail)*) => $body)
+    (@scan ($cur:expr); ([$($pat:tt)*],{$n:expr} $(: $col_ty:ty)*, $($tail:tt)*) => $body:expr) => {
+        scan_rules_impl!(@repeat ($cur), [$($pat)*], (","), {$n, Some($n)}, ($($col_ty)*); ($($tail)*) => $body)
     };
 
-    (@scan ($cur:expr); ([$($pat:tt)*],{$min:expr,}, $($tail:tt)*) => $body:expr) => {
-        scan_rules_impl!(@repeat ($cur), [$($pat)*], (","), {$min, None}, Vec<_>; ($($tail)*) => $body)
+    (@scan ($cur:expr); ([$($pat:tt)*],{$min:expr,} $(: $col_ty:ty)*, $($tail:tt)*) => $body:expr) => {
+        scan_rules_impl!(@repeat ($cur), [$($pat)*], (","), {$min, None}, ($($col_ty)*); ($($tail)*) => $body)
     };
 
-    (@scan ($cur:expr); ([$($pat:tt)*],{$min:expr, $max:expr}, $($tail:tt)*) => $body:expr) => {
-        scan_rules_impl!(@repeat ($cur), [$($pat)*], (","), {$min, Some($max)}, Vec<_>; ($($tail)*) => $body)
+    (@scan ($cur:expr); ([$($pat:tt)*],{$min:expr, $max:expr} $(: $col_ty:ty)*, $($tail:tt)*) => $body:expr) => {
+        scan_rules_impl!(@repeat ($cur), [$($pat)*], (","), {$min, Some($max)}, ($($col_ty)*); ($($tail)*) => $body)
     };
 
     /*
     ### Sub-pattern separator.
     */
-    (@scan ($cur:expr); ([$($pat:tt)*]($($sep:tt)*)?, $($tail:tt)*) => $body:expr) => {
-        scan_rules_impl!(@repeat ($cur), [$($pat)*], ($($sep)*), {0, Some(1)}, Vec<_>; ($($tail)*) => $body)
+    (@scan ($cur:expr); ([$($pat:tt)*]($($sep:tt)*)? $(: $col_ty:ty)*, $($tail:tt)*) => $body:expr) => {
+        scan_rules_impl!(@repeat ($cur), [$($pat)*], ($($sep)*), {0, Some(1)}, ($($col_ty)*); ($($tail)*) => $body)
     };
 
-    (@scan ($cur:expr); ([$($pat:tt)*]($($sep:tt)*)*, $($tail:tt)*) => $body:expr) => {
-        scan_rules_impl!(@repeat ($cur), [$($pat)*], ($($sep)*), {0, None}, Vec<_>; ($($tail)*) => $body)
+    (@scan ($cur:expr); ([$($pat:tt)*]($($sep:tt)*)* $(: $col_ty:ty)*, $($tail:tt)*) => $body:expr) => {
+        scan_rules_impl!(@repeat ($cur), [$($pat)*], ($($sep)*), {0, None}, ($($col_ty)*); ($($tail)*) => $body)
     };
 
-    (@scan ($cur:expr); ([$($pat:tt)*]($($sep:tt)*)+, $($tail:tt)*) => $body:expr) => {
-        scan_rules_impl!(@repeat ($cur), [$($pat)*], ($($sep)*), {1, None}, Vec<_>; ($($tail)*) => $body)
+    (@scan ($cur:expr); ([$($pat:tt)*]($($sep:tt)*)+ $(: $col_ty:ty)*, $($tail:tt)*) => $body:expr) => {
+        scan_rules_impl!(@repeat ($cur), [$($pat)*], ($($sep)*), {1, None}, ($($col_ty)*); ($($tail)*) => $body)
     };
 
-    (@scan ($cur:expr); ([$($pat:tt)*]($($sep:tt)*){,$max:expr}, $($tail:tt)*) => $body:expr) => {
-        scan_rules_impl!(@repeat ($cur), [$($pat)*], ($($sep)*), {0, Some($max)}, Vec<_>; ($($tail)*) => $body)
+    (@scan ($cur:expr); ([$($pat:tt)*]($($sep:tt)*){,$max:expr} $(: $col_ty:ty)*, $($tail:tt)*) => $body:expr) => {
+        scan_rules_impl!(@repeat ($cur), [$($pat)*], ($($sep)*), {0, Some($max)}, ($($col_ty)*); ($($tail)*) => $body)
     };
 
-    (@scan ($cur:expr); ([$($pat:tt)*]($($sep:tt)*){$n:expr}, $($tail:tt)*) => $body:expr) => {
-        scan_rules_impl!(@repeat ($cur), [$($pat)*], ($($sep)*), {$n, Some($n)}, Vec<_>; ($($tail)*) => $body)
+    (@scan ($cur:expr); ([$($pat:tt)*]($($sep:tt)*){$n:expr} $(: $col_ty:ty)*, $($tail:tt)*) => $body:expr) => {
+        scan_rules_impl!(@repeat ($cur), [$($pat)*], ($($sep)*), {$n, Some($n)}, ($($col_ty)*); ($($tail)*) => $body)
     };
 
-    (@scan ($cur:expr); ([$($pat:tt)*]($($sep:tt)*){$min:expr,}, $($tail:tt)*) => $body:expr) => {
-        scan_rules_impl!(@repeat ($cur), [$($pat)*], ($($sep)*), {$min, None}, Vec<_>; ($($tail)*) => $body)
+    (@scan ($cur:expr); ([$($pat:tt)*]($($sep:tt)*){$min:expr,} $(: $col_ty:ty)*, $($tail:tt)*) => $body:expr) => {
+        scan_rules_impl!(@repeat ($cur), [$($pat)*], ($($sep)*), {$min, None}, ($($col_ty)*); ($($tail)*) => $body)
     };
 
-    (@scan ($cur:expr); ([$($pat:tt)*]($($sep:tt)*){$min:expr, $max:expr}, $($tail:tt)*) => $body:expr) => {
-        scan_rules_impl!(@repeat ($cur), [$($pat)*], ($($sep)*), {$min, Some($max)}, Vec<_>; ($($tail)*) => $body)
+    (@scan ($cur:expr); ([$($pat:tt)*]($($sep:tt)*){$min:expr, $max:expr} $(: $col_ty:ty)*, $($tail:tt)*) => $body:expr) => {
+        scan_rules_impl!(@repeat ($cur), [$($pat)*], ($($sep)*), {$min, Some($max)}, ($($col_ty)*); ($($tail)*) => $body)
     };
 
     /*
@@ -259,8 +259,24 @@ macro_rules! scan_rules_impl {
 
     # `@repeat` - Repetition expansion.
 
+    The first step here is to handle a missing `$col_ty` by replacing it with `Vec<_>`.
+
     */
     (@repeat ($cur:expr),
+        [$($pat:tt)*], ($($sep:tt)*), {$min:expr, $max:expr}, ();
+        $($tail:tt)*
+    ) => {
+        scan_rules_impl!(@repeat.with_col_ty ($cur), [$($pat)*], ($($sep)*), {$min, $max}, Vec<_>; $($tail)*)
+    };
+
+    (@repeat ($cur:expr),
+        [$($pat:tt)*], ($($sep:tt)*), {$min:expr, $max:expr}, ($col_ty:ty);
+        $($tail:tt)*
+    ) => {
+        scan_rules_impl!(@repeat.with_col_ty ($cur), [$($pat)*], ($($sep)*), {$min, $max}, $col_ty; $($tail)*)
+    };
+
+    (@repeat.with_col_ty ($cur:expr),
         [$($pat:tt)*], ($($sep:tt)*), {$min:expr, $max:expr}, $col_ty:ty;
         $($tail:tt)*
     ) => {
@@ -328,7 +344,7 @@ macro_rules! scan_rules_impl {
                         scan_rules_impl!(@if_empty.expr ($($sep)*) {
                             () // Do nothing
                         } else {
-                            break_after_sep = true
+                            break_after_sep = repeats > 0
                         });
                         break_err = Some(err);
                         break;
@@ -432,51 +448,51 @@ macro_rules! scan_rules_impl {
         scan_rules_impl!(@with_bindings.inc $i, ($($names)* ($name, $i),), $cb; $($tail)*)
     };
 
-    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*]?, $($tail:tt)*) => {
+    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*]? $(: $col_ty:ty)*, $($tail:tt)*) => {
         scan_rules_impl!(@with_bindings.step $i, $names, $cb; $($pat)*, $($tail)*)
     };
 
-    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*]*, $($tail:tt)*) => {
+    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*]* $(: $col_ty:ty)*, $($tail:tt)*) => {
         scan_rules_impl!(@with_bindings.step $i, $names, $cb; $($pat)*, $($tail)*)
     };
 
-    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*]+, $($tail:tt)*) => {
+    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*]+ $(: $col_ty:ty)*, $($tail:tt)*) => {
         scan_rules_impl!(@with_bindings.step $i, $names, $cb; $($pat)*, $($tail)*)
     };
 
-    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*]{$($_bounds:tt)*}, $($tail:tt)*) => {
+    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*]{$($_bounds:tt)*} $(: $col_ty:ty)*, $($tail:tt)*) => {
         scan_rules_impl!(@with_bindings.step $i, $names, $cb; $($pat)*, $($tail)*)
     };
 
-    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*],?, $($tail:tt)*) => {
+    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*],? $(: $col_ty:ty)*, $($tail:tt)*) => {
         scan_rules_impl!(@with_bindings.step $i, $names, $cb; $($pat)*, $($tail)*)
     };
 
-    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*],*, $($tail:tt)*) => {
+    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*],* $(: $col_ty:ty)*, $($tail:tt)*) => {
         scan_rules_impl!(@with_bindings.step $i, $names, $cb; $($pat)*, $($tail)*)
     };
 
-    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*],+, $($tail:tt)*) => {
+    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*],+ $(: $col_ty:ty)*, $($tail:tt)*) => {
         scan_rules_impl!(@with_bindings.step $i, $names, $cb; $($pat)*, $($tail)*)
     };
 
-    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*],{$($_bounds:tt)*}, $($tail:tt)*) => {
+    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*],{$($_bounds:tt)*} $(: $col_ty:ty)*, $($tail:tt)*) => {
         scan_rules_impl!(@with_bindings.step $i, $names, $cb; $($pat)*, $($tail)*)
     };
 
-    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*]($($sep:tt)*)?, $($tail:tt)*) => {
+    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*]($($sep:tt)*)? $(: $col_ty:ty)*, $($tail:tt)*) => {
         scan_rules_impl!(@with_bindings.step $i, $names, $cb; $($pat)*, $($sep)*, $($tail)*)
     };
 
-    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*]($($sep:tt)*)*, $($tail:tt)*) => {
+    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*]($($sep:tt)*)* $(: $col_ty:ty)*, $($tail:tt)*) => {
         scan_rules_impl!(@with_bindings.step $i, $names, $cb; $($pat)*, $($sep)*, $($tail)*)
     };
 
-    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*]($($sep:tt)*)+, $($tail:tt)*) => {
+    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*]($($sep:tt)*)+ $(: $col_ty:ty)*, $($tail:tt)*) => {
         scan_rules_impl!(@with_bindings.step $i, $names, $cb; $($pat)*, $($sep)*, $($tail)*)
     };
 
-    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*]($($sep:tt)*){$($_bounds:tt)*}, $($tail:tt)*) => {
+    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*]($($sep:tt)*){$($_bounds:tt)*} $(: $col_ty:ty)*, $($tail:tt)*) => {
         scan_rules_impl!(@with_bindings.step $i, $names, $cb; $($pat)*, $($sep)*, $($tail)*)
     };
 
