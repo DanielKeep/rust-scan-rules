@@ -92,6 +92,21 @@ fn test_repeating() {
     );
 
     assert_match!(
+        scan!("0"; ([ let ns: i32 ]{2,}, ..tail) => (ns, tail)),
+        Err(SE { ref at, kind: SEK::Missing }) if at.offset() == 1
+    );
+
+    assert_match!(
+        scan!("0 1"; ([ let ns: i32 ]{2,}, ..tail) => (ns, tail)),
+        Ok((ref ns, "")) if *ns == vec![0, 1]
+    );
+
+    assert_match!(
+        scan!("0 1 2"; ([ let ns: i32 ]{2,}, ..tail) => (ns, tail)),
+        Ok((ref ns, "")) if *ns == vec![0, 1, 2]
+    );
+
+    assert_match!(
         scan!("0"; ([ let ns: i32 ]{2, 3}, ..tail) => (ns, tail)),
         Err(SE { ref at, kind: SEK::Missing }) if at.offset() == 1
     );
