@@ -1,6 +1,6 @@
 [package]
 
-name = "quickscan"
+name = "scan-rules"
 version = "0.0.1"
 authors = ["Daniel Keep <daniel.keep@gmail.com>"]
 

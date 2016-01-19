@@ -1,7 +1,7 @@
-#[macro_use] extern crate quickscan;
+#[macro_use] extern crate scan_rules;
 #[macro_use] mod util;
 
-use quickscan::{ScanError, ScanErrorKind};
+use scan_rules::{ScanError, ScanErrorKind};
 
 #[test]
 fn test_tom() {

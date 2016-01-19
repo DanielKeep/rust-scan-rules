@@ -1,4 +1,4 @@
-#[macro_use] extern crate quickscan;
+#[macro_use] extern crate scan_rules;
 
 fn main() {
     print!("What's your name? ");

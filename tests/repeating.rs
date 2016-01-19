@@ -1,8 +1,8 @@
-#[macro_use] extern crate quickscan;
+#[macro_use] extern crate scan_rules;
 #[macro_use] mod util;
 
-use quickscan::ScanError as SE;
-use quickscan::ScanErrorKind as SEK;
+use scan_rules::ScanError as SE;
+use scan_rules::ScanErrorKind as SEK;
 
 #[test]
 fn test_repeating() {
