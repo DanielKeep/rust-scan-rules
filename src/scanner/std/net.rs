@@ -1,7 +1,6 @@
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
 use regex::Regex;
-use ::ScanErrorKind;
-use super::ScanFromStr;
+#[cfg(test)] use ::scanner::ScanFromStr;
 
 macro_rules! as_expr { ($e:expr) => { $e } }
 
@@ -48,13 +47,6 @@ addr_regexen! {
     ",
     sad4: (r"(", ipv4, r"):\d+"),
     sad6: (r"\[(", ipv6, r")\]:\d+"),
-}
-
-impl<'a> ScanFromStr<'a> for String {
-    type Output = String;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
-        <&str>::scan_from(s).map(|(v, n)| (v.to_owned(), n))
-    }
 }
 
 parse_scanner! { impl<'a> for Ipv4Addr, regex IPV4ADDR_RE }
