@@ -10,7 +10,7 @@ pub use scanner::{ScanFromStr, ScanSelfFromStr, Word};
 
 mod error;
 mod input;
-mod scanner;
+pub mod scanner;
 
 #[doc(hidden)]
 pub fn strip_line_term(s: &str) -> &str {
