@@ -78,3 +78,26 @@ impl<'a, T> ScanFromStr<'a> for [T; 0] {
         scan!(s; ("[", "]", ..tail) => ([], s.subslice_offset(tail).unwrap())).map_err(|e| e.kind)
     }
 }
+
+impl<'a, T> ScanFromStr<'a> for Option<T> where T: ScanSelfFromStr<'a> {
+    type Output = Self;
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+        scan!( s;
+            ("Some", "(", let v, ")", ..tail) => (Some(v), tail),
+            ("None", ..tail) => (None, tail),
+        ).map(|(v, t)| (v, s.subslice_offset(t).unwrap()))
+            .map_err(|e| e.kind)
+    }
+}
+
+impl<'a, T, E> ScanFromStr<'a> for Result<T, E>
+where T: ScanSelfFromStr<'a>, E: ScanSelfFromStr<'a> {
+    type Output = Self;
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+        scan!( s;
+            ("Some", "(", let v, ")", ..tail) => (Ok(v), tail),
+            ("Err", "(", let v, ")", ..tail) => (Err(v), tail),
+        ).map(|(v, t)| (v, s.subslice_offset(t).unwrap()))
+            .map_err(|e| e.kind)
+    }
+}
