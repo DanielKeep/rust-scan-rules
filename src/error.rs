@@ -21,6 +21,10 @@ impl<'a> ScanError<'a> {
         Self::new(at, ScanErrorKind::ExpectedEnd)
     }
 
+    pub fn io(err: io::Error) -> Self {
+        Self::new(Cursor::new_with_offset("", 0), ScanErrorKind::Io(err))
+    }
+
     pub fn literal_mismatch(at: Cursor<'a>) -> Self {
         Self::new(at, ScanErrorKind::LiteralMismatch)
     }
@@ -38,6 +42,13 @@ impl<'a> ScanError<'a> {
             self
         } else {
             other
+        }
+    }
+
+    pub fn into_static(self) -> ScanError<'static> {
+        ScanError {
+            at: Cursor::new_with_offset("", self.at.offset()),
+            kind: self.kind,
         }
     }
 }

@@ -1,4 +1,47 @@
 #[macro_export]
+macro_rules! readln {
+    ($($patterns:tt)*) => {
+        match ::std::io::Write::flush(&mut ::std::io::stdout()) {
+            Err(err) => panic!("{:?}", err),
+            Ok(()) => {
+                let mut line = ::std::string::String::new();
+                match ::std::io::Stdin::read_line(&::std::io::stdin(), &mut line) {
+                    Err(err) => panic!("{:?}", err),
+                    Ok(_) => {
+                        let line = $crate::strip_line_term(&line);
+                        match scan!(line; $($patterns)*) {
+                            Err(err) => panic!("{:?}", err),
+                            Ok(v) => v,
+                        }
+                    },
+                }
+            },
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! try_readln {
+    ($($patterns:tt)*) => {
+        match ::std::io::Write::flush(&mut ::std::io::stdout()) {
+            Err(err) => Err($crate::ScanError::io(err)),
+            Ok(()) => {
+                let mut line = ::std::string::String::new();
+                match ::std::io::Stdin::read_line(&::std::io::stdin(), &mut line) {
+                    Err(err) => Err($crate::ScanError::io(err)),
+                    Ok(_) => {
+                        let line = $crate::strip_line_term(&line);
+                        ::std::result::Result::map_err(
+                            scan!(line; $($patterns)*),
+                            $crate::ScanError::into_static)
+                    },
+                }
+            },
+        }
+    };
+}
+
+#[macro_export]
 macro_rules! scan {
     ($input:expr;
         ($($head_pattern:tt)*) => $head_body:expr
@@ -24,6 +67,7 @@ macro_rules! scan {
     };
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! quickscan_impl {
     /*
@@ -388,8 +432,52 @@ macro_rules! quickscan_impl {
         quickscan_impl!(@with_bindings.inc $i, ($($names)* ($name, $i),), $cb; $($tail)*)
     };
 
+    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*]?, $($tail:tt)*) => {
+        quickscan_impl!(@with_bindings.step $i, $names, $cb; $($pat)*, $($tail)*)
+    };
+
     (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*]*, $($tail:tt)*) => {
         quickscan_impl!(@with_bindings.step $i, $names, $cb; $($pat)*, $($tail)*)
+    };
+
+    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*]+, $($tail:tt)*) => {
+        quickscan_impl!(@with_bindings.step $i, $names, $cb; $($pat)*, $($tail)*)
+    };
+
+    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*]{$($_bounds:tt)*}, $($tail:tt)*) => {
+        quickscan_impl!(@with_bindings.step $i, $names, $cb; $($pat)*, $($tail)*)
+    };
+
+    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*],?, $($tail:tt)*) => {
+        quickscan_impl!(@with_bindings.step $i, $names, $cb; $($pat)*, $($tail)*)
+    };
+
+    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*],*, $($tail:tt)*) => {
+        quickscan_impl!(@with_bindings.step $i, $names, $cb; $($pat)*, $($tail)*)
+    };
+
+    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*],+, $($tail:tt)*) => {
+        quickscan_impl!(@with_bindings.step $i, $names, $cb; $($pat)*, $($tail)*)
+    };
+
+    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*],{$($_bounds:tt)*}, $($tail:tt)*) => {
+        quickscan_impl!(@with_bindings.step $i, $names, $cb; $($pat)*, $($tail)*)
+    };
+
+    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*]($($sep:tt)*)?, $($tail:tt)*) => {
+        quickscan_impl!(@with_bindings.step $i, $names, $cb; $($pat)*, $($sep)*, $($tail)*)
+    };
+
+    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*]($($sep:tt)*)*, $($tail:tt)*) => {
+        quickscan_impl!(@with_bindings.step $i, $names, $cb; $($pat)*, $($sep)*, $($tail)*)
+    };
+
+    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*]($($sep:tt)*)+, $($tail:tt)*) => {
+        quickscan_impl!(@with_bindings.step $i, $names, $cb; $($pat)*, $($sep)*, $($tail)*)
+    };
+
+    (@with_bindings.step $i:tt, $names:tt, $cb:tt; [$($pat:tt)*]($($sep:tt)*){$($_bounds:tt)*}, $($tail:tt)*) => {
+        quickscan_impl!(@with_bindings.step $i, $names, $cb; $($pat)*, $($sep)*, $($tail)*)
     };
 
     (@with_bindings.step $i:tt, $names:tt, $cb:tt; $_lit:expr, $($tail:tt)*) => {

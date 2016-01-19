@@ -71,7 +71,7 @@ impl<'a> From<&'a String> for Cursor<'a> {
 
 impl<'a> ScanInput<'a> for Cursor<'a> {
     fn try_end(self) -> Result<(), (ScanError<'a>, Self)> {
-        if self.slice.len() == 0 {
+        if (skip_space(self.slice).0).len() == 0 {
             Ok(())
         } else {
             Err((ScanError::expected_end(self), self))
