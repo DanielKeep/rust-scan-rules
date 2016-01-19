@@ -9,7 +9,7 @@ fn test_tom() {
 
     assert_match!(
         scan!(inp; ("Hi, my name is Major", let name: &str) => name),
-        Err(ScanError { at: _, kind: ScanErrorKind::UnexpectedEnd })
+        Err(ScanError { at: _, kind: ScanErrorKind::ExpectedEnd })
     );
 
     assert_match!(

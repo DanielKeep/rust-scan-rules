@@ -16,6 +16,10 @@ impl<'a> ScanError<'a> {
         }
     }
 
+    pub fn expected_end(at: &'a str) -> Self {
+        Self::new(at, ScanErrorKind::ExpectedEnd)
+    }
+
     pub fn literal_mismatch(at: &'a str) -> Self {
         Self::new(at, ScanErrorKind::LiteralMismatch)
     }
@@ -28,8 +32,12 @@ impl<'a> ScanError<'a> {
         Self::new(at, ScanErrorKind::from_other(err))
     }
 
-    pub fn unexpected_end(at: &'a str) -> Self {
-        Self::new(at, ScanErrorKind::UnexpectedEnd)
+    pub fn furthest_along(self, other: Self) -> Self {
+        if self.at.as_bytes().as_ptr() >= other.at.as_bytes().as_ptr() {
+            self
+        } else {
+            other
+        }
     }
 }
 
@@ -56,7 +64,7 @@ impl<'a> Error for ScanError<'a> {
 pub enum ScanErrorKind {
     LiteralMismatch,
     Missing,
-    UnexpectedEnd,
+    ExpectedEnd,
     Io(io::Error),
     Other(Box<Error>),
 }
@@ -73,7 +81,7 @@ impl fmt::Display for ScanErrorKind {
         match *self {
             LiteralMismatch => "did not match literal".fmt(fmt),
             Missing => "missing scannable input".fmt(fmt),
-            UnexpectedEnd => "unexpected end of input".fmt(fmt),
+            ExpectedEnd => "expected end of input".fmt(fmt),
             Io(ref err) => err.fmt(fmt),
             Other(ref err) => err.fmt(fmt),
         }
@@ -86,7 +94,7 @@ impl Error for ScanErrorKind {
         match *self {
             LiteralMismatch => None,
             Missing => None,
-            UnexpectedEnd => None,
+            ExpectedEnd => None,
             Io(ref err) => err.cause(),
             Other(ref err) => err.cause(),
         }
@@ -97,7 +105,7 @@ impl Error for ScanErrorKind {
         match *self {
             LiteralMismatch => "did not match literal",
             Missing => "missing scannable input",
-            UnexpectedEnd => "unexpected end of input",
+            ExpectedEnd => "expected end of input",
             Io(ref err) => err.description(),
             Other(ref err) => err.description(),
         }

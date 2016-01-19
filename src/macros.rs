@@ -1,7 +1,26 @@
 #[macro_export]
 macro_rules! scan {
-    ($input:expr; ($($pattern:tt)*) => $body:expr) => {
-        quickscan_impl!(@scan ($input); ($($pattern)*,) => $body)
+    ($input:expr;
+        ($($head_pattern:tt)*) => $head_body:expr
+        $(, ($($tail_patterns:tt)*) => $tail_bodies:expr)* $(,)*
+    ) => {
+        {
+            let cur = $input;
+
+            let result = quickscan_impl!(@scan (cur.clone()); ($($head_pattern)*,) => $head_body);
+
+            $(
+                let result = match result {
+                    Ok(v) => Ok(v),
+                    Err(last_err) => match quickscan_impl!(@scan (cur.clone()); ($($tail_patterns)*,) => $tail_bodies) {
+                        Ok(v) => Ok(v),
+                        Err(new_err) => Err(last_err.furthest_along(new_err))
+                    }
+                };
+            )*
+
+            result
+        }
     };
 }
 
@@ -148,7 +167,7 @@ macro_rules! quickscan_impl {
 
             if repeats < min {
                 let _ = break_err; // TODO
-                Err($crate::ScanError::unexpected_end(cur))
+                Err($crate::ScanError::missing(cur))
             } else {
                 quickscan_impl!(@scan (cur); $($tail)*)
             }

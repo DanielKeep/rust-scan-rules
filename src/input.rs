@@ -23,7 +23,7 @@ impl<'a> ScanInput<'a> for &'a str {
         if self.len() == 0 {
             Ok(())
         } else {
-            Err((ScanError::unexpected_end(self), self))
+            Err((ScanError::expected_end(self), self))
         }
     }
 
