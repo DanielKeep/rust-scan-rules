@@ -1,7 +1,7 @@
 #[macro_export]
 macro_rules! scan {
-    ($input:expr; $($pattern:tt)*) => {
-        quickscan_impl!(@scan ($input); $($pattern)*)
+    ($input:expr; ($($pattern:tt)*) => $body:expr) => {
+        quickscan_impl!(@scan ($input); ($($pattern)*,) => $body)
     };
 }
 
@@ -16,7 +16,7 @@ macro_rules! quickscan_impl {
     /*
     ## Termination rule.
     */
-    (@scan ($cur:expr); => $body:expr) => {
+    (@scan ($cur:expr); () => $body:expr) => {
         {
             match $crate::ScanInput::try_end($cur) {
                 Ok(()) => Ok($body),
@@ -28,19 +28,19 @@ macro_rules! quickscan_impl {
     /*
     ## Tail capture.
     */
-    (@scan ($cur:expr); .. _ => $($tail:tt)*) => {
+    (@scan ($cur:expr); (.._,) => $body:expr) => {
         {
             match $crate::ScanInput::try_scan_raw($cur, |s| Ok::<_, $crate::ScanErrorKind>((s, s.len()))) {
-                Ok((_, new_cur)) => quickscan_impl!(@scan (new_cur); => $($tail)*),
+                Ok((_, new_cur)) => quickscan_impl!(@scan (new_cur); () => $body),
                 Err((err, _)) => Err(err)
             }
         }
     };
 
-    (@scan ($cur:expr); ..$name:ident => $($tail:tt)*) => {
+    (@scan ($cur:expr); (..$name:ident,) => $body:expr) => {
         {
             match $crate::ScanInput::try_scan_raw($cur, |s| Ok::<_, $crate::ScanErrorKind>((s, s.len()))) {
-                Ok(($name, new_cur)) => quickscan_impl!(@scan (new_cur); => $($tail)*),
+                Ok(($name, new_cur)) => quickscan_impl!(@scan (new_cur); () => $body),
                 Err((err, _)) => Err(err)
             }
         }
@@ -49,7 +49,7 @@ macro_rules! quickscan_impl {
     /*
     ## Anchor capture.
     */
-    (@scan ($cur:expr); ^ .. $name:ident => $body:expr) => {
+    (@scan ($cur:expr); (^..$name:ident,) => $body:expr) => {
         {
             let $name = $cur;
             Ok($body)
@@ -59,68 +59,48 @@ macro_rules! quickscan_impl {
     /*
     ## Value capture.
     */
-    (@scan ($cur:expr); let _: $t:ty, $($tail:tt)*) => {
+    (@scan ($cur:expr); (let _: $t:ty, $($tail:tt)*) => $body:expr) => {
         {
             match $crate::ScanInput::try_scan($cur, <$t as $crate::ScanFromStr>::scan_from) {
-                Ok((_, new_cur)) => quickscan_impl!(@scan (new_cur); $($tail)*),
+                Ok((_, new_cur)) => quickscan_impl!(@scan (new_cur); ($($tail)*) => $body),
                 Err((err, _)) => Err(err)
             }
         }
     };
 
-    (@scan ($cur:expr); let _: $t:ty => $($tail:tt)*) => {
-        quickscan_impl!(@scan ($cur); let _: $t, => $($tail)*)
-    };
-
-    (@scan ($cur:expr); let $name:ident, $($tail:tt)*) => {
+    (@scan ($cur:expr); (let $name:ident, $($tail:tt)*) => $body:expr) => {
         {
             match $crate::ScanInput::try_scan($cur, $crate::ScanSelfFromStr::scan_self_from) {
-                Ok(($name, new_cur)) => quickscan_impl!(@scan (new_cur); $($tail)*),
+                Ok(($name, new_cur)) => quickscan_impl!(@scan (new_cur); ($($tail)*) => $body),
                 Err((err, _)) => Err(err)
             }
         }
     };
 
-    (@scan ($cur:expr); let $name:ident => $($tail:tt)*) => {
-        quickscan_impl!(@scan ($cur); let $name, => $($tail)*)
-    };
-
-    (@scan ($cur:expr); let $name:ident: $t:ty, $($tail:tt)*) => {
+    (@scan ($cur:expr); (let $name:ident: $t:ty, $($tail:tt)*) => $body:expr) => {
         {
             match $crate::ScanInput::try_scan($cur, <$t as $crate::ScanFromStr>::scan_from) {
-                Ok(($name, new_cur)) => quickscan_impl!(@scan (new_cur); $($tail)*),
+                Ok(($name, new_cur)) => quickscan_impl!(@scan (new_cur); ($($tail)*) => $body),
                 Err((err, _)) => Err(err)
             }
         }
-    };
-
-    (@scan ($cur:expr); let $name:ident: $t:ty => $($tail:tt)*) => {
-        quickscan_impl!(@scan ($cur); let $name: $t, => $($tail)*)
     };
 
     /*
     ## Repeating entry.
     */
-    (@scan ($cur:expr); [$($pat:tt)*]*, $($tail:tt)*) => {
-        quickscan_impl!(@repeat ($cur), [$($pat)*], {0, None}, Vec<_>; $($tail)*)
-    };
-
-    (@scan ($cur:expr); [$($pat:tt)*]* => $($tail:tt)*) => {
-        quickscan_impl!(@scan ($cur); [$($pat)*], => $($tail)*)
+    (@scan ($cur:expr); ([$($pat:tt)*]*, $($tail:tt)*) => $body:expr) => {
+        quickscan_impl!(@repeat ($cur), [$($pat)*], {0, None}, Vec<_>; ($($tail)*) => $body)
     };
 
     /*
     ## Literal match.
     */
-    (@scan ($cur:expr); $lit:expr, $($tail:tt)*) => {
+    (@scan ($cur:expr); ($lit:expr, $($tail:tt)*) => $body:expr) => {
         match $crate::ScanInput::try_match_literal($cur, $lit) {
-            Ok(new_cur) => quickscan_impl!(@scan (new_cur); $($tail)*),
+            Ok(new_cur) => quickscan_impl!(@scan (new_cur); ($($tail)*) => $body),
             Err((err, _)) => Err(err)
         }
-    };
-
-    (@scan ($cur:expr); $lit:expr => $($tail:tt)*) => {
-        quickscan_impl!(@scan ($cur); $lit, => $($tail)*)
     };
 
     /*
@@ -148,7 +128,7 @@ macro_rules! quickscan_impl {
                 }
 
                 match quickscan_impl!(@scan (cur);
-                    $($pat)*, ^..after => {
+                    ($($pat)*, ^..after,) => {
                         cur = after;
                         quickscan_impl!(@with_bindings ($($pat)*), then: quickscan_impl!(@repeat.tuple))
                     }
