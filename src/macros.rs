@@ -176,6 +176,12 @@ macro_rules! scan_rules_impl {
 
     /*
     ## Repeating entry.
+
+    This is a *tremendous* discomfort in the posterior.  Without alternation, the only way to get the desired syntax is to exhaustively *list* the various combinations, recursing into another invocation to normalise everything.
+
+    It's a small miracle that the ascription syntax works, though I daresay any user who accidentally types `[...]*: T: U` is going to be *very* confused.
+
+    The next few sections are divided first by separator, then by repetition count control.
     */
     /*
     ### No separator.
@@ -284,7 +290,7 @@ macro_rules! scan_rules_impl {
 
     # `@repeat` - Repetition expansion.
 
-    The first step here is to handle a missing `$col_ty` by replacing it with `Vec<_>`.
+    The first step here is to handle a missing `$col_ty` by replacing it with `Vec<_>`.  We delegate to `.with_col_ty` to handle the rest.
 
     */
     (@repeat ($cur:expr),
@@ -301,6 +307,13 @@ macro_rules! scan_rules_impl {
         scan_rules_impl!(@repeat.with_col_ty ($cur), [$($pat)*], ($($sep)*), {$min, $max}, $col_ty; $($tail)*)
     };
 
+    /*
+    ## `.with_col_ty`
+
+    This handles the bulk of the repetition expansion.  The only somewhat obtuse part is how captures are handled: we have to define a collection to hold every value captured in both the repeating and separator sub-patterns.
+
+    This will go rather *poorly* if someone is silly enough to use the same name more than once... but then, that's a bad idea in general.
+    */
     (@repeat.with_col_ty ($cur:expr),
         [$($pat:tt)*], ($($sep:tt)*), {$min:expr, $max:expr}, $col_ty:ty;
         $($tail:tt)*
@@ -318,8 +331,11 @@ macro_rules! scan_rules_impl {
                 _ => ()
             }
 
+            // If we broke out of the loop due to a scanning error, what was it?
             let mut break_err: Option<$crate::ScanError> = None;
-            let mut break_after_sep;
+
+            // Did we break due to a scanning error *after* having successfully scanned a separator?
+            let mut break_after_sep: bool;
 
             loop {
                 // Doing this here prevents an "does not need to be mut" warning.
@@ -330,6 +346,7 @@ macro_rules! scan_rules_impl {
                     _ => ()
                 }
 
+                // Handle the separator pattern, if there is one.
                 scan_rules_impl!(@if_empty.expr ($($sep)*) {
                     () // Do nothing.
                 } else {
@@ -353,6 +370,7 @@ macro_rules! scan_rules_impl {
                     }
                 });
 
+                // Scan the repeating pattern.
                 match scan_rules_impl!(@scan (cur);
                     ($($pat)*, ^..after,) => {
                         cur = after;
@@ -378,6 +396,7 @@ macro_rules! scan_rules_impl {
             }
 
             if repeats < min || break_after_sep {
+                // Evaluate to the last error because *either* we didn't get enough elements, *or* because we found a separator that wasn't followed by a match.
                 Err(break_err.unwrap())
             } else {
                 scan_rules_impl!(@scan (cur); $($tail)*)
@@ -425,7 +444,11 @@ macro_rules! scan_rules_impl {
 
     # `@with_bindings` - Extract all binding names from pattern.
 
+    The callback will be invoked with `(a, 1), (x, 2), (vvv, 3), ...,` appended to the argument.  This will be a list of every binding name in the pattern in lexical order, plus a matching ordinal.
+
     **Note**: The first element of the tuple will be a `()` which we can explicitly drop to avoid unused variable warnings.  As such, the index counter starts at `1`, not `0`.
+
+    **Note**: tail and anchor captures aren't valid inside repeats, so they are *not* handled by this macro.
 
     */
     (@with_bindings ($($pat:tt)*), then: $cb_name:ident!$cb_arg:tt) => {
@@ -442,8 +465,6 @@ macro_rules! scan_rules_impl {
     Step over the next part of the pattern.  If it has a binding, extract it and increment `$i`.
 
     If there's nothing left in the input, invoke the callback.
-
-    **Note**: tail and anchor captures aren't valid inside repeats.
     */
     (@with_bindings.step
         $_i:expr,
