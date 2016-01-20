@@ -7,6 +7,7 @@ use ::Cursor;
 pub struct ScanError<'a> {
     pub at: Cursor<'a>,
     pub kind: ScanErrorKind,
+    _priv: (),
 }
 
 impl<'a> ScanError<'a> {
@@ -14,6 +15,7 @@ impl<'a> ScanError<'a> {
         ScanError {
             at: at,
             kind: kind,
+            _priv: (),
         }
     }
 
@@ -49,6 +51,7 @@ impl<'a> ScanError<'a> {
         ScanError {
             at: Cursor::new_with_offset("", self.at.offset()),
             kind: self.kind,
+            _priv: (),
         }
     }
 }

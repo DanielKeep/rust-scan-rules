@@ -9,17 +9,17 @@ fn test_tom() {
 
     assert_match!(
         scan!(inp; ("Hi, my name is Major", let name: &str) => name),
-        Err(ScanError { ref at, kind: ScanErrorKind::ExpectedEnd }) if at.offset() == 29
+        Err(ScanError { ref at, kind: ScanErrorKind::ExpectedEnd, .. }) if at.offset() == 29
     );
 
     assert_match!(
         scan!(inp; ("Hi, my name is Major", let name: &str, "! I was born in 1947.") => name),
-        Err(ScanError { ref at, kind: ScanErrorKind::LiteralMismatch }) if at.offset() == 29
+        Err(ScanError { ref at, kind: ScanErrorKind::LiteralMismatch, .. }) if at.offset() == 29
     );
 
     assert_match!(
         scan!(inp; ("hi, my name is major", let name: &str, "! i was born in 1969.") => name),
-        Err(ScanError { ref at, kind: ScanErrorKind::LiteralMismatch }) if at.offset() == 0
+        Err(ScanError { ref at, kind: ScanErrorKind::LiteralMismatch, .. }) if at.offset() == 0
     );
 
     assert_match!(
