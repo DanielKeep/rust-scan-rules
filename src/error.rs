@@ -1,16 +1,38 @@
+/*!
+Defines error types used by the crate.
+*/
 use std::error::Error;
 use std::fmt;
 use std::io;
 use ::Cursor;
 
+/**
+Represents an error that occurred during scanning.
+
+Depending on what happened, it could represent an actual scanning failure, a problem with the pattern, an underlying IO failure, or something else entirely.
+*/
 #[derive(Debug)]
 pub struct ScanError<'a> {
+    /**
+    The rough cursor position at which this error occurred.  This will typically be the position the input cursor was at when it began trying to scan a particular literal or value.
+    */
     pub at: Cursor<'a>,
+
+    /**
+    The kind of error that occurred.
+    */
     pub kind: ScanErrorKind,
+
+    /**
+    Dummy private field to prevent exhaustive deconstruction.
+    */
     _priv: (),
 }
 
 impl<'a> ScanError<'a> {
+    /**
+    Construct a new `ScanError`.
+    */
     pub fn new(at: Cursor<'a>, kind: ScanErrorKind) -> Self {
         ScanError {
             at: at,
@@ -19,26 +41,44 @@ impl<'a> ScanError<'a> {
         }
     }
 
+    /**
+    Shorthand for constructing an `ExpectedEnd` error.
+    */
     pub fn expected_end(at: Cursor<'a>) -> Self {
         Self::new(at, ScanErrorKind::ExpectedEnd)
     }
 
+    /**
+    Shorthand for constructing an `Io` error.
+    */
     pub fn io(err: io::Error) -> Self {
         Self::new(Cursor::new_with_offset("", 0), ScanErrorKind::Io(err))
     }
 
+    /**
+    Shorthand for constructing a `LiteralMismatch` error.
+    */
     pub fn literal_mismatch(at: Cursor<'a>) -> Self {
         Self::new(at, ScanErrorKind::LiteralMismatch)
     }
 
+    /**
+    Shorthand for constructing a `Missing` error.
+    */
     pub fn missing(at: Cursor<'a>) -> Self {
         Self::new(at, ScanErrorKind::Missing)
     }
 
+    /**
+    Shorthand for constructing an `Other` error.
+    */
     pub fn other<E: Into<Box<Error>>>(at: Cursor<'a>, err: E) -> Self {
         Self::new(at, ScanErrorKind::from_other(err))
     }
 
+    /**
+    Compare two `ScanError`s, and return the one which occurred the furthest into the input cursor.
+    */
     pub fn furthest_along(self, other: Self) -> Self {
         if self.at.as_bytes().as_ptr() >= other.at.as_bytes().as_ptr() {
             self
@@ -47,6 +87,9 @@ impl<'a> ScanError<'a> {
         }
     }
 
+    /**
+    Replace the borrowed components of the `ScanError` with `'static` dummy values, allowing the error to escape beyond the lifetime of the original input data.
+    */
     pub fn into_static(self) -> ScanError<'static> {
         ScanError {
             at: Cursor::new_with_offset("", self.at.offset()),
@@ -75,16 +118,31 @@ impl<'a> Error for ScanError<'a> {
     }
 }
 
+/**
+Indicates the kind of error that occurred during scanning.
+*/
 #[derive(Debug)]
 pub enum ScanErrorKind {
+    /// Failed to match a literal pattern term.
     LiteralMismatch,
+
+    /// Scanning a value failed in some vague fashion.
     Missing,
+
+    /// Expected end-of-input.
     ExpectedEnd,
+
+    /// An IO error occurred.
     Io(io::Error),
+
+    /// Some other error occurred.
     Other(Box<Error>),
 }
 
 impl ScanErrorKind {
+    /**
+    Construct an `Other` error from some generic error value.
+    */
     pub fn from_other<E: Into<Box<Error>>>(err: E) -> Self {
         ScanErrorKind::Other(err.into())
     }

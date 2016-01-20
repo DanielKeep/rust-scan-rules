@@ -83,7 +83,9 @@ A scanning pattern is made up of one or more pattern terms, separated by commas.
 
   *E.g.* `let x`, `let n: i32`, `let words: Vec<_>`, `let _: &str` (scans and discards a value).
 
-* `[` *pattern* `]` \[ *(nothing)* | `,` | `(` *seperator pattern* `)` ] ( `?` | `*` | `+` | `{` *range* `}` ) - scans *pattern* repeatedly.
+* `..` *name* - binds the remaining, unscanned input as a string to *name*.  This can *only* appear as the final term in a top-level pattern.
+
+* `[` *pattern* `]` \[ *(nothing)* | `,` | `(` *seperator pattern* `)` ] ( `?` | `*` | `+` | `{` *range* `}` ) \[ ":" *collection type* ] - scans *pattern* repeatedly.
 
   The first (mandatory) part of the term specifies the *pattern* that should be repeatedly scanned.
 
@@ -99,11 +101,20 @@ A scanning pattern is made up of one or more pattern terms, separated by commas.
   * `{,b}` - match at most *b* times.
   * `{a, b}` - match at least *a* times, and at most *b* times.
 
+  The fourth (optional) part of the term specifies what type of collection scanned values should be added to.  Note that the type specified here applies to *all* values captured by this repetition.  As such, you typically want to use a partially inferred type such as `BTreeSet<_>`.  If omitted, it defaults to `Vec<_>`.
+
   *E.g.* `[ let nums: i32 ],+`, `[ "pretty" ]*, "please"`.
 
-* `..` *name* - binds the remaining, unscanned input as a string to *name*.  This can *only* appear as the final term in a top-level pattern.
+## Things What Need Mentioning
+
+* *Rule* syntax.
+* Scanners and things like `Word` being abstract.
+* Cursor(s).
+* More examples.
+* `#![recursion_limit]`
 
 */
+#![forbid(missing_docs)]
 #![recursion_limit="128"]
 #[macro_use] extern crate lazy_static;
 extern crate itertools;
@@ -120,6 +131,11 @@ mod error;
 mod input;
 pub mod scanner;
 
+/**
+Remove a single trailing line terminator from `s`.
+
+This is publicly exposed for the sake of macros and **is not** considered a stable part of the public API.
+*/
 #[doc(hidden)]
 pub fn strip_line_term(s: &str) -> &str {
     if s.ends_with("\r\n") {
@@ -133,6 +149,11 @@ pub fn strip_line_term(s: &str) -> &str {
     }
 }
 
+/**
+Compute the offset of `b`, which must be a subslice of `a`.
+
+This is publicly exposed for the sake of macros and **is not** considered a stable part of the public API.
+*/
 #[doc(hidden)]
 pub fn subslice_offset(a: &str, b: &str) -> Option<usize> {
     use scanner::util::StrUtil;

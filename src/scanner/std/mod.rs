@@ -1,3 +1,6 @@
+/*!
+Scanner implementations for standard library (and other "official" crates) types.
+*/
 mod collections;
 mod net;
 

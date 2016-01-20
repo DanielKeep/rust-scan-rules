@@ -1,24 +1,54 @@
+/*!
+This module contains items related to input handling.
+*/
 use std::ops::Deref;
 use itertools::Itertools;
 use regex::Regex;
 use ::{ScanError, ScanErrorKind};
 
 lazy_static! {
+    /**
+    This regex defines what the default literal matching code considers a "part" for the purposes of comparison.
+
+    Specifically, it should be a contiguous sequence of letters *or* a single, non-whitespace character.
+    */
     static ref LITERAL_PART_RE: Regex = Regex::new(r"(\w+|\S)").unwrap();
 }
 
+/**
+This trait defines the interface to input values that can be scanned.
+*/
 pub trait ScanInput<'a>: Sized {
+    /**
+    Assert that the input has been exhausted, or that the current position is a valid place to "stop".
+    */
     fn try_end(self) -> Result<(), (ScanError<'a>, Self)>;
 
+    /**
+    Scan a value from the current position.  The closure will be called with a string slice of all available input, and is expected to return *either* the scanned value, and the number of bytes of input consumed, *or* a reason why scanning failed.
+
+    The input will have all leading whitespace removed, if applicable.
+    */
     fn try_scan<F, Out>(self, f: F) -> Result<(Out, Self), (ScanError<'a>, Self)>
     where F: FnOnce(&'a str) -> Result<(Out, usize), ScanErrorKind>;
 
+    /**
+    Performs the same task as [`try_scan`](#tymethod.try_scan), except that it *does not* perform whitespace stripping.
+    */
     fn try_scan_raw<F, Out>(self, f: F) -> Result<(Out, Self), (ScanError<'a>, Self)>
     where F: FnOnce(&'a str) -> Result<(Out, usize), ScanErrorKind>;
 
+    /**
+    Match the provided literal term against the input.
+
+    Implementations are free to interpret "match" as they please.
+    */
     fn try_match_literal(self, lit: &str) -> Result<Self, (ScanError<'a>, Self)>;
 }
 
+/**
+The basic input type for scanning.
+*/
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
 pub struct Cursor<'a> {
     offset: usize,
@@ -26,6 +56,11 @@ pub struct Cursor<'a> {
 }
 
 impl<'a> Cursor<'a> {
+    /**
+    Construct a new `Cursor` with a specific `offset`.
+
+    The `offset` is logically the number of bytes which have already been consumed from the original input; these already-consumed bytes *must not* be included in `slice`.
+    */
     pub fn new_with_offset(slice: &'a str, offset: usize) -> Self {
         Cursor {
             offset: offset,
@@ -33,6 +68,9 @@ impl<'a> Cursor<'a> {
         }
     }
 
+    /**
+    Advance the cursor by the given number of bytes.
+    */
     pub fn advance_by(self, bytes: usize) -> Self {
         Cursor {
             offset: self.offset + bytes,
@@ -40,10 +78,16 @@ impl<'a> Cursor<'a> {
         }
     }
 
+    /**
+    Access the wrapped string slice.
+    */
     pub fn as_str(self) -> &'a str {
         self.slice
     }
 
+    /**
+    Returns the number of bytes of input that have been consumed by this `Cursor`.
+    */
     pub fn offset(self) -> usize {
         self.offset
     }
@@ -118,6 +162,9 @@ impl<'a> ScanInput<'a> for Cursor<'a> {
     }
 }
 
+/**
+Skip all leading whitespace in a string, and return both the resulting slice and the number of bytes skipped.
+*/
 fn skip_space(s: &str) -> (&str, usize) {
     let off = s.char_indices()
         .take_while(|&(_, c)| c.is_whitespace())

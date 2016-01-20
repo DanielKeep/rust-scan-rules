@@ -1,3 +1,10 @@
+/*!
+Macros specific to the scanner implementations.
+*/
+
+/**
+Like `assert_eq!`, except the RHS is a pattern (optionally with guard).
+*/
 #[cfg(test)]
 macro_rules! assert_match {
     ($e:expr, $p:pat) => {
@@ -17,6 +24,13 @@ macro_rules! assert_match {
     };
 }
 
+/**
+Define a scanner implementation based on a few common cases:
+
+* `impl<'a> for Ty, from OtherTy`: run the scanner for `OtherTy`, passing the result through `FromStr`.
+
+* `impl<'a> for Ty, regex r"..."`: use the provided regex to extract part of the input, passing the resulting slice through `FromStr`.
+*/
 macro_rules! parse_scanner {
     (@as_item $i:item) => {$i};
 
@@ -75,6 +89,11 @@ macro_rules! parse_scanner {
     };
 }
 
+/**
+Define a scanner implementation using `scan!` rules.
+
+The result of the rules should be `(Output, &str)` where the `&str` is the unconsumed tail.
+*/
 macro_rules! scanner {
     (@as_item $i:item) => {$i};
 

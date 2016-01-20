@@ -1,6 +1,19 @@
+/*!
+This module contains the public and crate-wide macros.
+*/
+
+/**
+Reads a line of text from standard input, then scans it using the provided rules.  The result of the `readln!` invocation is the type of the rule bodies; just as with `match`, all bodies must agree on their result type.
+
+See also: [Pattern Syntax](index.html#pattern-syntax), [`try_readln!`](macro.try_readln!.html).
+
+# Panics
+
+Panics if an error is encountered while reading from standard input, or if all rules fail to match.
+*/
 #[macro_export]
 macro_rules! readln {
-    ($($patterns:tt)*) => {
+    ($($rules:tt)*) => {
         match ::std::io::Write::flush(&mut ::std::io::stdout()) {
             Err(err) => panic!("{:?}", err),
             Ok(()) => {
@@ -9,7 +22,7 @@ macro_rules! readln {
                     Err(err) => panic!("{:?}", err),
                     Ok(_) => {
                         let line = $crate::strip_line_term(&line);
-                        match scan!(line; $($patterns)*) {
+                        match scan!(line; $($rules)*) {
                             Err(err) => panic!("{:?}", err),
                             Ok(v) => v,
                         }
@@ -20,9 +33,14 @@ macro_rules! readln {
     };
 }
 
+/**
+Reads a line of text from standard input, then scans it using the provided rules.  The result of the `try_readln!` invocation is a `Result<T, ScanError>`, where `T` is the type of the rule bodies; just as with `match`, all bodies must agree on their result type.
+
+See also: [Pattern Syntax](index.html#pattern-syntax), [`readln!`](macro.readln!.html).
+*/
 #[macro_export]
 macro_rules! try_readln {
-    ($($patterns:tt)*) => {
+    ($($rules:tt)*) => {
         match ::std::io::Write::flush(&mut ::std::io::stdout()) {
             Err(err) => Err($crate::ScanError::io(err)),
             Ok(()) => {
@@ -32,7 +50,7 @@ macro_rules! try_readln {
                     Ok(_) => {
                         let line = $crate::strip_line_term(&line);
                         ::std::result::Result::map_err(
-                            scan!(line; $($patterns)*),
+                            scan!(line; $($rules)*),
                             $crate::ScanError::into_static)
                     },
                 }
@@ -41,6 +59,13 @@ macro_rules! try_readln {
     };
 }
 
+/**
+Scans the provided input, using the specified rules.  The result is a `Result<T, ScanError>` where `T` is the type of the rule bodies; just as with `match`, all bodies must agree on their result type.
+
+The input may be any value which implements `Into<Cursor>`, which includes `&str`.
+
+See also: [Pattern Syntax](index.html#pattern-syntax).
+*/
 #[macro_export]
 macro_rules! scan {
     ($input:expr;
@@ -553,11 +578,4 @@ macro_rules! scan_rules_impl {
     (@if_empty.expr ($($_tts:tt)+) {$($_th:tt)*} else {$($el:tt)*}) => {
         scan_rules_impl!(@as_expr $($el)*)
     };
-
-    // /*
-    // # `@err` - Process error for return to caller.
-    // */
-    // (@err $err:expr) => {
-    //     Err(Box::<::std::error::Error>::from($err))
-    // };
 }

@@ -1,3 +1,6 @@
+/*!
+Scanner implementations for `std::collections::*`.
+*/
 use std::collections::{
     BTreeMap, BTreeSet, BinaryHeap,
     HashMap, HashSet,

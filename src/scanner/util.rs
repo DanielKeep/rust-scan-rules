@@ -1,10 +1,19 @@
+/*!
+Internal utilities for scanner implementations.
+*/
 use regex::Regex;
 
 lazy_static! {
     static ref WORD_RE: Regex = Regex::new(r"^\s*(\w+|\S)").unwrap();
 }
 
+/**
+Various string utility methods.
+*/
 pub trait StrUtil {
+    /**
+    Splits a string into the first word, and everything after.
+    */
     fn split_word(&self) -> Option<(&Self, &Self)>;
 
     /**

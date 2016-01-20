@@ -1,3 +1,6 @@
+/*!
+Implementations of `ScanFromStr` for primitive language types.
+*/
 use regex::Regex;
 use strcursor::StrCursor;
 use ::ScanErrorKind;
