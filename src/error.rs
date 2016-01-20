@@ -4,7 +4,7 @@ Defines error types used by the crate.
 use std::error::Error;
 use std::fmt;
 use std::io;
-use ::Cursor;
+use input::Cursor;
 
 /**
 Represents an error that occurred during scanning.

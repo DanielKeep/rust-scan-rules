@@ -73,7 +73,7 @@ macro_rules! scan {
         $(, ($($tail_patterns:tt)*) => $tail_bodies:expr)* $(,)*
     ) => {
         {
-            let cur: $crate::Cursor = ::std::convert::Into::into($input);
+            let cur: $crate::input::Cursor = ::std::convert::Into::into($input);
 
             let result = scan_rules_impl!(@scan (cur.clone()); ($($head_pattern)*,) => $head_body);
 
@@ -106,7 +106,7 @@ macro_rules! scan_rules_impl {
     */
     (@scan ($cur:expr); () => $body:expr) => {
         {
-            match $crate::ScanInput::try_end($cur) {
+            match $crate::input::ScanInput::try_end($cur) {
                 Ok(()) => Ok($body),
                 Err((err, _)) => Err(err)
             }
@@ -118,7 +118,7 @@ macro_rules! scan_rules_impl {
     */
     (@scan ($cur:expr); (.._,) => $body:expr) => {
         {
-            match $crate::ScanInput::try_scan_raw($cur, |s| Ok::<_, $crate::ScanErrorKind>((s, s.len()))) {
+            match $crate::input::ScanInput::try_scan_raw($cur, |s| Ok::<_, $crate::ScanErrorKind>((s, s.len()))) {
                 Ok((_, new_cur)) => scan_rules_impl!(@scan (new_cur); () => $body),
                 Err((err, _)) => Err(err)
             }
@@ -127,7 +127,7 @@ macro_rules! scan_rules_impl {
 
     (@scan ($cur:expr); (..$name:ident,) => $body:expr) => {
         {
-            match $crate::ScanInput::try_scan_raw($cur, |s| Ok::<_, $crate::ScanErrorKind>((s, s.len()))) {
+            match $crate::input::ScanInput::try_scan_raw($cur, |s| Ok::<_, $crate::ScanErrorKind>((s, s.len()))) {
                 Ok(($name, new_cur)) => scan_rules_impl!(@scan (new_cur); () => $body),
                 Err((err, _)) => Err(err)
             }
@@ -149,7 +149,7 @@ macro_rules! scan_rules_impl {
     */
     (@scan ($cur:expr); (let _: $t:ty, $($tail:tt)*) => $body:expr) => {
         {
-            match $crate::ScanInput::try_scan($cur, <$t as $crate::ScanFromStr>::scan_from) {
+            match $crate::input::ScanInput::try_scan($cur, <$t as $crate::scanner::ScanFromStr>::scan_from) {
                 Ok((_, new_cur)) => scan_rules_impl!(@scan (new_cur); ($($tail)*) => $body),
                 Err((err, _)) => Err(err)
             }
@@ -158,7 +158,7 @@ macro_rules! scan_rules_impl {
 
     (@scan ($cur:expr); (let $name:ident, $($tail:tt)*) => $body:expr) => {
         {
-            match $crate::ScanInput::try_scan($cur, $crate::ScanSelfFromStr::scan_self_from) {
+            match $crate::input::ScanInput::try_scan($cur, $crate::scanner::ScanSelfFromStr::scan_self_from) {
                 Ok(($name, new_cur)) => scan_rules_impl!(@scan (new_cur); ($($tail)*) => $body),
                 Err((err, _)) => Err(err)
             }
@@ -167,7 +167,7 @@ macro_rules! scan_rules_impl {
 
     (@scan ($cur:expr); (let $name:ident: $t:ty, $($tail:tt)*) => $body:expr) => {
         {
-            match $crate::ScanInput::try_scan($cur, <$t as $crate::ScanFromStr>::scan_from) {
+            match $crate::input::ScanInput::try_scan($cur, <$t as $crate::scanner::ScanFromStr>::scan_from) {
                 Ok(($name, new_cur)) => scan_rules_impl!(@scan (new_cur); ($($tail)*) => $body),
                 Err((err, _)) => Err(err)
             }
@@ -274,7 +274,7 @@ macro_rules! scan_rules_impl {
     ## Literal match.
     */
     (@scan ($cur:expr); ($lit:expr, $($tail:tt)*) => $body:expr) => {
-        match $crate::ScanInput::try_match_literal($cur, $lit) {
+        match $crate::input::ScanInput::try_match_literal($cur, $lit) {
             Ok(new_cur) => scan_rules_impl!(@scan (new_cur); ($($tail)*) => $body),
             Err((err, _)) => Err(err)
         }

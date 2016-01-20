@@ -108,9 +108,9 @@ macro_rules! scanner {
     ) => {
         scanner! {
             @as_item
-            impl<$lt $(, $ty_params)*> $crate::ScanFromStr<$lt> for $ty
+            impl<$lt $(, $ty_params)*> $crate::scanner::ScanFromStr<$lt> for $ty
             where
-                $($ty_params: $crate::ScanFromStr<$lt, Output=$ty_params>,)*
+                $($ty_params: $crate::scanner::ScanFromStr<$lt, Output=$ty_params>,)*
                 $($clauses)*
             {
                 type Output = Self;
