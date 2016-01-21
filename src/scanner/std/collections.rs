@@ -45,7 +45,6 @@ scanner! { impl<'a, T> ScanFromStr for VecDeque<T> {
 #[cfg(test)]
 #[test]
 fn test_btreemap() {
-    use ::ScanErrorKind as SEK;
     use ::scanner::ScanFromStr;
 
     macro_rules! check {
@@ -73,7 +72,6 @@ fn test_btreemap() {
 #[cfg(test)]
 #[test]
 fn test_btreeset() {
-    use ::ScanErrorKind as SEK;
     use ::scanner::ScanFromStr;
 
     macro_rules! check {
@@ -101,7 +99,6 @@ fn test_btreeset() {
 #[cfg(test)]
 #[test]
 fn test_binaryheap() {
-    use ::ScanErrorKind as SEK;
     use ::scanner::ScanFromStr;
 
     macro_rules! check {
@@ -129,7 +126,6 @@ fn test_binaryheap() {
 #[cfg(test)]
 #[test]
 fn test_hashmap() {
-    use ::ScanErrorKind as SEK;
     use ::scanner::ScanFromStr;
 
     macro_rules! check {
@@ -157,7 +153,6 @@ fn test_hashmap() {
 #[cfg(test)]
 #[test]
 fn test_hashset() {
-    use ::ScanErrorKind as SEK;
     use ::scanner::ScanFromStr;
 
     macro_rules! check {
@@ -185,7 +180,6 @@ fn test_hashset() {
 #[cfg(test)]
 #[test]
 fn test_linkedlist() {
-    use ::ScanErrorKind as SEK;
     use ::scanner::ScanFromStr;
 
     macro_rules! check {
@@ -213,7 +207,6 @@ fn test_linkedlist() {
 #[cfg(test)]
 #[test]
 fn test_vec() {
-    use ::ScanErrorKind as SEK;
     use ::scanner::ScanFromStr;
 
     macro_rules! check {
@@ -241,7 +234,6 @@ fn test_vec() {
 #[cfg(test)]
 #[test]
 fn test_vecdeque() {
-    use ::ScanErrorKind as SEK;
     use ::scanner::ScanFromStr;
 
     macro_rules! check {
