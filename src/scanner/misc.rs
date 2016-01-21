@@ -2,10 +2,144 @@
 Miscellaneous, abstract scanners.
 */
 use std::marker::PhantomData;
+use regex::Regex;
 use strcursor::StrCursor;
 use ::ScanErrorKind;
 use super::{ScanFromStr, ScanSelfFromStr};
 use super::util::StrUtil;
+
+lazy_static! {
+    static ref IDENT_RE: Regex = Regex::new(r"^(\p{XID_Start}|_)\p{XID_Continue}*").unwrap();
+    static ref LINE_RE: Regex = Regex::new(r"^(.*?)(\n|\r\n?|$)").unwrap();
+    static ref NUMBER_RE: Regex = Regex::new(r"^\d+").unwrap();
+    static ref WORD_RE: Regex = Regex::new(r"^\w+").unwrap();
+    static ref WORDISH_RE: Regex = Regex::new(r"^(\d+|\w+|\S)").unwrap();
+}
+
+/**
+Scans all remaining input into a string.
+
+In most cases, you should use the `.. name` tail capture term to perform this task.  This scanner is provided as a way to do this in contexts where tail capture is not valid (because it normally wouldn't make any sense).
+*/
+pub struct Everything<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
+
+impl<'a, Output> ScanFromStr<'a> for Everything<'a, Output> where &'a str: Into<Output> {
+    type Output = Output;
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+        Ok((s.into(), s.len()))
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn test_everything() {
+    // That's the scanner named `Everything`, not literally everything.
+    assert_match!(Everything::scan_from(""), Ok(("", 0)));
+    assert_match!(Everything::scan_from("で"), Ok(("で", 3)));
+    assert_match!(Everything::scan_from("うまいー　うまいー　ぼうぼうぼうぼう"), Ok(("うまいー　うまいー　ぼうぼうぼうぼう", 54)));
+}
+
+/**
+Scans a single identifier into a string.
+
+Specifically, this will match a single `XID_Start` character (or underscore) followed by zero or more `XID_Continue` characters.
+*/
+pub struct Ident<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
+
+impl<'a, Output> ScanFromStr<'a> for Ident<'a, Output> where &'a str: Into<Output> {
+    type Output = Output;
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+        match IDENT_RE.find(s) {
+            Some((a, b)) => {
+                let word = &s[a..b];
+                let tail = &s[b..];
+                Ok((word.into(), s.subslice_offset(tail).unwrap()))
+            },
+            None => Err(ScanErrorKind::Missing),
+        }
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn test_ident() {
+    use ::ScanErrorKind as SEK;
+
+    assert_match!(Ident::<&str>::scan_from(""), Err(SEK::Missing));
+    assert_match!(Ident::<&str>::scan_from("a"), Ok(("a", 1)));
+    assert_match!(Ident::<&str>::scan_from("two words "), Ok(("two", 3)));
+    assert_match!(Ident::<&str>::scan_from("two_words "), Ok(("two_words", 9)));
+    assert_match!(Ident::<&str>::scan_from("0123abc456 "), Err(SEK::Missing));
+    assert_match!(Ident::<&str>::scan_from("_0123abc456 "), Ok(("_0123abc456", 11)));
+    assert_match!(Ident::<&str>::scan_from("f(blah)"), Ok(("f", 1)));
+}
+
+/**
+Scans everything up to the end of the current line, *or* the end of the input, whichever comes first.  The scanned result *does not* include the line terminator.
+
+Note that this is effectively equivalent to the `Everything` matcher when used with `readln!`.
+*/
+pub struct Line<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
+
+impl<'a, Output> ScanFromStr<'a> for Line<'a, Output> where &'a str: Into<Output> {
+    type Output = Output;
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+        use ::ScanErrorKind::Missing;
+        let cap = try!(LINE_RE.captures(s).ok_or(Missing));
+        let (_, b) = try!(cap.pos(0).ok_or(Missing));
+        let (c, d) = try!(cap.pos(1).ok_or(Missing));
+        Ok((s[c..d].into(), b))
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn test_line() {
+    assert_match!(Line::scan_from(""), Ok(("", 0)));
+    assert_match!(Line::scan_from("abc def"), Ok(("abc def", 7)));
+    assert_match!(Line::scan_from("abc\ndef"), Ok(("abc", 4)));
+    assert_match!(Line::scan_from("abc\r\ndef"), Ok(("abc", 5)));
+    assert_match!(Line::scan_from("abc\rdef"), Ok(("abc", 4)));
+}
+
+/**
+Scans a single number into a string.
+
+Specifically, this will match a continuous run of decimal characters (*i.e.* /`\d+`/).
+
+Note that this *includes* non-ASCII decimal characters, meaning it will scan numbers such as "42", "１７０１", and "𐒩０꘠᧑".
+*/
+pub struct Number<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
+
+impl<'a, Output> ScanFromStr<'a> for Number<'a, Output> where &'a str: Into<Output> {
+    type Output = Output;
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+        match NUMBER_RE.find(s) {
+            Some((a, b)) => {
+                let word = &s[a..b];
+                let tail = &s[b..];
+                Ok((word.into(), s.subslice_offset(tail).unwrap()))
+            },
+            None => Err(ScanErrorKind::Missing),
+        }
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn test_number() {
+    use ::ScanErrorKind as SEK;
+
+    assert_match!(Number::<&str>::scan_from(""), Err(SEK::Missing));
+    assert_match!(Number::<&str>::scan_from("a"), Err(SEK::Missing));
+    assert_match!(Number::<&str>::scan_from("0"), Ok(("0", 1)));
+    assert_match!(Number::<&str>::scan_from("0x"), Ok(("0", 1)));
+    assert_match!(Number::<&str>::scan_from("x0"), Err(SEK::Missing));
+    assert_match!(Number::<&str>::scan_from("123 456 xyz"), Ok(("123", 3)));
+    assert_match!(Number::<&str>::scan_from("123 456 xyz"), Ok(("123", 3)));
+    assert_match!(Number::<&str>::scan_from("123４５６789 "), Ok(("123４５６789", 15)));
+    assert_match!(Number::<&str>::scan_from("𐒩０꘠᧑ "), Ok(("𐒩０꘠᧑", 13)));
+}
 
 /**
 An abstract scanner that scans a `(K, V)` value using the syntax `K: V`.
@@ -106,15 +240,59 @@ fn test_quoted_string() {
 /**
 Scans a single word into a string.
 
-TODO: be more specific.
+Specifically, this will match a continuous run of alphabetic, digit, punctuation, mark, and joining characters (*i.e.* /`\w+`/).
 */
-pub struct Word<'a, T=&'a str>(PhantomData<(&'a (), T)>);
+pub struct Word<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
 
-impl<'a, T> ScanFromStr<'a> for Word<'a, T> where &'a str: Into<T> {
-    type Output = T;
+impl<'a, Output> ScanFromStr<'a> for Word<'a, Output> where &'a str: Into<Output> {
+    type Output = Output;
     fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
-        match s.split_word() {
-            Some((word, tail)) => Ok((word.into(), s.subslice_offset(tail).unwrap())),
+        match WORD_RE.find(s) {
+            Some((a, b)) => {
+                let word = &s[a..b];
+                let tail = &s[b..];
+                Ok((word.into(), s.subslice_offset(tail).unwrap()))
+            },
+            None => Err(ScanErrorKind::Missing),
+        }
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn test_word() {
+    use ::ScanErrorKind as SEK;
+
+    assert_match!(Word::<&str>::scan_from(""), Err(SEK::Missing));
+    assert_match!(Word::<&str>::scan_from("a"), Ok(("a", 1)));
+    assert_match!(Word::<&str>::scan_from("0"), Ok(("0", 1)));
+    assert_match!(Word::<&str>::scan_from("0x"), Ok(("0x", 2)));
+    assert_match!(Word::<&str>::scan_from("x0"), Ok(("x0", 2)));
+    assert_match!(Word::<&str>::scan_from("123 456 xyz"), Ok(("123", 3)));
+    assert_match!(Word::<&str>::scan_from("123 456 xyz"), Ok(("123", 3)));
+    assert_match!(Word::<&str>::scan_from("123４５６789 "), Ok(("123４５６789", 15)));
+    assert_match!(Word::<&str>::scan_from("𐒩０꘠᧑ "), Ok(("𐒩０꘠᧑", 13)));
+    assert_match!(Word::<&str>::scan_from("kumquat,bingo"), Ok(("kumquat", 7)));
+    assert_match!(Word::<&str>::scan_from("mixed言葉كتابة "), Ok(("mixed言葉كتابة", 21)));
+}
+
+/**
+Scans a single word-ish thing into a string.
+
+Specifically, this will match a word (a continuous run of alphabetic, digit, punctuation, mark, and joining characters), a number (a continuous run of digits), or a single other non-whitespace character  (*i.e.* /`\w+|\d+|\S`/).
+*/
+pub struct Wordish<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
+
+impl<'a, Output> ScanFromStr<'a> for Wordish<'a, Output> where &'a str: Into<Output> {
+    type Output = Output;
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+        // TODO: This should be modified to grab an entire *grapheme cluster* in the event it can't find a word or number.
+        match WORDISH_RE.find(s) {
+            Some((a, b)) => {
+                let word = &s[a..b];
+                let tail = &s[b..];
+                Ok((word.into(), s.subslice_offset(tail).unwrap()))
+            },
             None => Err(ScanErrorKind::Missing),
         }
     }

@@ -3,7 +3,11 @@ This module defines various abstract scanners that can be used to scan other typ
 
 It is also where implementations for existing standard and external types are kept, though these do not appear in the documentation.
 */
-pub use self::misc::{KeyValuePair, QuotedString, Word};
+pub use self::misc::{
+    Everything,
+    Ident, Line, Number, Word, Wordish,
+    KeyValuePair, QuotedString,
+};
 
 #[macro_use] mod macros;
 

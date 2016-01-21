@@ -7,18 +7,12 @@ use strcursor::StrCursor;
 lazy_static! {
     static ref HEX_ESC_RE: Regex = Regex::new(r"^([:xdigit:]{2})").unwrap();
     static ref UNI_ESC_RE: Regex = Regex::new(r"^\{([:xdigit:]+)\}").unwrap();
-    static ref WORD_RE: Regex = Regex::new(r"^\s*(\w+|\S)").unwrap();
 }
 
 /**
 Various string utility methods.
 */
 pub trait StrUtil {
-    /**
-    Splits a string into the first word, and everything after.
-    */
-    fn split_word(&self) -> Option<(&Self, &Self)>;
-
     /**
     Returns the byte offset of an inner slice relative to an enclosing outer slice.
     */
@@ -31,11 +25,6 @@ pub trait StrUtil {
 }
 
 impl StrUtil for str {
-    fn split_word(&self) -> Option<(&Self, &Self)> {
-        WORD_RE.find(self)
-            .map(|(a, b)| (&self[a..b], &self[b..]))
-    }
-
     fn subslice_offset(&self, inner: &str) -> Option<usize> {
         let self_beg = self.as_ptr() as usize;
         let inner = inner.as_ptr() as usize;
