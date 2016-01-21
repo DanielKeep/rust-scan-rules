@@ -169,6 +169,15 @@ macro_rules! scan_rules_impl {
         }
     };
 
+    (@scan ($cur:expr); (let _ <| $s:expr, $($tail:tt)*) => $body:expr) => {
+        {
+            match $crate::input::ScanInput::try_scan($cur, |s| $crate::scanner::ScanStr::scan(&mut $s, s)) {
+                Ok((_, new_cur)) => scan_rules_impl!(@scan (new_cur); ($($tail)*) => $body),
+                Err((err, _)) => Err(err)
+            }
+        }
+    };
+
     (@scan ($cur:expr); (let $name:ident, $($tail:tt)*) => $body:expr) => {
         {
             match $crate::input::ScanInput::try_scan($cur, $crate::scanner::ScanSelfFromStr::scan_self_from) {
@@ -181,6 +190,15 @@ macro_rules! scan_rules_impl {
     (@scan ($cur:expr); (let $name:ident: $t:ty, $($tail:tt)*) => $body:expr) => {
         {
             match $crate::input::ScanInput::try_scan($cur, <$t as $crate::scanner::ScanFromStr>::scan_from) {
+                Ok(($name, new_cur)) => scan_rules_impl!(@scan (new_cur); ($($tail)*) => $body),
+                Err((err, _)) => Err(err)
+            }
+        }
+    };
+
+    (@scan ($cur:expr); (let $name:ident <| $s:expr, $($tail:tt)*) => $body:expr) => {
+        {
+            match $crate::input::ScanInput::try_scan($cur, |s| $crate::scanner::ScanStr::scan(&mut $s, s)) {
                 Ok(($name, new_cur)) => scan_rules_impl!(@scan (new_cur); ($($tail)*) => $body),
                 Err((err, _)) => Err(err)
             }
@@ -499,11 +517,19 @@ macro_rules! scan_rules_impl {
         scan_rules_impl!(@with_bindings.step $i, $names, $cb; $($tail)*)
     };
 
+    (@with_bindings.step $i:tt, $names:tt, $cb:tt; let _ <| $_s:expr, $($tail:tt)*) => {
+        scan_rules_impl!(@with_bindings.step $i, $names, $cb; $($tail)*)
+    };
+
     (@with_bindings.step $i:tt, ($($names:tt)*), $cb:tt; let $name:ident, $($tail:tt)*) => {
         scan_rules_impl!(@with_bindings.inc $i, ($($names)* ($name, $i),), $cb; $($tail)*)
     };
 
     (@with_bindings.step $i:tt, ($($names:tt)*), $cb:tt; let $name:ident: $_ty:ty, $($tail:tt)*) => {
+        scan_rules_impl!(@with_bindings.inc $i, ($($names)* ($name, $i),), $cb; $($tail)*)
+    };
+
+    (@with_bindings.step $i:tt, ($($names:tt)*), $cb:tt; let $name:ident <| $_s:expr, $($tail:tt)*) => {
         scan_rules_impl!(@with_bindings.inc $i, ($($names)* ($name, $i),), $cb; $($tail)*)
     };
 

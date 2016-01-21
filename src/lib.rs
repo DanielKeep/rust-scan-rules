@@ -176,6 +176,10 @@ A scanning pattern is made up of one or more pattern terms, separated by commas.
 
   *E.g.* `let x`, `let n: i32`, `let words: Vec<_>`, `let _: &str` (scans and discards a value).
 
+* `let` *name* `<|` *expression* - scans a value out of the input text and binds it to *name*, using the value of *expression* to perform the scan.  The expression must evaluate to something that implements the `ScanStr` trait.
+
+  *E.g.* `let n <| scan_a::<i32>()` (same as above example for `n`), `let three_digits <| max_width_a::<u32>()` (scan a three-digit `u32`).
+
 * `..` *name* - binds the remaining, unscanned input as a string to *name*.  This can *only* appear as the final term in a top-level pattern.
 
 * `[` *pattern* `]` \[ *(nothing)* | `,` | `(` *seperator pattern* `)` ] ( `?` | `*` | `+` | `{` *range* `}` ) \[ ":" *collection type* ] - scans *pattern* repeatedly.

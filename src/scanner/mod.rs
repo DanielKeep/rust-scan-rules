@@ -8,8 +8,52 @@ files in the project carrying such notice may not be copied, modified,
 or distributed except according to those terms.
 */
 /*!
-This module defines various abstract scanners that can be used to scan other types with particular properties, or under custom parsing rules.
+This module defines various scanners that can be used to extract values from input text.
 
+## Kinds of Scanner
+
+Scanners can be classified as "static self scanners", "static abstract scanners", and "runtime abstract scanners".
+
+* "Static self scanners" are types which implement the `ScanFromStr` trait and output an instance of themselves.  For example, if you scan using the `i32` type, you get an `i32` result.  These are implemented for types which have an obvious "default" scanning syntax.
+
+  As a consequence of outputting an instance of themselves, they *also* automatically implement the `ScanSelfFromStr` trait.
+
+* "Static abstract scanners" are types which implement the `ScanFromStr` trait and output an instance of *some other* type.  For example, if you scan using the `Word` type, you get a `&str` or `String` result.  These are implemented for cases where different rules are desireable, such as scanning particular *subsets* of a type (see `Word`, `Number`, `NonSpace`), or non-default encodings (see `Binary`, `Octal`, `Hex`).
+
+* "Runtime abstract scanners" implement the `ScanStr` trait and serve the same overall function as static abstract scanners, except that the scanner *itself* must be constructed.  In other words, static scanners are types, runtime scanners are *values*.  This makes them a little less straightforward to use, but they are *significantly* more flexible.  They can be parameterised at runtime, to perform arbitrary manipulations of both the text input and scanned values (see `max_width`, `re_str`).
+
+## Bridging Between Static and Runtime Scanners
+
+A scanner of interest is `ScanA<Type>`.  This is a runtime scanner which takes a *static* scanner as a type parameter.  This allows you to use a static scanner in a context where a runtime scanner is needed.
+
+For example, these two bindings are equivalent in terms of behaviour:
+
+```ignore
+    // Scan a u32.
+    let _: u32
+    let _ <| scan_a::<u32>()
+```
+
+## Creating Runtime Scanners
+
+Runtime scanners are typically constructed using functions, rather than dealing with the implementing type itself.  For example, to get an instance of the `ExactWidth` runtime scanner, you would call either the `exact_width` or `exact_width_a` functions.
+
+The reason for two functions is that most runtime scanners accept a *second* runtime scanner for the purposes of chaining.  This allows several transformations to be applied outside-in.  For example, you can combine runtime scanners together like so:
+
+```ignore
+    // Scan a word of between 2 and 5 bytes.
+    let _ <| min_width(2, max_width(5, scan_a::<Word>()))
+```
+
+Functions ending in `_a` are a shorthand for the common case of wrapping a runtime scanner around a static scanner.  For example, the following two patterns are equivalent:
+
+```ignore
+    // Scan a u32 that has, at most, four digits.
+    let _ <| max_width(4, scan_a::<u32>())
+    let _ <| max_width_a::<u32>(4)
+```
+*/
+/*
 It is also where implementations for existing standard and external types are kept, though these do not appear in the documentation.
 */
 pub use self::misc::{
@@ -18,9 +62,17 @@ pub use self::misc::{
     KeyValuePair, QuotedString,
     Binary, Octal, Hex,
 };
+#[doc(inline)] pub use self::runtime::{
+    exact_width, exact_width_a,
+    max_width, max_width_a,
+    min_width, min_width_a,
+    re, re_a, re_str,
+    scan_a,
+};
 
 #[macro_use] mod macros;
 
+pub mod runtime;
 pub mod util;
 
 mod lang;
@@ -119,4 +171,23 @@ pub trait ScanFromHex<'a>: Sized {
     See: [`ScanFromStr::scan_from`](trait.ScanFromStr.html#tymethod.scan_from).
     */
     fn scan_from_hex(s: &'a str) -> Result<(Self, usize), ScanErrorKind>;
+}
+
+/**
+This trait defines the interface for runtime scanners.
+
+Runtime scanners must be created before they can be used, but this allows their behaviour to be modified at runtime.
+*/
+pub trait ScanStr<'a>: Sized {
+    /**
+    The type that the implementation scans into.
+    */
+    type Output;
+
+    /**
+    Perform a scan on the given input.
+
+    See: [`ScanFromStr::scan_from`](trait.ScanFromStr.html#tymethod.scan_from).
+    */
+    fn scan(&mut self, s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind>;
 }
