@@ -1,5 +1,7 @@
 #[macro_use] extern crate scan_rules;
 
+use scan_rules::scanner::Word;
+
 #[derive(Debug)]
 enum Data {
     Vector(i32, i32, i32),
@@ -20,10 +22,10 @@ fn main() {
         ("yes") => Data::Truthy(true),
         ("no") => Data::Truthy(false),
 
-        ("words:", [ let words ],+) => Data::Words(words),
-    //             ^~~~~~~~~~~~~~^ repetition pattern
-    //                           ^ one or more matches
-    //                          ^ matches must be comma-separated
+        ("words:", [ let words: Word<String> ],+) => Data::Words(words),
+    //             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~^ repetition pattern
+    //                                         ^ one or more matches
+    //                                        ^ matches must be comma-separated
 
         (..other) => Data::Other(String::from(other))
     };

@@ -25,7 +25,7 @@ lazy_static! {
     static ref UINTEGER_RE: Regex = Regex::new(r"^[+]?\d+").unwrap();
 }
 
-parse_scanner! { impl<'a> for bool, from &str }
+parse_scanner! { impl<'a> for bool, from Word }
 
 #[cfg(test)]
 #[test]
@@ -171,18 +171,4 @@ fn test_scan_u32() {
     assert_match!(<u32>::scan_from("42"), Ok((42, 2)));
     assert_match!(<u32>::scan_from("-312"), Err(SEK::Missing));
     assert_match!(<u32>::scan_from("1_234"), Ok((1, 1)));
-}
-
-impl<'a> ScanFromStr<'a> for &'a str {
-    type Output = &'a str;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
-        Word::scan_from(s)
-    }
-}
-
-impl<'a> ScanFromStr<'a> for &'a [u8] {
-    type Output = &'a [u8];
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
-        <&str>::scan_from(s).map(|(v, n)| (v.as_bytes(), n))
-    }
 }

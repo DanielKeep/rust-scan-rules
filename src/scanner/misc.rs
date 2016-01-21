@@ -90,8 +90,6 @@ fn test_quoted_string() {
     use ::ScanErrorKind as SEK;
     use self::QuotedString as QS;
 
-    fn s(s: &str) -> String { String::from(s) }
-
     assert_match!(QS::scan_from(""), Err(SEK::Missing));
     assert_match!(QS::scan_from("dummy xyz"), Err(SEK::Missing));
     assert_match!(QS::scan_from("'dummy' xyz"), Err(SEK::Missing));
@@ -110,13 +108,13 @@ Scans a single word into a string.
 
 TODO: be more specific.
 */
-pub enum Word {}
+pub struct Word<'a, T=&'a str>(PhantomData<(&'a (), T)>);
 
-impl<'a> ScanFromStr<'a> for Word {
-    type Output = &'a str;
+impl<'a, T> ScanFromStr<'a> for Word<'a, T> where &'a str: Into<T> {
+    type Output = T;
     fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
         match s.split_word() {
-            Some((word, tail)) => Ok((word, s.subslice_offset(tail).unwrap())),
+            Some((word, tail)) => Ok((word.into(), s.subslice_offset(tail).unwrap())),
             None => Err(ScanErrorKind::Missing),
         }
     }

@@ -3,6 +3,7 @@
 
 use scan_rules::ScanError as SE;
 use scan_rules::ScanErrorKind as SEK;
+use scan_rules::scanner::Word;
 
 #[test]
 fn test_repeating() {
@@ -212,7 +213,7 @@ fn test_repeating() {
     );
 
     assert_match!(
-        scan!("0 and 1 and 2 and 3"; ([ let ns: i32 ]( let sep: &str )*, ..tail) => (ns, sep, tail)),
+        scan!("0 and 1 and 2 and 3"; ([ let ns: i32 ]( let sep: Word )*, ..tail) => (ns, sep, tail)),
         Ok((ref ns, ref sep, "")) if *ns == vec![0, 1, 2, 3] && *sep == vec!["and", "and", "and"]
     );
 }

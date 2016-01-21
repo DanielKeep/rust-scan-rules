@@ -3,6 +3,7 @@
 
 use scan_rules::ScanError as SE;
 use scan_rules::ScanErrorKind as SEK;
+use scan_rules::scanner::Word;
 
 #[test]
 fn test_multiple_rules() {
@@ -32,7 +33,7 @@ enum Parsed<'a> {
 fn parse(s: &str) -> Result<Parsed, SE> {
     scan! { s;
         ("line:", ..v) => Parsed::Line(v),
-        ("word:", let v) => Parsed::Word(v),
+        ("word:", let v: Word) => Parsed::Word(v),
         ("i32:", let v) => Parsed::I32(v),
     }
 }
