@@ -28,31 +28,32 @@ lazy_static! {
     static ref UINTEGER_RE: Regex = Regex::new(r"^[+]?\d+").unwrap();
 }
 
-parse_scanner! { impl<'a> for bool, from Word }
+parse_scanner! { impl<'a> for bool, from Word, err desc "expected `true` or `false`" }
 
 #[cfg(test)]
 #[test]
 fn test_scan_bool() {
     use ::ScanErrorKind as SEK;
 
-    assert_match!(<bool>::scan_from(""), Err(SEK::Missing));
-    assert_match!(<bool>::scan_from("y"), Err(SEK::Missing));
-    assert_match!(<bool>::scan_from("n"), Err(SEK::Missing));
-    assert_match!(<bool>::scan_from("yes"), Err(SEK::Missing));
-    assert_match!(<bool>::scan_from("no"), Err(SEK::Missing));
-    assert_match!(<bool>::scan_from(" "), Err(SEK::Missing));
-    assert_match!(<bool>::scan_from(" true"), Err(SEK::Missing));
-    assert_match!(<bool>::scan_from(" false"), Err(SEK::Missing));
+    assert_match!(<bool>::scan_from(""), Err(SEK::Syntax(_)));
+    assert_match!(<bool>::scan_from("y"), Err(SEK::Syntax(_)));
+    assert_match!(<bool>::scan_from("n"), Err(SEK::Syntax(_)));
+    assert_match!(<bool>::scan_from("yes"), Err(SEK::Syntax(_)));
+    assert_match!(<bool>::scan_from("no"), Err(SEK::Syntax(_)));
+    assert_match!(<bool>::scan_from(" "), Err(SEK::Syntax(_)));
+    assert_match!(<bool>::scan_from(" true"), Err(SEK::Syntax(_)));
+    assert_match!(<bool>::scan_from(" false"), Err(SEK::Syntax(_)));
     assert_match!(<bool>::scan_from("true"), Ok((true, 4)));
     assert_match!(<bool>::scan_from("false"), Ok((false, 5)));
-    assert_match!(<bool>::scan_from("True"), Err(SEK::Missing));
-    assert_match!(<bool>::scan_from("False"), Err(SEK::Missing));
+    assert_match!(<bool>::scan_from("True"), Err(SEK::Syntax(_)));
+    assert_match!(<bool>::scan_from("False"), Err(SEK::Syntax(_)));
 }
 
 impl<'a> ScanFromStr<'a> for char {
     type Output = char;
     fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
-        let cur = try!(StrCursor::new_at_start(s).at_next_cp().ok_or(ScanErrorKind::Missing));
+        let cur = try!(StrCursor::new_at_start(s).at_next_cp()
+            .ok_or(ScanErrorKind::Syntax("expected a character")));
         Ok((cur.cp_before().unwrap(), cur.byte_pos()))
     }
 }
@@ -62,7 +63,7 @@ impl<'a> ScanFromStr<'a> for char {
 fn test_scan_char() {
     use ::ScanErrorKind as SEK;
 
-    assert_match!(<char>::scan_from(""), Err(SEK::Missing));
+    assert_match!(<char>::scan_from(""), Err(SEK::Syntax(_)));
     assert_match!(<char>::scan_from(" "), Ok((' ', 1)));
     assert_match!(<char>::scan_from("x"), Ok(('x', 1)));
     assert_match!(<char>::scan_from("xy"), Ok(('x', 1)));
@@ -71,8 +72,8 @@ fn test_scan_char() {
     assert_match!(<char>::scan_from("字"), Ok(('字', 3)));
 }
 
-parse_scanner! { impl<'a> for f32, regex FLOAT_RE }
-parse_scanner! { impl<'a> for f64, regex FLOAT_RE }
+parse_scanner! { impl<'a> for f32, regex FLOAT_RE, regex err "expected floating point number", err map ScanErrorKind::Float }
+parse_scanner! { impl<'a> for f64, regex FLOAT_RE, regex err "expected floating point number", err map ScanErrorKind::Float }
 
 #[cfg(test)]
 #[test]
@@ -92,12 +93,12 @@ fn test_scan_f64() {
         };
     }
 
-    assert_match!(<f64>::scan_from(""), Err(SEK::Missing));
-    assert_match!(<f64>::scan_from("-"), Err(SEK::Missing));
-    assert_match!(<f64>::scan_from("+"), Err(SEK::Missing));
-    assert_match!(<f64>::scan_from("x"), Err(SEK::Missing));
-    assert_match!(<f64>::scan_from(" "), Err(SEK::Missing));
-    assert_match!(<f64>::scan_from(" 0"), Err(SEK::Missing));
+    assert_match!(<f64>::scan_from(""), Err(SEK::Syntax(_)));
+    assert_match!(<f64>::scan_from("-"), Err(SEK::Syntax(_)));
+    assert_match!(<f64>::scan_from("+"), Err(SEK::Syntax(_)));
+    assert_match!(<f64>::scan_from("x"), Err(SEK::Syntax(_)));
+    assert_match!(<f64>::scan_from(" "), Err(SEK::Syntax(_)));
+    assert_match!(<f64>::scan_from(" 0"), Err(SEK::Syntax(_)));
 
     assert_match!(<f64>::scan_from("inf"), Ok((::std::f64::INFINITY, 3)));
     assert_match!(<f64>::scan_from("-inf"), Ok((::std::f64::NEG_INFINITY, 4)));
@@ -130,84 +131,84 @@ fn test_scan_f64() {
     check_f64!(1.448997445238699);
 }
 
-parse_scanner! { impl<'a> for i8, regex SINTEGER_RE }
-parse_scanner! { impl<'a> for i16, regex SINTEGER_RE }
-parse_scanner! { impl<'a> for i32, regex SINTEGER_RE }
-parse_scanner! { impl<'a> for i64, regex SINTEGER_RE }
-parse_scanner! { impl<'a> for isize, regex SINTEGER_RE }
+parse_scanner! { impl<'a> for i8, regex SINTEGER_RE, regex err "expected integer", err map ScanErrorKind::Int }
+parse_scanner! { impl<'a> for i16, regex SINTEGER_RE, regex err "expected integer", err map ScanErrorKind::Int }
+parse_scanner! { impl<'a> for i32, regex SINTEGER_RE, regex err "expected integer", err map ScanErrorKind::Int }
+parse_scanner! { impl<'a> for i64, regex SINTEGER_RE, regex err "expected integer", err map ScanErrorKind::Int }
+parse_scanner! { impl<'a> for isize, regex SINTEGER_RE, regex err "expected integer", err map ScanErrorKind::Int }
 
-parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for i8, regex BININT_RE, map |s| i8::from_str_radix(s, 2) }
-parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for i16, regex BININT_RE, map |s| i16::from_str_radix(s, 2) }
-parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for i32, regex BININT_RE, map |s| i32::from_str_radix(s, 2) }
-parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for i64, regex BININT_RE, map |s| i64::from_str_radix(s, 2) }
-parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for isize, regex BININT_RE, map |s| isize::from_str_radix(s, 2) }
+parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for i8, regex BININT_RE, regex err "expected binary integer", map |s| i8::from_str_radix(s, 2), err map ScanErrorKind::Int }
+parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for i16, regex BININT_RE, regex err "expected binary integer", map |s| i16::from_str_radix(s, 2), err map ScanErrorKind::Int }
+parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for i32, regex BININT_RE, regex err "expected binary integer", map |s| i32::from_str_radix(s, 2), err map ScanErrorKind::Int }
+parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for i64, regex BININT_RE, regex err "expected binary integer", map |s| i64::from_str_radix(s, 2), err map ScanErrorKind::Int }
+parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for isize, regex BININT_RE, regex err "expected binary integer", map |s| isize::from_str_radix(s, 2), err map ScanErrorKind::Int }
 
-parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for i8, regex OCTINT_RE, map |s| i8::from_str_radix(s, 8) }
-parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for i16, regex OCTINT_RE, map |s| i16::from_str_radix(s, 8) }
-parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for i32, regex OCTINT_RE, map |s| i32::from_str_radix(s, 8) }
-parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for i64, regex OCTINT_RE, map |s| i64::from_str_radix(s, 8) }
-parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for isize, regex OCTINT_RE, map |s| isize::from_str_radix(s, 8) }
+parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for i8, regex OCTINT_RE, regex err "expected octal integer", map |s| i8::from_str_radix(s, 8), err map ScanErrorKind::Int }
+parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for i16, regex OCTINT_RE, regex err "expected octal integer", map |s| i16::from_str_radix(s, 8), err map ScanErrorKind::Int }
+parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for i32, regex OCTINT_RE, regex err "expected octal integer", map |s| i32::from_str_radix(s, 8), err map ScanErrorKind::Int }
+parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for i64, regex OCTINT_RE, regex err "expected octal integer", map |s| i64::from_str_radix(s, 8), err map ScanErrorKind::Int }
+parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for isize, regex OCTINT_RE, regex err "expected octal integer", map |s| isize::from_str_radix(s, 8), err map ScanErrorKind::Int }
 
-parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for i8, regex HEXINT_RE, map |s| i8::from_str_radix(s, 16) }
-parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for i16, regex HEXINT_RE, map |s| i16::from_str_radix(s, 16) }
-parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for i32, regex HEXINT_RE, map |s| i32::from_str_radix(s, 16) }
-parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for i64, regex HEXINT_RE, map |s| i64::from_str_radix(s, 16) }
-parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for isize, regex HEXINT_RE, map |s| isize::from_str_radix(s, 16) }
+parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for i8, regex HEXINT_RE, regex err "expected hex integer", map |s| i8::from_str_radix(s, 16), err map ScanErrorKind::Int }
+parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for i16, regex HEXINT_RE, regex err "expected hex integer", map |s| i16::from_str_radix(s, 16), err map ScanErrorKind::Int }
+parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for i32, regex HEXINT_RE, regex err "expected hex integer", map |s| i32::from_str_radix(s, 16), err map ScanErrorKind::Int }
+parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for i64, regex HEXINT_RE, regex err "expected hex integer", map |s| i64::from_str_radix(s, 16), err map ScanErrorKind::Int }
+parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for isize, regex HEXINT_RE, regex err "expected hex integer", map |s| isize::from_str_radix(s, 16), err map ScanErrorKind::Int }
 
 #[cfg(test)]
 #[test]
 fn test_scan_i32() {
     use ::ScanErrorKind as SEK;
 
-    assert_match!(<i32>::scan_from(""), Err(SEK::Missing));
-    assert_match!(<i32>::scan_from("-"), Err(SEK::Missing));
-    assert_match!(<i32>::scan_from("+"), Err(SEK::Missing));
-    assert_match!(<i32>::scan_from("x"), Err(SEK::Missing));
-    assert_match!(<i32>::scan_from(" "), Err(SEK::Missing));
-    assert_match!(<i32>::scan_from(" 0"), Err(SEK::Missing));
+    assert_match!(<i32>::scan_from(""), Err(SEK::Syntax(_)));
+    assert_match!(<i32>::scan_from("-"), Err(SEK::Syntax(_)));
+    assert_match!(<i32>::scan_from("+"), Err(SEK::Syntax(_)));
+    assert_match!(<i32>::scan_from("x"), Err(SEK::Syntax(_)));
+    assert_match!(<i32>::scan_from(" "), Err(SEK::Syntax(_)));
+    assert_match!(<i32>::scan_from(" 0"), Err(SEK::Syntax(_)));
     assert_match!(<i32>::scan_from("0"), Ok((0, 1)));
     assert_match!(<i32>::scan_from("42"), Ok((42, 2)));
     assert_match!(<i32>::scan_from("-312"), Ok((-312, 4)));
     assert_match!(<i32>::scan_from("1_234"), Ok((1, 1)));
 }
 
-parse_scanner! { impl<'a> for u8, regex UINTEGER_RE }
-parse_scanner! { impl<'a> for u16, regex UINTEGER_RE }
-parse_scanner! { impl<'a> for u32, regex UINTEGER_RE }
-parse_scanner! { impl<'a> for u64, regex UINTEGER_RE }
-parse_scanner! { impl<'a> for usize, regex UINTEGER_RE }
+parse_scanner! { impl<'a> for u8, regex UINTEGER_RE, regex err "expected integer", err map ScanErrorKind::Int }
+parse_scanner! { impl<'a> for u16, regex UINTEGER_RE, regex err "expected integer", err map ScanErrorKind::Int }
+parse_scanner! { impl<'a> for u32, regex UINTEGER_RE, regex err "expected integer", err map ScanErrorKind::Int }
+parse_scanner! { impl<'a> for u64, regex UINTEGER_RE, regex err "expected integer", err map ScanErrorKind::Int }
+parse_scanner! { impl<'a> for usize, regex UINTEGER_RE, regex err "expected integer", err map ScanErrorKind::Int }
 
-parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for u8, regex BININT_RE, map |s| u8::from_str_radix(s, 2) }
-parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for u16, regex BININT_RE, map |s| u16::from_str_radix(s, 2) }
-parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for u32, regex BININT_RE, map |s| u32::from_str_radix(s, 2) }
-parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for u64, regex BININT_RE, map |s| u64::from_str_radix(s, 2) }
-parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for usize, regex BININT_RE, map |s| usize::from_str_radix(s, 2) }
+parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for u8, regex BININT_RE, regex err "expected binary integer", map |s| u8::from_str_radix(s, 2), err map ScanErrorKind::Int }
+parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for u16, regex BININT_RE, regex err "expected binary integer", map |s| u16::from_str_radix(s, 2), err map ScanErrorKind::Int }
+parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for u32, regex BININT_RE, regex err "expected binary integer", map |s| u32::from_str_radix(s, 2), err map ScanErrorKind::Int }
+parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for u64, regex BININT_RE, regex err "expected binary integer", map |s| u64::from_str_radix(s, 2), err map ScanErrorKind::Int }
+parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for usize, regex BININT_RE, regex err "expected binary integer", map |s| usize::from_str_radix(s, 2), err map ScanErrorKind::Int }
 
-parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for u8, regex OCTINT_RE, map |s| u8::from_str_radix(s, 8) }
-parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for u16, regex OCTINT_RE, map |s| u16::from_str_radix(s, 8) }
-parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for u32, regex OCTINT_RE, map |s| u32::from_str_radix(s, 8) }
-parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for u64, regex OCTINT_RE, map |s| u64::from_str_radix(s, 8) }
-parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for usize, regex OCTINT_RE, map |s| usize::from_str_radix(s, 8) }
+parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for u8, regex OCTINT_RE, regex err "expected octal integer", map |s| u8::from_str_radix(s, 8), err map ScanErrorKind::Int }
+parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for u16, regex OCTINT_RE, regex err "expected octal integer", map |s| u16::from_str_radix(s, 8), err map ScanErrorKind::Int }
+parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for u32, regex OCTINT_RE, regex err "expected octal integer", map |s| u32::from_str_radix(s, 8), err map ScanErrorKind::Int }
+parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for u64, regex OCTINT_RE, regex err "expected octal integer", map |s| u64::from_str_radix(s, 8), err map ScanErrorKind::Int }
+parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for usize, regex OCTINT_RE, regex err "expected octal integer", map |s| usize::from_str_radix(s, 8), err map ScanErrorKind::Int }
 
-parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for u8, regex HEXINT_RE, map |s| u8::from_str_radix(s, 16) }
-parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for u16, regex HEXINT_RE, map |s| u16::from_str_radix(s, 16) }
-parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for u32, regex HEXINT_RE, map |s| u32::from_str_radix(s, 16) }
-parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for u64, regex HEXINT_RE, map |s| u64::from_str_radix(s, 16) }
-parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for usize, regex HEXINT_RE, map |s| usize::from_str_radix(s, 16) }
+parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for u8, regex HEXINT_RE, regex err "expected hex integer", map |s| u8::from_str_radix(s, 16), err map ScanErrorKind::Int }
+parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for u16, regex HEXINT_RE, regex err "expected hex integer", map |s| u16::from_str_radix(s, 16), err map ScanErrorKind::Int }
+parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for u32, regex HEXINT_RE, regex err "expected hex integer", map |s| u32::from_str_radix(s, 16), err map ScanErrorKind::Int }
+parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for u64, regex HEXINT_RE, regex err "expected hex integer", map |s| u64::from_str_radix(s, 16), err map ScanErrorKind::Int }
+parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for usize, regex HEXINT_RE, regex err "expected hex integer", map |s| usize::from_str_radix(s, 16), err map ScanErrorKind::Int }
 
 #[cfg(test)]
 #[test]
 fn test_scan_u32() {
     use ::ScanErrorKind as SEK;
 
-    assert_match!(<u32>::scan_from(""), Err(SEK::Missing));
-    assert_match!(<u32>::scan_from("-"), Err(SEK::Missing));
-    assert_match!(<u32>::scan_from("+"), Err(SEK::Missing));
-    assert_match!(<u32>::scan_from("x"), Err(SEK::Missing));
-    assert_match!(<u32>::scan_from(" "), Err(SEK::Missing));
-    assert_match!(<u32>::scan_from(" 0"), Err(SEK::Missing));
+    assert_match!(<u32>::scan_from(""), Err(SEK::Syntax(_)));
+    assert_match!(<u32>::scan_from("-"), Err(SEK::Syntax(_)));
+    assert_match!(<u32>::scan_from("+"), Err(SEK::Syntax(_)));
+    assert_match!(<u32>::scan_from("x"), Err(SEK::Syntax(_)));
+    assert_match!(<u32>::scan_from(" "), Err(SEK::Syntax(_)));
+    assert_match!(<u32>::scan_from(" 0"), Err(SEK::Syntax(_)));
     assert_match!(<u32>::scan_from("0"), Ok((0, 1)));
     assert_match!(<u32>::scan_from("42"), Ok((42, 2)));
-    assert_match!(<u32>::scan_from("-312"), Err(SEK::Missing));
+    assert_match!(<u32>::scan_from("-312"), Err(SEK::Syntax(_)));
     assert_match!(<u32>::scan_from("1_234"), Ok((1, 1)));
 }

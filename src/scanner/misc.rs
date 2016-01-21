@@ -94,7 +94,9 @@ Specifically, this will match a single `XID_Start` character (or underscore) fol
 */
 pub struct Ident<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
 
-impl<'a, Output> ScanFromStr<'a> for Ident<'a, Output> where &'a str: Into<Output> {
+// FIXME: Error message omitted due to https://github.com/rust-lang/rust/issues/26448.
+impl<'a, Output> ScanFromStr<'a> for Ident<'a, Output>
+where &'a str: Into<Output> {
     type Output = Output;
     fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
         match IDENT_RE.find(s) {
@@ -103,7 +105,10 @@ impl<'a, Output> ScanFromStr<'a> for Ident<'a, Output> where &'a str: Into<Outpu
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset(tail).unwrap()))
             },
-            None => Err(ScanErrorKind::Missing),
+            None => {
+                // Err(ScanErrorKind::Syntax(Some("expected identifier")))
+                Err(ScanErrorKind::SyntaxNoMessage)
+            },
         }
     }
 }
@@ -113,11 +118,11 @@ impl<'a, Output> ScanFromStr<'a> for Ident<'a, Output> where &'a str: Into<Outpu
 fn test_ident() {
     use ::ScanErrorKind as SEK;
 
-    assert_match!(Ident::<&str>::scan_from(""), Err(SEK::Missing));
+    assert_match!(Ident::<&str>::scan_from(""), Err(SEK::SyntaxNoMessage));
     assert_match!(Ident::<&str>::scan_from("a"), Ok(("a", 1)));
     assert_match!(Ident::<&str>::scan_from("two words "), Ok(("two", 3)));
     assert_match!(Ident::<&str>::scan_from("two_words "), Ok(("two_words", 9)));
-    assert_match!(Ident::<&str>::scan_from("0123abc456 "), Err(SEK::Missing));
+    assert_match!(Ident::<&str>::scan_from("0123abc456 "), Err(SEK::SyntaxNoMessage));
     assert_match!(Ident::<&str>::scan_from("_0123abc456 "), Ok(("_0123abc456", 11)));
     assert_match!(Ident::<&str>::scan_from("f(blah)"), Ok(("f", 1)));
 }
@@ -132,10 +137,10 @@ pub struct Line<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
 impl<'a, Output> ScanFromStr<'a> for Line<'a, Output> where &'a str: Into<Output> {
     type Output = Output;
     fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
-        use ::ScanErrorKind::Missing;
-        let cap = try!(LINE_RE.captures(s).ok_or(Missing));
-        let (_, b) = try!(cap.pos(0).ok_or(Missing));
-        let (c, d) = try!(cap.pos(1).ok_or(Missing));
+        const EX_MSG: &'static str = "line scanning regex failed to match anything";
+        let cap = LINE_RE.captures(s).expect(EX_MSG);
+        let (_, b) = cap.pos(0).expect(EX_MSG);
+        let (c, d) = cap.pos(1).expect(EX_MSG);
         Ok((s[c..d].into(), b))
     }
 }
@@ -157,7 +162,9 @@ This *will not* match an empty sequence; there must be at least one non-space ch
 */
 pub struct NonSpace<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
 
-impl<'a, Output> ScanFromStr<'a> for NonSpace<'a, Output> where &'a str: Into<Output> {
+// FIXME: Error message omitted due to https://github.com/rust-lang/rust/issues/26448.
+impl<'a, Output> ScanFromStr<'a> for NonSpace<'a, Output>
+where &'a str: Into<Output> {
     type Output = Output;
     fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
         match NONSPACE_RE.find(s) {
@@ -166,7 +173,8 @@ impl<'a, Output> ScanFromStr<'a> for NonSpace<'a, Output> where &'a str: Into<Ou
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset(tail).unwrap()))
             },
-            None => Err(ScanErrorKind::Missing),
+            // None => Err(ScanErrorKind::Syntax(Some("expected at least one non-space character"))),
+            None => Err(ScanErrorKind::SyntaxNoMessage)
         }
     }
 }
@@ -176,8 +184,8 @@ impl<'a, Output> ScanFromStr<'a> for NonSpace<'a, Output> where &'a str: Into<Ou
 fn test_non_space() {
     use ::ScanErrorKind as SEK;
 
-    assert_match!(NonSpace::<&str>::scan_from(""), Err(SEK::Missing));
-    assert_match!(NonSpace::<&str>::scan_from(" abc "), Err(SEK::Missing));
+    assert_match!(NonSpace::<&str>::scan_from(""), Err(SEK::SyntaxNoMessage));
+    assert_match!(NonSpace::<&str>::scan_from(" abc "), Err(SEK::SyntaxNoMessage));
     assert_match!(NonSpace::<&str>::scan_from("abc "), Ok(("abc", 3)));
     assert_match!(NonSpace::<&str>::scan_from("abc\t"), Ok(("abc", 3)));
     assert_match!(NonSpace::<&str>::scan_from("abc\r"), Ok(("abc", 3)));
@@ -197,7 +205,9 @@ Note that this *includes* non-ASCII decimal characters, meaning it will scan num
 */
 pub struct Number<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
 
-impl<'a, Output> ScanFromStr<'a> for Number<'a, Output> where &'a str: Into<Output> {
+// FIXME: Error message omitted due to https://github.com/rust-lang/rust/issues/26448.
+impl<'a, Output> ScanFromStr<'a> for Number<'a, Output>
+where &'a str: Into<Output> {
     type Output = Output;
     fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
         match NUMBER_RE.find(s) {
@@ -206,7 +216,8 @@ impl<'a, Output> ScanFromStr<'a> for Number<'a, Output> where &'a str: Into<Outp
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset(tail).unwrap()))
             },
-            None => Err(ScanErrorKind::Missing),
+            // None => Err(ScanErrorKind::Syntax(Some("expected a number"))),
+            None => Err(ScanErrorKind::SyntaxNoMessage),
         }
     }
 }
@@ -216,11 +227,11 @@ impl<'a, Output> ScanFromStr<'a> for Number<'a, Output> where &'a str: Into<Outp
 fn test_number() {
     use ::ScanErrorKind as SEK;
 
-    assert_match!(Number::<&str>::scan_from(""), Err(SEK::Missing));
-    assert_match!(Number::<&str>::scan_from("a"), Err(SEK::Missing));
+    assert_match!(Number::<&str>::scan_from(""), Err(SEK::SyntaxNoMessage));
+    assert_match!(Number::<&str>::scan_from("a"), Err(SEK::SyntaxNoMessage));
     assert_match!(Number::<&str>::scan_from("0"), Ok(("0", 1)));
     assert_match!(Number::<&str>::scan_from("0x"), Ok(("0", 1)));
-    assert_match!(Number::<&str>::scan_from("x0"), Err(SEK::Missing));
+    assert_match!(Number::<&str>::scan_from("x0"), Err(SEK::SyntaxNoMessage));
     assert_match!(Number::<&str>::scan_from("123 456 xyz"), Ok(("123", 3)));
     assert_match!(Number::<&str>::scan_from("123 456 xyz"), Ok(("123", 3)));
     assert_match!(Number::<&str>::scan_from("123４５６789 "), Ok(("123４５６789", 15)));
@@ -290,24 +301,25 @@ pub enum QuotedString {}
 impl<'a> ScanFromStr<'a> for QuotedString {
     type Output = String;
     fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
-        // TODO: Stop being lazy.
-        use ::ScanErrorKind::Missing;
+        use ::ScanErrorKind::Syntax;
+
+        let syn = |s| Syntax(s);
 
         let cur = StrCursor::new_at_start(s);
-        let (cp, cur) = try!(cur.next_cp().ok_or(Missing));
+        let (cp, cur) = try!(cur.next_cp().ok_or(syn("expected quoted string")));
         match cp {
             '"' => (),
-            _ => return Err(Missing)
+            _ => return Err(syn("expected `\"` for quoted string"))
         }
 
         let mut s = String::new();
         let mut cur = cur;
         loop {
             match cur.next_cp() {
-                None => return Err(Missing),
+                None => return Err(syn("unterminated quoted string")),
                 Some(('\\', after)) => {
                     match after.slice_after().split_escape_default() {
-                        Err(_) => return Err(Missing),
+                        Err(err) => return Err(ScanErrorKind::from_other(err)),
                         Ok((cp, tail)) => {
                             // TODO: replace this
                             unsafe { cur.unsafe_set_at(tail); }
@@ -336,9 +348,9 @@ fn test_quoted_string() {
     use ::ScanErrorKind as SEK;
     use self::QuotedString as QS;
 
-    assert_match!(QS::scan_from(""), Err(SEK::Missing));
-    assert_match!(QS::scan_from("dummy xyz"), Err(SEK::Missing));
-    assert_match!(QS::scan_from("'dummy' xyz"), Err(SEK::Missing));
+    assert_match!(QS::scan_from(""), Err(SEK::Syntax(_)));
+    assert_match!(QS::scan_from("dummy xyz"), Err(SEK::Syntax(_)));
+    assert_match!(QS::scan_from("'dummy' xyz"), Err(SEK::Syntax(_)));
     assert_match!(QS::scan_from("\"dummy\" xyz"),
         Ok((ref s, 7)) if s == "dummy");
     assert_match!(QS::scan_from("\"ab\\\"cd\" xyz"),
@@ -356,7 +368,9 @@ Specifically, this will match a continuous run of alphabetic, digit, punctuation
 */
 pub struct Word<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
 
-impl<'a, Output> ScanFromStr<'a> for Word<'a, Output> where &'a str: Into<Output> {
+// FIXME: Error message omitted due to https://github.com/rust-lang/rust/issues/26448.
+impl<'a, Output> ScanFromStr<'a> for Word<'a, Output>
+where &'a str: Into<Output> {
     type Output = Output;
     fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
         match WORD_RE.find(s) {
@@ -365,7 +379,8 @@ impl<'a, Output> ScanFromStr<'a> for Word<'a, Output> where &'a str: Into<Output
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset(tail).unwrap()))
             },
-            None => Err(ScanErrorKind::Missing),
+            // None => Err(ScanErrorKind::Syntax(Some("expected a word"))),
+            None => Err(ScanErrorKind::SyntaxNoMessage),
         }
     }
 }
@@ -375,7 +390,7 @@ impl<'a, Output> ScanFromStr<'a> for Word<'a, Output> where &'a str: Into<Output
 fn test_word() {
     use ::ScanErrorKind as SEK;
 
-    assert_match!(Word::<&str>::scan_from(""), Err(SEK::Missing));
+    assert_match!(Word::<&str>::scan_from(""), Err(SEK::SyntaxNoMessage));
     assert_match!(Word::<&str>::scan_from("a"), Ok(("a", 1)));
     assert_match!(Word::<&str>::scan_from("0"), Ok(("0", 1)));
     assert_match!(Word::<&str>::scan_from("0x"), Ok(("0x", 2)));
@@ -395,7 +410,9 @@ Specifically, this will match a word (a continuous run of alphabetic, digit, pun
 */
 pub struct Wordish<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
 
-impl<'a, Output> ScanFromStr<'a> for Wordish<'a, Output> where &'a str: Into<Output> {
+// FIXME: Error message omitted due to https://github.com/rust-lang/rust/issues/26448.
+impl<'a, Output> ScanFromStr<'a> for Wordish<'a, Output>
+where &'a str: Into<Output> {
     type Output = Output;
     fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
         // TODO: This should be modified to grab an entire *grapheme cluster* in the event it can't find a word or number.
@@ -405,7 +422,8 @@ impl<'a, Output> ScanFromStr<'a> for Wordish<'a, Output> where &'a str: Into<Out
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset(tail).unwrap()))
             },
-            None => Err(ScanErrorKind::Missing),
+            // None => Err(ScanErrorKind::Syntax(Some("expected a word, number or some other character"))),
+            None => Err(ScanErrorKind::SyntaxNoMessage),
         }
     }
 }

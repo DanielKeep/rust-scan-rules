@@ -52,11 +52,11 @@ addr_regexen! {
     sad6: (r"\[(", ipv6, r")\]:\d+"),
 }
 
-parse_scanner! { impl<'a> for Ipv4Addr, regex IPV4ADDR_RE }
-parse_scanner! { impl<'a> for Ipv6Addr, regex IPV6ADDR_RE }
-parse_scanner! { impl<'a> for SocketAddr, regex SOCKADDR_RE }
-parse_scanner! { impl<'a> for SocketAddrV4, regex SOCKADDRV4_RE }
-parse_scanner! { impl<'a> for SocketAddrV6, regex SOCKADDRV6_RE }
+parse_scanner! { impl<'a> for Ipv4Addr, regex IPV4ADDR_RE, regex err "expected IPv4 address", err map ScanErrorKind::from_other }
+parse_scanner! { impl<'a> for Ipv6Addr, regex IPV6ADDR_RE, regex err "expected IPv6 address", err map ScanErrorKind::from_other }
+parse_scanner! { impl<'a> for SocketAddr, regex SOCKADDR_RE, regex err "expected socket address", err map ScanErrorKind::from_other }
+parse_scanner! { impl<'a> for SocketAddrV4, regex SOCKADDRV4_RE, regex err "expected IPv4 socket address", err map ScanErrorKind::from_other }
+parse_scanner! { impl<'a> for SocketAddrV6, regex SOCKADDRV6_RE, regex err "expected IPv6 socket address", err map ScanErrorKind::from_other }
 
 #[cfg(test)]
 #[test]
@@ -91,9 +91,9 @@ fn test_scan_ipv4addr() {
     check_ipv4!("255.255.255.255");
 
     check_ipv4!("256.0.0.1"; Err(SEK::Other(_)));
-    check_ipv4!("255.0.0"; Err(SEK::Missing));
+    check_ipv4!("255.0.0"; Err(SEK::Syntax(_)));
     check_ipv4!("255.0.0.1.2"; Ok("255.0.0.1"));
-    check_ipv4!("255.0..1"; Err(SEK::Missing));
+    check_ipv4!("255.0..1"; Err(SEK::Syntax(_)));
 }
 
 #[cfg(test)]

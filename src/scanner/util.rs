@@ -1,6 +1,8 @@
 /*!
 Internal utilities for scanner implementations.
 */
+use std::error::Error;
+use std::fmt::{self, Display};
 use regex::Regex;
 use strcursor::StrCursor;
 
@@ -82,6 +84,32 @@ pub enum EscapeError {
     MalformedUnicode,
     /// Escape contained an invalid value.
     InvalidValue,
+}
+
+impl Display for EscapeError {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        use self::EscapeError::*;
+        match *self {
+            LoneSlash => "backslash with nothing after it".fmt(fmt),
+            UnknownEscape(cp) => write!(fmt, "unknown escape `\\{:?}`", cp),
+            MalformedHex => "malformed hex escape".fmt(fmt),
+            MalformedUnicode => "malformed Unicode escape".fmt(fmt),
+            InvalidValue => "escape produced invalid code point value".fmt(fmt),
+        }
+    }
+}
+
+impl Error for EscapeError {
+    fn description(&self) -> &str {
+        use self::EscapeError::*;
+        match *self {
+            LoneSlash => "backslash with nothing after it",
+            UnknownEscape(_) => "unknown escape",
+            MalformedHex => "malformed hex escape",
+            MalformedUnicode => "malformed Unicode escape",
+            InvalidValue => "escape produced invalid code point value",
+        }
+    }
 }
 
 #[cfg(test)]

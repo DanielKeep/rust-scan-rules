@@ -4,6 +4,7 @@ Defines error types used by the crate.
 use std::error::Error;
 use std::fmt;
 use std::io;
+use std::num::{ParseFloatError, ParseIntError};
 use input::Cursor;
 
 /**
@@ -63,10 +64,10 @@ impl<'a> ScanError<'a> {
     }
 
     /**
-    Shorthand for constructing a `Missing` error.
+    Shorthand for constructing a `Syntax` error.
     */
-    pub fn missing(at: Cursor<'a>) -> Self {
-        Self::new(at, ScanErrorKind::Missing)
+    pub fn syntax(at: Cursor<'a>, desc: &'static str) -> Self {
+        Self::new(at, ScanErrorKind::Syntax(desc))
     }
 
     /**
@@ -126,17 +127,34 @@ pub enum ScanErrorKind {
     /// Failed to match a literal pattern term.
     LiteralMismatch,
 
-    /// Scanning a value failed in some vague fashion.
-    Missing,
+    /// General syntax error.
+    Syntax(&'static str),
+
+    /**
+    General syntax error.
+
+    Due to [Rust issue #26448](https://github.com/rust-lang/rust/issues/26448), some scanners which want to return a `Syntax` error *cannot*.
+    */
+    SyntaxNoMessage,
 
     /// Expected end-of-input.
     ExpectedEnd,
+
+    /// Floating point parsing failed.
+    Float(ParseFloatError),
+
+    /// Integer parsing failed.
+    Int(ParseIntError),
 
     /// An IO error occurred.
     Io(io::Error),
 
     /// Some other error occurred.
     Other(Box<Error>),
+
+    /// Hidden variant to prevent exhaustive matching.
+    #[doc(hidden)]
+    __DoNotMatch,
 }
 
 impl ScanErrorKind {
@@ -153,10 +171,18 @@ impl fmt::Display for ScanErrorKind {
         use self::ScanErrorKind::*;
         match *self {
             LiteralMismatch => "did not match literal".fmt(fmt),
-            Missing => "missing scannable input".fmt(fmt),
+            Syntax(desc) => {
+                try!("syntax error: ".fmt(fmt));
+                try!(desc.fmt(fmt));
+                Ok(())
+            },
+            SyntaxNoMessage => "unknown syntax error".fmt(fmt),
             ExpectedEnd => "expected end of input".fmt(fmt),
+            Float(ref err) => err.fmt(fmt),
+            Int(ref err) => err.fmt(fmt),
             Io(ref err) => err.fmt(fmt),
             Other(ref err) => err.fmt(fmt),
+            __DoNotMatch => panic!("do not use ScanErrorKind::__DoNotMatch!"),
         }
     }
 }
@@ -165,11 +191,16 @@ impl Error for ScanErrorKind {
     fn cause(&self) -> Option<&Error> {
         use self::ScanErrorKind::*;
         match *self {
-            LiteralMismatch => None,
-            Missing => None,
-            ExpectedEnd => None,
+            LiteralMismatch 
+            | Syntax(_)
+            | SyntaxNoMessage
+            | ExpectedEnd
+            => None,
+            Float(ref err) => err.cause(),
+            Int(ref err) => err.cause(),
             Io(ref err) => err.cause(),
             Other(ref err) => err.cause(),
+            __DoNotMatch => panic!("do not use ScanErrorKind::__DoNotMatch!"),
         }
     }
 
@@ -177,10 +208,14 @@ impl Error for ScanErrorKind {
         use self::ScanErrorKind::*;
         match *self {
             LiteralMismatch => "did not match literal",
-            Missing => "missing scannable input",
+            Syntax(_) => "syntax error",
+            SyntaxNoMessage => "unknown syntax error",
             ExpectedEnd => "expected end of input",
+            Float(ref err) => err.description(),
+            Int(ref err) => err.description(),
             Io(ref err) => err.description(),
             Other(ref err) => err.description(),
+            __DoNotMatch => panic!("do not use ScanErrorKind::__DoNotMatch!"),
         }
     }
 }

@@ -19,7 +19,7 @@ fn test_repeating() {
 
     assert_match!(
         scan!("[]"; ("[", [ let ns: i32 ]+, "]") => ns),
-        Err(SE { ref at, kind: SEK::Missing, .. }) if at.offset() == 1
+        Err(SE { ref at, kind: SEK::Syntax(_), .. }) if at.offset() == 1
     );
 
     assert_match!(
@@ -79,7 +79,7 @@ fn test_repeating() {
 
     assert_match!(
         scan!("0"; ([ let ns: i32 ]{2}, ..tail) => (ns, tail)),
-        Err(SE { ref at, kind: SEK::Missing, .. }) if at.offset() == 1
+        Err(SE { ref at, kind: SEK::Syntax(_), .. }) if at.offset() == 1
     );
 
     assert_match!(
@@ -94,7 +94,7 @@ fn test_repeating() {
 
     assert_match!(
         scan!("0"; ([ let ns: i32 ]{2,}, ..tail) => (ns, tail)),
-        Err(SE { ref at, kind: SEK::Missing, .. }) if at.offset() == 1
+        Err(SE { ref at, kind: SEK::Syntax(_), .. }) if at.offset() == 1
     );
 
     assert_match!(
@@ -109,7 +109,7 @@ fn test_repeating() {
 
     assert_match!(
         scan!("0"; ([ let ns: i32 ]{2, 3}, ..tail) => (ns, tail)),
-        Err(SE { ref at, kind: SEK::Missing, .. }) if at.offset() == 1
+        Err(SE { ref at, kind: SEK::Syntax(_), .. }) if at.offset() == 1
     );
 
     assert_match!(
@@ -159,7 +159,7 @@ fn test_repeating() {
 
     assert_match!(
         scan!("0,"; ([ let ns: i32 ],*, ..tail) => (ns, tail)),
-        Err(SE { ref at, kind: SEK::Missing, .. }) if at.offset() == 2
+        Err(SE { ref at, kind: SEK::Syntax(_), .. }) if at.offset() == 2
     );
 
     assert_match!(
@@ -184,7 +184,7 @@ fn test_repeating() {
 
     assert_match!(
         scan!("0, 1, 2, 3,"; ([ let ns: i32 ],*, ..tail) => (ns, tail)),
-        Err(SE { ref at, kind: SEK::Missing, .. }) if at.offset() == 11
+        Err(SE { ref at, kind: SEK::Syntax(_), .. }) if at.offset() == 11
     );
 
     assert_match!(
@@ -209,7 +209,7 @@ fn test_repeating() {
 
     assert_match!(
         scan!("0 and 1 and 2 and 3 and"; ([ let ns: i32 ]("and")*, ..tail) => (ns, tail)),
-        Err(SE { ref at, kind: SEK::Missing, .. }) if at.offset() == 23
+        Err(SE { ref at, kind: SEK::Syntax(_), .. }) if at.offset() == 23
     );
 
     assert_match!(

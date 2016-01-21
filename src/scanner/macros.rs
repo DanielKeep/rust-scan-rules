@@ -34,7 +34,7 @@ Define a scanner implementation based on a few common cases:
 macro_rules! parse_scanner {
     (@as_item $i:item) => {$i};
 
-    (impl<$lt:tt> for $ty:ty, from $scanner:ty) => {
+    (impl<$lt:tt> for $ty:ty, from $scanner:ty, err wrap $kind:ident) => {
         parse_scanner! {
             @as_item
             impl<$lt> $crate::scanner::ScanFromStr<$lt> for $ty {
@@ -43,9 +43,9 @@ macro_rules! parse_scanner {
                     use ::std::result::Result::{Ok, Err};
                     use ::std::str::FromStr;
                     match <$scanner as $crate::scanner::ScanFromStr>::scan_from(s) {
-                        Err(err) => Err(err),
+                        Err(_) => Err($crate::ScanErrorKind::Syntax($msg)),
                         Ok((v, n)) => match <Self as FromStr>::from_str(v) {
-                            Err(_) => Err($crate::ScanErrorKind::Missing),
+                            Err(err) => Err($crate::ScanErrorKind::$kind(err)),
                             Ok(v) => Ok((v, n)),
                         },
                     }
@@ -54,15 +54,48 @@ macro_rules! parse_scanner {
         }
     };
 
-    (impl<$lt:tt> for $ty:ty, regex $regex:expr) => {
+    (impl<$lt:tt> for $ty:ty, from $scanner:ty, err desc $msg:expr) => {
         parse_scanner! {
-            impl<$lt> for $ty,
-                regex $regex,
-                map |m| <$ty as ::std::str::FromStr>::from_str(m)
+            @as_item
+            impl<$lt> $crate::scanner::ScanFromStr<$lt> for $ty {
+                type Output = Self;
+                fn scan_from(s: &$lt str) -> ::std::result::Result<(Self::Output, usize), $crate::ScanErrorKind> {
+                    use ::std::result::Result::{Ok, Err};
+                    use ::std::str::FromStr;
+                    match <$scanner as $crate::scanner::ScanFromStr>::scan_from(s) {
+                        Err(_) => Err($crate::ScanErrorKind::Syntax($msg)),
+                        Ok((v, n)) => match <Self as FromStr>::from_str(v) {
+                            Err(_) => Err($crate::ScanErrorKind::Syntax($msg)),
+                            Ok(v) => Ok((v, n)),
+                        },
+                    }
+                }
+            }
         }
     };
 
-    (impl<$lt:tt> for $ty:ty, regex $regex:expr, map |$s:ident| $map:expr) => {
+    (
+        impl<$lt:tt> for $ty:ty,
+        regex $regex:expr,
+        regex err $re_err:expr,
+        err map $err:expr
+    ) => {
+        parse_scanner! {
+            impl<$lt> for $ty,
+                regex $regex,
+                regex err $re_err,
+                map |m| <$ty as ::std::str::FromStr>::from_str(m),
+                err map $err
+        }
+    };
+
+    (
+        impl<$lt:tt> for $ty:ty,
+        regex $regex:expr,
+        regex err $re_err:expr,
+        map |$s:ident| $map:expr,
+        err map $err:expr
+    ) => {
         parse_scanner! {
             @as_item
             impl<$lt> $crate::scanner::ScanFromStr<$lt> for $ty {
@@ -79,7 +112,7 @@ macro_rules! parse_scanner {
                                 Regex::find(&$regex, s),
                                 |(a, b)| (&s[a..b], b)
                             ),
-                            ScanErrorKind::Missing
+                            ScanErrorKind::Syntax($re_err)
                         )
                     );
 
@@ -88,7 +121,7 @@ macro_rules! parse_scanner {
                             $map,
                             |v| (v, end)
                         ),
-                        ScanErrorKind::from_other
+                        $err
                     )
                 }
             }
@@ -97,19 +130,25 @@ macro_rules! parse_scanner {
 
     (
         impl<$lt:tt> $tr_name:ident::$tr_meth:ident for $ty:ty,
-        regex $regex:expr
+        regex $regex:expr,
+        regex err $re_err:expr,
+        err map $err:expr
     ) => {
         parse_scanner! {
             impl<$lt> $tr_name::$tr_meth for $ty,
                 regex $regex,
-                map |m| <$ty as ::std::str::FromStr>::from_str(m)
+                regex err $re_err,
+                map |m| <$ty as ::std::str::FromStr>::from_str(m),
+                err map $err
         }
     };
 
     (
         impl<$lt:tt> $tr_name:ident::$tr_meth:ident for $ty:ty,
         regex $regex:expr,
-        map $map:expr
+        regex err $re_err:expr,
+        map $map:expr,
+        err map $err:expr
     ) => {
         parse_scanner! {
             @as_item
@@ -126,7 +165,7 @@ macro_rules! parse_scanner {
                                 Regex::find(&$regex, s),
                                 |(a, b)| (&s[a..b], b)
                             ),
-                            ScanErrorKind::Missing
+                            ScanErrorKind::Syntax($re_err)
                         )
                     );
 
@@ -135,7 +174,7 @@ macro_rules! parse_scanner {
                             ($map)(w),
                             |v| (v, end)
                         ),
-                        ScanErrorKind::from_other
+                        $err
                     )
                 }
             }
