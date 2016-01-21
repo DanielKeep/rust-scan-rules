@@ -17,9 +17,13 @@ The macros of interest are:
 * [`try_readln!`](macro.try_readln!.html) - like `readln!`, except it returns a `Result` instead of panicking.
 * [`scan!`](macro.scan!.html) - scans the provided string.
 
-If you are interested in implementing support for your own types, see the [`ScanFromStr`](scanner/trait.ScanFromStr.html) trait.
+Plus a convenience macro:
 
-The available abstract scanners can be found in the [`scanner`](scanner/index.html) module.
+* [`let_scan!`](macro.let_scan!.html) - scans a string and binds captured values directly to local variables.  Only supports *one* pattern and panics if it doesn't match.
+
+If you are interested in implementing support for your own types, see the [`ScanFromStr`](scanner/trait.ScanFromStr.html) and [`ScanStr`](scanner/trait.ScanStr.html) traits.
+
+The provided scanners can be found in the [`scanner`](scanner/index.html) module.
 
 <style type="text/css">
 .link-block { font-family: "Fira Sans"; }
