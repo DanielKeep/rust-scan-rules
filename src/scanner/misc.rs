@@ -14,6 +14,7 @@ use super::util::StrUtil;
 lazy_static! {
     static ref IDENT_RE: Regex = Regex::new(r"^(\p{XID_Start}|_)\p{XID_Continue}*").unwrap();
     static ref LINE_RE: Regex = Regex::new(r"^(.*?)(\n|\r\n?|$)").unwrap();
+    static ref NONSPACE_RE: Regex = Regex::new(r"^\S+").unwrap();
     static ref NUMBER_RE: Regex = Regex::new(r"^\d+").unwrap();
     static ref WORD_RE: Regex = Regex::new(r"^\w+").unwrap();
     static ref WORDISH_RE: Regex = Regex::new(r"^(\d+|\w+|\S)").unwrap();
@@ -147,6 +148,44 @@ fn test_line() {
     assert_match!(Line::scan_from("abc\ndef"), Ok(("abc", 4)));
     assert_match!(Line::scan_from("abc\r\ndef"), Ok(("abc", 5)));
     assert_match!(Line::scan_from("abc\rdef"), Ok(("abc", 4)));
+}
+
+/**
+Scans a sequence of non-space characters into a string.
+
+This *will not* match an empty sequence; there must be at least one non-space character for the scan to succeed.
+*/
+pub struct NonSpace<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
+
+impl<'a, Output> ScanFromStr<'a> for NonSpace<'a, Output> where &'a str: Into<Output> {
+    type Output = Output;
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+        match NONSPACE_RE.find(s) {
+            Some((a, b)) => {
+                let word = &s[a..b];
+                let tail = &s[b..];
+                Ok((word.into(), s.subslice_offset(tail).unwrap()))
+            },
+            None => Err(ScanErrorKind::Missing),
+        }
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn test_non_space() {
+    use ::ScanErrorKind as SEK;
+
+    assert_match!(NonSpace::<&str>::scan_from(""), Err(SEK::Missing));
+    assert_match!(NonSpace::<&str>::scan_from(" abc "), Err(SEK::Missing));
+    assert_match!(NonSpace::<&str>::scan_from("abc "), Ok(("abc", 3)));
+    assert_match!(NonSpace::<&str>::scan_from("abc\t"), Ok(("abc", 3)));
+    assert_match!(NonSpace::<&str>::scan_from("abc\r"), Ok(("abc", 3)));
+    assert_match!(NonSpace::<&str>::scan_from("abc\n"), Ok(("abc", 3)));
+    assert_match!(NonSpace::<&str>::scan_from("abc\u{a0}"), Ok(("abc", 3)));
+    assert_match!(NonSpace::<&str>::scan_from("abc\u{2003}"), Ok(("abc", 3)));
+    assert_match!(NonSpace::<&str>::scan_from("abc\u{200B}"), Ok(("abc\u{200b}", 6)));
+    assert_match!(NonSpace::<&str>::scan_from("abc\u{3000}"), Ok(("abc", 3)));
 }
 
 /**
