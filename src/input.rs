@@ -1,5 +1,7 @@
 /*!
 This module contains items related to input handling.
+
+Note that this aspect of `scan-rules` is still under design and is very likely to change drastically in future.
 */
 use std::ops::Deref;
 use itertools::Itertools;
