@@ -7,6 +7,7 @@ pub use self::misc::{
     Everything,
     Ident, Line, Number, Word, Wordish,
     KeyValuePair, QuotedString,
+    Binary, Octal, Hex,
 };
 
 #[macro_use] mod macros;
@@ -68,3 +69,45 @@ pub trait ScanSelfFromStr<'a>: ScanFromStr<'a, Output=Self> {
 }
 
 impl<'a, T> ScanSelfFromStr<'a> for T where T: ScanFromStr<'a, Output=T> {}
+
+/**
+This trait defines scanning a type from a binary representation.
+
+This should be implemented to match implementations of `std::fmt::Binary`.
+*/
+pub trait ScanFromBinary<'a>: Sized {
+    /**
+    Perform a scan on the given input.
+
+    See: [`ScanFromStr::scan_from`](trait.ScanFromStr.html#tymethod.scan_from).
+    */
+    fn scan_from_binary(s: &'a str) -> Result<(Self, usize), ScanErrorKind>;
+}
+
+/**
+This trait defines scanning a type from an octal representation.
+
+This should be implemented to match implementations of `std::fmt::Octal`.
+*/
+pub trait ScanFromOctal<'a>: Sized {
+    /**
+    Perform a scan on the given input.
+
+    See: [`ScanFromStr::scan_from`](trait.ScanFromStr.html#tymethod.scan_from).
+    */
+    fn scan_from_octal(s: &'a str) -> Result<(Self, usize), ScanErrorKind>;
+}
+
+/**
+This trait defines scanning a type from a hexadecimal representation.
+
+This should be implemented to match implementations of `std::fmt::LowerHex` and `std::fmt::UpperHex`.
+*/
+pub trait ScanFromHex<'a>: Sized {
+    /**
+    Perform a scan on the given input.
+
+    See: [`ScanFromStr::scan_from`](trait.ScanFromStr.html#tymethod.scan_from).
+    */
+    fn scan_from_hex(s: &'a str) -> Result<(Self, usize), ScanErrorKind>;
+}

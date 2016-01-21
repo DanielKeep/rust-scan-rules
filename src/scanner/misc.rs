@@ -5,7 +5,10 @@ use std::marker::PhantomData;
 use regex::Regex;
 use strcursor::StrCursor;
 use ::ScanErrorKind;
-use super::{ScanFromStr, ScanSelfFromStr};
+use super::{
+    ScanFromStr, ScanSelfFromStr,
+    ScanFromBinary, ScanFromOctal, ScanFromHex,
+};
 use super::util::StrUtil;
 
 lazy_static! {
@@ -14,6 +17,28 @@ lazy_static! {
     static ref NUMBER_RE: Regex = Regex::new(r"^\d+").unwrap();
     static ref WORD_RE: Regex = Regex::new(r"^\w+").unwrap();
     static ref WORDISH_RE: Regex = Regex::new(r"^(\d+|\w+|\S)").unwrap();
+}
+
+/**
+Scans the given `Output` type from its binary representation.
+*/
+pub struct Binary<Output>(PhantomData<Output>);
+
+impl<'a, Output> ScanFromStr<'a> for Binary<Output>
+where Output: ScanFromBinary<'a> {
+    type Output = Output;
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+        Output::scan_from_binary(s)
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn test_binary() {
+    assert_match!(Binary::<i32>::scan_from("0 1 2 x"), Ok((0b0, 1)));
+    assert_match!(Binary::<i32>::scan_from("012x"), Ok((0b1, 2)));
+    assert_match!(Binary::<i32>::scan_from("0b012x"), Ok((0b0, 1)));
+    assert_match!(Binary::<i32>::scan_from("110010101110000b"), Ok((0x6570, 15)));
 }
 
 /**
@@ -37,6 +62,28 @@ fn test_everything() {
     assert_match!(Everything::scan_from(""), Ok(("", 0)));
     assert_match!(Everything::scan_from("で"), Ok(("で", 3)));
     assert_match!(Everything::scan_from("うまいー　うまいー　ぼうぼうぼうぼう"), Ok(("うまいー　うまいー　ぼうぼうぼうぼう", 54)));
+}
+
+/**
+Scans the given `Output` type from its hexadecimal representation.
+*/
+pub struct Hex<Output>(PhantomData<Output>);
+
+impl<'a, Output> ScanFromStr<'a> for Hex<Output>
+where Output: ScanFromHex<'a> {
+    type Output = Output;
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+        Output::scan_from_hex(s)
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn test_hex() {
+    assert_match!(Hex::<i32>::scan_from("0 1 2 x"), Ok((0x0, 1)));
+    assert_match!(Hex::<i32>::scan_from("012x"), Ok((0x12, 3)));
+    assert_match!(Hex::<i32>::scan_from("0x012x"), Ok((0x0, 1)));
+    assert_match!(Hex::<i32>::scan_from("BadCafé"), Ok((0xbadcaf, 6)));
 }
 
 /**
@@ -139,6 +186,28 @@ fn test_number() {
     assert_match!(Number::<&str>::scan_from("123 456 xyz"), Ok(("123", 3)));
     assert_match!(Number::<&str>::scan_from("123４５６789 "), Ok(("123４５６789", 15)));
     assert_match!(Number::<&str>::scan_from("𐒩０꘠᧑ "), Ok(("𐒩０꘠᧑", 13)));
+}
+
+/**
+Scans the given `Output` type from its octal representation.
+*/
+pub struct Octal<Output>(PhantomData<Output>);
+
+impl<'a, Output> ScanFromStr<'a> for Octal<Output>
+where Output: ScanFromOctal<'a> {
+    type Output = Output;
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+        Output::scan_from_octal(s)
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn test_octal() {
+    assert_match!(Octal::<i32>::scan_from("0 1 2 x"), Ok((0o0, 1)));
+    assert_match!(Octal::<i32>::scan_from("012x"), Ok((0o12, 3)));
+    assert_match!(Octal::<i32>::scan_from("0o012x"), Ok((0o0, 1)));
+    assert_match!(Octal::<i32>::scan_from("7558"), Ok((0o755, 3)));
 }
 
 /**

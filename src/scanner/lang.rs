@@ -8,6 +8,7 @@ use super::ScanFromStr;
 use super::misc::Word;
 
 lazy_static! {
+    static ref BININT_RE: Regex = Regex::new(r"^[01]+").unwrap();
     static ref FLOAT_RE: Regex = Regex::new(r#"(?x)
         ^(
               inf
@@ -21,6 +22,8 @@ lazy_static! {
             )
         )
     "#).unwrap();
+    static ref OCTINT_RE: Regex = Regex::new(r"^[0-7]+").unwrap();
+    static ref HEXINT_RE: Regex = Regex::new(r"^[:xdigit:]+").unwrap();
     static ref SINTEGER_RE: Regex = Regex::new(r"^[+-]?\d+").unwrap();
     static ref UINTEGER_RE: Regex = Regex::new(r"^[+]?\d+").unwrap();
 }
@@ -133,6 +136,24 @@ parse_scanner! { impl<'a> for i32, regex SINTEGER_RE }
 parse_scanner! { impl<'a> for i64, regex SINTEGER_RE }
 parse_scanner! { impl<'a> for isize, regex SINTEGER_RE }
 
+parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for i8, regex BININT_RE, map |s| i8::from_str_radix(s, 2) }
+parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for i16, regex BININT_RE, map |s| i16::from_str_radix(s, 2) }
+parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for i32, regex BININT_RE, map |s| i32::from_str_radix(s, 2) }
+parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for i64, regex BININT_RE, map |s| i64::from_str_radix(s, 2) }
+parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for isize, regex BININT_RE, map |s| isize::from_str_radix(s, 2) }
+
+parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for i8, regex OCTINT_RE, map |s| i8::from_str_radix(s, 8) }
+parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for i16, regex OCTINT_RE, map |s| i16::from_str_radix(s, 8) }
+parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for i32, regex OCTINT_RE, map |s| i32::from_str_radix(s, 8) }
+parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for i64, regex OCTINT_RE, map |s| i64::from_str_radix(s, 8) }
+parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for isize, regex OCTINT_RE, map |s| isize::from_str_radix(s, 8) }
+
+parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for i8, regex HEXINT_RE, map |s| i8::from_str_radix(s, 16) }
+parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for i16, regex HEXINT_RE, map |s| i16::from_str_radix(s, 16) }
+parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for i32, regex HEXINT_RE, map |s| i32::from_str_radix(s, 16) }
+parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for i64, regex HEXINT_RE, map |s| i64::from_str_radix(s, 16) }
+parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for isize, regex HEXINT_RE, map |s| isize::from_str_radix(s, 16) }
+
 #[cfg(test)]
 #[test]
 fn test_scan_i32() {
@@ -155,6 +176,24 @@ parse_scanner! { impl<'a> for u16, regex UINTEGER_RE }
 parse_scanner! { impl<'a> for u32, regex UINTEGER_RE }
 parse_scanner! { impl<'a> for u64, regex UINTEGER_RE }
 parse_scanner! { impl<'a> for usize, regex UINTEGER_RE }
+
+parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for u8, regex BININT_RE, map |s| u8::from_str_radix(s, 2) }
+parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for u16, regex BININT_RE, map |s| u16::from_str_radix(s, 2) }
+parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for u32, regex BININT_RE, map |s| u32::from_str_radix(s, 2) }
+parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for u64, regex BININT_RE, map |s| u64::from_str_radix(s, 2) }
+parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for usize, regex BININT_RE, map |s| usize::from_str_radix(s, 2) }
+
+parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for u8, regex OCTINT_RE, map |s| u8::from_str_radix(s, 8) }
+parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for u16, regex OCTINT_RE, map |s| u16::from_str_radix(s, 8) }
+parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for u32, regex OCTINT_RE, map |s| u32::from_str_radix(s, 8) }
+parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for u64, regex OCTINT_RE, map |s| u64::from_str_radix(s, 8) }
+parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for usize, regex OCTINT_RE, map |s| usize::from_str_radix(s, 8) }
+
+parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for u8, regex HEXINT_RE, map |s| u8::from_str_radix(s, 16) }
+parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for u16, regex HEXINT_RE, map |s| u16::from_str_radix(s, 16) }
+parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for u32, regex HEXINT_RE, map |s| u32::from_str_radix(s, 16) }
+parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for u64, regex HEXINT_RE, map |s| u64::from_str_radix(s, 16) }
+parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for usize, regex HEXINT_RE, map |s| usize::from_str_radix(s, 16) }
 
 #[cfg(test)]
 #[test]

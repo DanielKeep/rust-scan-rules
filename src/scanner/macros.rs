@@ -56,13 +56,67 @@ macro_rules! parse_scanner {
 
     (impl<$lt:tt> for $ty:ty, regex $regex:expr) => {
         parse_scanner! {
+            impl<$lt> for $ty,
+                regex $regex,
+                map |m| <$ty as ::std::str::FromStr>::from_str(m)
+        }
+    };
+
+    (impl<$lt:tt> for $ty:ty, regex $regex:expr, map |$s:ident| $map:expr) => {
+        parse_scanner! {
             @as_item
             impl<$lt> $crate::scanner::ScanFromStr<$lt> for $ty {
                 type Output = Self;
                 fn scan_from(s: &$lt str) -> Result<(Self::Output, usize), $crate::ScanErrorKind> {
                     use ::std::option::Option;
                     use ::std::result::Result;
-                    use ::std::str::FromStr;
+                    use ::regex::Regex;
+                    use $crate::ScanErrorKind;
+
+                    let ($s, end) = try!(
+                        Option::ok_or(
+                            Option::map(
+                                Regex::find(&$regex, s),
+                                |(a, b)| (&s[a..b], b)
+                            ),
+                            ScanErrorKind::Missing
+                        )
+                    );
+
+                    Result::map_err(
+                        Result::map(
+                            $map,
+                            |v| (v, end)
+                        ),
+                        ScanErrorKind::from_other
+                    )
+                }
+            }
+        }
+    };
+
+    (
+        impl<$lt:tt> $tr_name:ident::$tr_meth:ident for $ty:ty,
+        regex $regex:expr
+    ) => {
+        parse_scanner! {
+            impl<$lt> $tr_name::$tr_meth for $ty,
+                regex $regex,
+                map |m| <$ty as ::std::str::FromStr>::from_str(m)
+        }
+    };
+
+    (
+        impl<$lt:tt> $tr_name:ident::$tr_meth:ident for $ty:ty,
+        regex $regex:expr,
+        map $map:expr
+    ) => {
+        parse_scanner! {
+            @as_item
+            impl<$lt> $crate::scanner::$tr_name<$lt> for $ty {
+                fn $tr_meth(s: &$lt str) -> Result<(Self, usize), $crate::ScanErrorKind> {
+                    use ::std::option::Option;
+                    use ::std::result::Result;
                     use ::regex::Regex;
                     use $crate::ScanErrorKind;
 
@@ -78,7 +132,7 @@ macro_rules! parse_scanner {
 
                     Result::map_err(
                         Result::map(
-                            <Self as FromStr>::from_str(w),
+                            ($map)(w),
                             |v| (v, end)
                         ),
                         ScanErrorKind::from_other
