@@ -10,6 +10,29 @@ The macros of interest are:
 
 If you are interesting in implementing support for your own types, see the [`ScanFromStr`](scanner/trait.ScanFromStr.html) trait.
 
+<style type="text/css">
+.link-block { font-family: "Fira Sans"; }
+.link-block > p { display: inline-block; }
+.link-block > p > strong { font-weight: 500; margin-right: 1em; }
+.link-block > ul { display: inline-block; padding: 0; list-style: none; }
+.link-block > ul > li {
+  font-size: 0.8em;
+  background-color: #eee;
+  border: 1px solid #ccc;
+  padding: 0.3em;
+  display: inline-block;
+}
+</style>
+<span></span><div class="link-block">
+
+**Links**
+
+* [Latest Release](https://crates.io/crates/scan-rules/)
+* [Latest Docs](https://danielkeep.github.io/rust-scan-rules/doc/scan_rules/index.html)
+* [Repository](https://github.com/DanielKeep/rust-scan-rules)
+
+<span></span></div>
+
 ## Features
 
 The following optional features are available:
