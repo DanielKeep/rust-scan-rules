@@ -73,6 +73,37 @@ macro_rules! try_readln {
 }
 
 /**
+Scans the provided input, using the specified pattern.  All values are bound directly to local variables.
+
+Note that this macro only supports a *single* pattern.
+
+See also: [Pattern Syntax](index.html#pattern-syntax), [`scan!`](macro.scan!.html).
+
+## Examples
+
+```rust
+# #[macro_use] extern crate scan_rules;
+# use scan_rules::scanner::Word;
+# fn main() {
+let input = "10¥, うまい棒";
+let_scan!(input; (let cost: u32, "¥,", let product: Word));
+println!("One {} costs {}¥.", product, cost);
+# }
+```
+
+## Panics
+
+Panics if the pattern fails to match.
+*/
+#[macro_export]
+macro_rules! let_scan {
+    ($input:expr; ($($pattern:tt)*)) => {
+        scan_rules_impl!(@with_bindings ($($pattern)*),
+            then: scan_rules_impl!(@let_bindings.panic $input, ($($pattern)*),);)
+    };
+}
+
+/**
 Scans the provided input, using the specified rules.  The result is a `Result<T, ScanError>` where `T` is the type of the rule bodies; just as with `match`, all bodies must agree on their result type.
 
 The input may be any value which implements `Into<Cursor>`, which includes `&str`.
@@ -469,6 +500,26 @@ macro_rules! scan_rules_impl {
                 ::std::iter::once(scan_rules_impl!(@as_expr $elems.$idxs))
             )
         )*
+    };
+
+    /*
+
+    # `@let_bindings`
+
+    This is a callback designed to continue from `@with_bindings`.  It takes the list of binding names, and defines local variables for them, and sets up the pattern body to return them.
+
+    */
+
+    (@let_bindings.panic $input:expr, $pattern:tt, $(($ns:ident, $_is:tt),)*) => {
+        scan_rules_impl!(
+            @as_stmt
+            let ($($ns,)*) = match $input {
+                input => match scan!(&input[..]; $pattern => ($($ns,)*)) {
+                    Ok(vs) => vs,
+                    Err(err) => panic!("error while scanning `{:?}`: {}", input, err)
+                }
+            }
+        );
     };
 
     /*
