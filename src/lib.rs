@@ -10,6 +10,14 @@ The macros of interest are:
 
 If you are interesting in implementing support for your own types, see the [`ScanFromStr`](scanner/trait.ScanFromStr.html) trait.
 
+## Features
+
+The following optional features are available:
+
+* `arrays-32`: implement scanning for arrays of up to 32 elements.  The default is up to 8 elements.
+
+* `tuples-16`: implement scanning for tuples of up to 16 elements.  The default is up to 4 elements.
+
 ## Quick Examples
 
 Here is a simple CLI program that asks the user their name and age.  You can run this using `cargo run --example ask_age`.

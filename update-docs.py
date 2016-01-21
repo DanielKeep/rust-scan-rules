@@ -9,7 +9,7 @@ import tempfile
 import time
 
 DOC_ARGS = '--no-deps'
-DOC_FEATURES = ""
+DOC_FEATURES = "arrays-32 tuples-16"
 DOC_TARGET_BRANCH = 'gh-pages'
 TEMP_CHECKOUT_PREFIX = 'gh-pages-checkout-'
 TEMP_OUTPUT_PREFIX = 'gh-pages-generated-'
