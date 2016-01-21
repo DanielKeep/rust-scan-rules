@@ -22,7 +22,7 @@ use super::util::StrUtil;
 
 lazy_static! {
     static ref IDENT_RE: Regex = Regex::new(r"^(\p{XID_Start}|_)\p{XID_Continue}*").unwrap();
-    static ref LINE_RE: Regex = Regex::new(r"^(.*?)(\n|\r\n?|$)").unwrap();
+    static ref LINE_RE: Regex = Regex::new(r"^(.*?)(\n|\r\n|\r|$)").unwrap();
     static ref NONSPACE_RE: Regex = Regex::new(r"^\S+").unwrap();
     static ref NUMBER_RE: Regex = Regex::new(r"^\d+").unwrap();
     static ref WORD_RE: Regex = Regex::new(r"^\w+").unwrap();
