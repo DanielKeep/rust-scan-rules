@@ -5,6 +5,10 @@ This module contains the public and crate-wide macros.
 /**
 Reads a line of text from standard input, then scans it using the provided rules.  The result of the `readln!` invocation is the type of the rule bodies; just as with `match`, all bodies must agree on their result type.
 
+Note that this macro automatically flushes standard output.  As a result, if you use this macro *while* you are holding a lock on standard output, your program will deadlock.
+
+If you wish to read from standard input whilst manually locking standard output, you should use `scan!` directly.
+
 See also: [Pattern Syntax](index.html#pattern-syntax), [`try_readln!`](macro.try_readln!.html).
 
 # Panics

@@ -8,7 +8,9 @@ The macros of interest are:
 * [`try_readln!`](macro.try_readln!.html) - like `readln!`, except it returns a `Result` instead of panicking.
 * [`scan!`](macro.scan!.html) - scans the provided string.
 
-If you are interesting in implementing support for your own types, see the [`ScanFromStr`](scanner/trait.ScanFromStr.html) trait.
+If you are interested in implementing support for your own types, see the [`ScanFromStr`](scanner/trait.ScanFromStr.html) trait.
+
+The available abstract scanners can be found in the [`scanner`](scanner/index.html) module.
 
 <style type="text/css">
 .link-block { font-family: "Fira Sans"; }
@@ -77,6 +79,10 @@ This example shows how to parse one of several different syntaxes.  You can run 
 #[macro_use] extern crate scan_rules;
 
 use std::collections::BTreeSet;
+
+// `Word` is an "abstract" scanner; rather than scanning itself, it scans some
+// *other* type using custom rules.  In this case, it scans a word into a
+// string slice.  You can use `Word<String>` to get an owned string.
 use scan_rules::scanner::Word;
 
 #[derive(Debug)]

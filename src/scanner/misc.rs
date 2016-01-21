@@ -172,6 +172,10 @@ where K: ScanSelfFromStr<'a>, V: ScanSelfFromStr<'a> {
 
 /**
 Scans a quoted string.
+
+Specifically, it scans the quoting format used by the `Debug` formatter for strings.
+
+The scanned string has all escape sequences expanded to their values, and the surrounding quotes removed.
 */
 pub enum QuotedString {}
 

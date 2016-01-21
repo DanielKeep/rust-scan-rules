@@ -1,6 +1,10 @@
 #[macro_use] extern crate scan_rules;
 
 use std::collections::BTreeSet;
+
+// `Word` is an "abstract" scanner; rather than scanning itself, it scans some
+// *other* type using custom rules.  In this case, it scans a word into a
+// string slice.  You can use `Word<String>` to get an owned string.
 use scan_rules::scanner::Word;
 
 #[derive(Debug)]
