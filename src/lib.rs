@@ -43,6 +43,14 @@ The following optional features are available:
 
 * `tuples-16`: implement scanning for tuples of up to 16 elements.  The default is up to 4 elements.
 
+## Important Notes
+
+* There are no default scanners for `&str` or `String`; if you want a string, you should pick an appropriate abstract scanner from the [`scanner`](scanner/index.html) module.
+
+* The macros in this crate are extremely complex.  Moderately complex usage can exhaust the standard macro recursion limit.  If this happens, you can raise the limit (from its default of 64) by adding the following attribute to your crate's root module:
+
+  `#![recursion_limit="128"]`
+
 ## Quick Examples
 
 Here is a simple CLI program that asks the user their name and age.  You can run this using `cargo run --example ask_age`.
@@ -128,7 +136,26 @@ fn main() {
 }
 ```
 
-## Pattern Syntax
+## Rule Syntax
+
+Scanning rules are written as one or more arms like so:
+
+```ignore
+scan! { input_expression;
+    ( pattern ) => body,
+    ( pattern ) => body,
+    ...
+    ( pattern ) => body,
+}
+```
+
+Note that the trailing comma on the last rule is optional.
+
+Rules are checked top-to-bottom, stopping at the first that matches.
+
+Patterns (explained under ["Pattern Syntax"](#pattern-syntax)) must be enclosed in parentheses.  If a pattern matches the provided input, the corresponding body is evaluated.
+
+### Pattern Syntax
 
 A scanning pattern is made up of one or more pattern terms, separated by commas.  The following terms are supported:
 
@@ -161,14 +188,6 @@ A scanning pattern is made up of one or more pattern terms, separated by commas.
   The fourth (optional) part of the term specifies what type of collection scanned values should be added to.  Note that the type specified here applies to *all* values captured by this repetition.  As such, you typically want to use a partially inferred type such as `BTreeSet<_>`.  If omitted, it defaults to `Vec<_>`.
 
   *E.g.* `[ let nums: i32 ],+`, `[ "pretty" ]*, "please"`.
-
-## Things What Need Mentioning
-
-* *Rule* syntax.
-* Scanners and things like `Word` being abstract.
-* Cursor(s).
-* More examples.
-* `#![recursion_limit]`
 
 */
 #![forbid(missing_docs)]
