@@ -1,8 +1,18 @@
 [package]
-
 name = "scan-rules"
 version = "0.0.1"
 authors = ["Daniel Keep <daniel.keep@gmail.com>"]
+
+description = "This crate provides some macros for quickly parsing values out of text.  Roughly speaking, it does the inverse of the print!/format! macros; or, in other words, a similar job to scanf from C."
+repository = "https://github.com/DanielKeep/rust-scan-rules"
+documentation = "https://danielkeep.github.io/rust-scan-rules/doc/scan_rules/index.html"
+readme = "README.md"
+keywords = ["input", "parse", "read", "stdin"]
+license = "MIT/Apache-2.0"
+
+exclude = [
+    "update-docs.py",
+]
 
 [features]
 "tuples-16" = []
