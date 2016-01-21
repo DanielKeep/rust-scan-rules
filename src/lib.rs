@@ -17,18 +17,23 @@ Here is a simple CLI program that asks the user their name and age.  You can run
 ```ignore
 #[macro_use] extern crate scan_rules;
 
+use scan_rules::scanner::Word;
+
 fn main() {
     print!("What's your name? ");
-    let name: String = readln! { (let name) => name };
-    //                           ^~~~~~~~~~~~~~~~~^ rule
-    //                                         ^~~^ body
-    //                           ^~~~~~~~~^ pattern
-    //                            ^~~~~~~^ variable binding
+    let name: String = readln! { (let name: Word<String>) => name };
+    //                           ^~~~~~~~~~~~~~~~~~~~~~~^ rule
+    //                                                       ^~~^ body
+    //                           ^~~~~~~~~~~~~~~~~~~~~~^ pattern
+    //                            ^~~~~~~~~~~~~~~~~~~~^ variable binding
 
     print!("Hi, {}.  How old are you? ", name);
     readln! {
-        (let age: i32) => println!("{} years old, huh?  Neat.", age),
-    //   ^~~~~~~~~~~^ explicitly typed variable binding
+        (let age) => {
+    //   ^~~~~~^ implicitly typed variable binding
+            let age: i32 = age;
+            println!("{} years old, huh?  Neat.", age);
+        },
         (..other) => println!("`{}` doesn't *look* like a number...", other),
     //   ^~~~~~^ bind to any input "left over"
     }
@@ -39,6 +44,8 @@ This example shows how to parse one of several different syntaxes.  You can run 
 
 ```ignore
 #[macro_use] extern crate scan_rules;
+
+use scan_rules::scanner::Word;
 
 #[derive(Debug)]
 enum Data {
@@ -60,10 +67,10 @@ fn main() {
         ("yes") => Data::Truthy(true),
         ("no") => Data::Truthy(false),
 
-        ("words:", [ let words ],+) => Data::Words(words),
-    //             ^~~~~~~~~~~~~~^ repetition pattern
-    //                           ^ one or more matches
-    //                          ^ matches must be comma-separated
+        ("words:", [ let words: Word<String> ],+) => Data::Words(words),
+    //             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~^ repetition pattern
+    //                                         ^ one or more matches
+    //                                        ^ matches must be comma-separated
 
         (..other) => Data::Other(String::from(other))
     };
