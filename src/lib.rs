@@ -30,10 +30,10 @@ use scan_rules::scanner::Word;
 fn main() {
     print!("What's your name? ");
     let name: String = readln! { (let name: Word<String>) => name };
-    //                           ^~~~~~~~~~~~~~~~~~~~~~~^ rule
+    //                           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^ rule
     //                                                       ^~~^ body
-    //                           ^~~~~~~~~~~~~~~~~~~~~~^ pattern
-    //                            ^~~~~~~~~~~~~~~~~~~~^ variable binding
+    //                           ^~~~~~~~~~~~~~~~~~~~~~~^ pattern
+    //                            ^~~~~~~~~~~~~~~~~~~~~^ variable binding
 
     print!("Hi, {}.  How old are you? ", name);
     readln! {
@@ -53,6 +53,7 @@ This example shows how to parse one of several different syntaxes.  You can run 
 ```ignore
 #[macro_use] extern crate scan_rules;
 
+use std::collections::BTreeSet;
 use scan_rules::scanner::Word;
 
 #[derive(Debug)]
@@ -60,6 +61,7 @@ enum Data {
     Vector(i32, i32, i32),
     Truthy(bool),
     Words(Vec<String>),
+    Lucky(BTreeSet<i32>),
     Other(String),
 }
 
@@ -79,6 +81,17 @@ fn main() {
     //             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~^ repetition pattern
     //                                         ^ one or more matches
     //                                        ^ matches must be comma-separated
+
+        ("lucky numbers:", [ let ns: i32 ]*: BTreeSet<_>) => Data::Lucky(ns),
+    //          collect into specific type ^~~~~~~~~~~~^
+    //                                    ^ zero or more (you might be unlucky!)
+    //                                      (no separator this time)
+
+        // Rather than scanning a sequence of values and collecting them into
+        // a `BTreeSet`, we can instead scan the `BTreeSet` *directly*.  This
+        // scans the syntax `BTreeSet` uses when printed using `{:?}`:
+        // `{1, 5, 13, ...}`.
+        ("lucky numbers:", let ns) => Data::Lucky(ns),
 
         (..other) => Data::Other(String::from(other))
     };

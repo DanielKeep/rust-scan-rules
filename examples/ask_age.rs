@@ -5,10 +5,10 @@ use scan_rules::scanner::Word;
 fn main() {
     print!("What's your name? ");
     let name: String = readln! { (let name: Word<String>) => name };
-    //                           ^~~~~~~~~~~~~~~~~~~~~~~^ rule
+    //                           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^ rule
     //                                                       ^~~^ body
-    //                           ^~~~~~~~~~~~~~~~~~~~~~^ pattern
-    //                            ^~~~~~~~~~~~~~~~~~~~^ variable binding
+    //                           ^~~~~~~~~~~~~~~~~~~~~~~^ pattern
+    //                            ^~~~~~~~~~~~~~~~~~~~~^ variable binding
 
     print!("Hi, {}.  How old are you? ", name);
     readln! {
