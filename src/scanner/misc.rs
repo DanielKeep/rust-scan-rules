@@ -58,7 +58,25 @@ In most cases, you should use the `.. name` tail capture term to perform this ta
 */
 pub struct Everything<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
 
-impl<'a, Output> ScanFromStr<'a> for Everything<'a, Output> where &'a str: Into<Output> {
+#[cfg(str_into_output_extra_broken)]
+impl<'a> ScanFromStr<'a> for Everything<'a, &'a str> {
+    type Output = &'a str;
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+        Ok((s.into(), s.len()))
+    }
+}
+
+#[cfg(str_into_output_extra_broken)]
+impl<'a> ScanFromStr<'a> for Everything<'a, String> {
+    type Output = String;
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+        Ok((s.into(), s.len()))
+    }
+}
+
+#[cfg(not(str_into_output_extra_broken))]
+impl<'a, Output> ScanFromStr<'a> for Everything<'a, Output>
+where &'a str: Into<Output> {
     type Output = Output;
     fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
         Ok((s.into(), s.len()))
@@ -69,9 +87,9 @@ impl<'a, Output> ScanFromStr<'a> for Everything<'a, Output> where &'a str: Into<
 #[test]
 fn test_everything() {
     // That's the scanner named `Everything`, not literally everything.
-    assert_match!(Everything::scan_from(""), Ok(("", 0)));
-    assert_match!(Everything::scan_from("で"), Ok(("で", 3)));
-    assert_match!(Everything::scan_from("うまいー　うまいー　ぼうぼうぼうぼう"), Ok(("うまいー　うまいー　ぼうぼうぼうぼう", 54)));
+    assert_match!(Everything::<&str>::scan_from(""), Ok(("", 0)));
+    assert_match!(Everything::<&str>::scan_from("で"), Ok(("で", 3)));
+    assert_match!(Everything::<&str>::scan_from("うまいー　うまいー　ぼうぼうぼうぼう"), Ok(("うまいー　うまいー　ぼうぼうぼうぼう", 54)));
 }
 
 /**
@@ -103,6 +121,45 @@ Specifically, this will match a single `XID_Start` character (or underscore) fol
 */
 pub struct Ident<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
 
+// FIXME: Error message omitted due to https://github.com/rust-lang/rust/issues/26448.
+#[cfg(str_into_output_extra_broken)]
+impl<'a> ScanFromStr<'a> for Ident<'a, &'a str> {
+    type Output = &'a str;
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+        match IDENT_RE.find(s) {
+            Some((a, b)) => {
+                let word = &s[a..b];
+                let tail = &s[b..];
+                Ok((word.into(), s.subslice_offset(tail).unwrap()))
+            },
+            None => {
+                // Err(ScanErrorKind::Syntax(Some("expected identifier")))
+                Err(ScanErrorKind::SyntaxNoMessage)
+            },
+        }
+    }
+}
+
+// FIXME: Error message omitted due to https://github.com/rust-lang/rust/issues/26448.
+#[cfg(str_into_output_extra_broken)]
+impl<'a> ScanFromStr<'a> for Ident<'a, String> {
+    type Output = String;
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+        match IDENT_RE.find(s) {
+            Some((a, b)) => {
+                let word = &s[a..b];
+                let tail = &s[b..];
+                Ok((word.into(), s.subslice_offset(tail).unwrap()))
+            },
+            None => {
+                // Err(ScanErrorKind::Syntax(Some("expected identifier")))
+                Err(ScanErrorKind::SyntaxNoMessage)
+            },
+        }
+    }
+}
+
+#[cfg(not(str_into_output_extra_broken))]
 // FIXME: Error message omitted due to https://github.com/rust-lang/rust/issues/26448.
 impl<'a, Output> ScanFromStr<'a> for Ident<'a, Output>
 where &'a str: Into<Output> {
@@ -143,6 +200,31 @@ Note that this is effectively equivalent to the `Everything` matcher when used w
 */
 pub struct Line<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
 
+#[cfg(str_into_output_extra_broken)]
+impl<'a> ScanFromStr<'a> for Line<'a, &'a str> {
+    type Output = &'a str;
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+        const EX_MSG: &'static str = "line scanning regex failed to match anything";
+        let cap = LINE_RE.captures(s).expect(EX_MSG);
+        let (_, b) = cap.pos(0).expect(EX_MSG);
+        let (c, d) = cap.pos(1).expect(EX_MSG);
+        Ok((s[c..d].into(), b))
+    }
+}
+
+#[cfg(str_into_output_extra_broken)]
+impl<'a> ScanFromStr<'a> for Line<'a, String> {
+    type Output = String;
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+        const EX_MSG: &'static str = "line scanning regex failed to match anything";
+        let cap = LINE_RE.captures(s).expect(EX_MSG);
+        let (_, b) = cap.pos(0).expect(EX_MSG);
+        let (c, d) = cap.pos(1).expect(EX_MSG);
+        Ok((s[c..d].into(), b))
+    }
+}
+
+#[cfg(not(str_into_output_extra_broken))]
 impl<'a, Output> ScanFromStr<'a> for Line<'a, Output> where &'a str: Into<Output> {
     type Output = Output;
     fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
@@ -157,11 +239,11 @@ impl<'a, Output> ScanFromStr<'a> for Line<'a, Output> where &'a str: Into<Output
 #[cfg(test)]
 #[test]
 fn test_line() {
-    assert_match!(Line::scan_from(""), Ok(("", 0)));
-    assert_match!(Line::scan_from("abc def"), Ok(("abc def", 7)));
-    assert_match!(Line::scan_from("abc\ndef"), Ok(("abc", 4)));
-    assert_match!(Line::scan_from("abc\r\ndef"), Ok(("abc", 5)));
-    assert_match!(Line::scan_from("abc\rdef"), Ok(("abc", 4)));
+    assert_match!(Line::<&str>::scan_from(""), Ok(("", 0)));
+    assert_match!(Line::<&str>::scan_from("abc def"), Ok(("abc def", 7)));
+    assert_match!(Line::<&str>::scan_from("abc\ndef"), Ok(("abc", 4)));
+    assert_match!(Line::<&str>::scan_from("abc\r\ndef"), Ok(("abc", 5)));
+    assert_match!(Line::<&str>::scan_from("abc\rdef"), Ok(("abc", 4)));
 }
 
 /**
@@ -172,6 +254,41 @@ This *will not* match an empty sequence; there must be at least one non-space ch
 pub struct NonSpace<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
 
 // FIXME: Error message omitted due to https://github.com/rust-lang/rust/issues/26448.
+#[cfg(str_into_output_extra_broken)]
+impl<'a> ScanFromStr<'a> for NonSpace<'a, &'a str> {
+    type Output = &'a str;
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+        match NONSPACE_RE.find(s) {
+            Some((a, b)) => {
+                let word = &s[a..b];
+                let tail = &s[b..];
+                Ok((word.into(), s.subslice_offset(tail).unwrap()))
+            },
+            // None => Err(ScanErrorKind::Syntax(Some("expected at least one non-space character"))),
+            None => Err(ScanErrorKind::SyntaxNoMessage)
+        }
+    }
+}
+
+// FIXME: Error message omitted due to https://github.com/rust-lang/rust/issues/26448.
+#[cfg(str_into_output_extra_broken)]
+impl<'a> ScanFromStr<'a> for NonSpace<'a, String> {
+    type Output = String;
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+        match NONSPACE_RE.find(s) {
+            Some((a, b)) => {
+                let word = &s[a..b];
+                let tail = &s[b..];
+                Ok((word.into(), s.subslice_offset(tail).unwrap()))
+            },
+            // None => Err(ScanErrorKind::Syntax(Some("expected at least one non-space character"))),
+            None => Err(ScanErrorKind::SyntaxNoMessage)
+        }
+    }
+}
+
+// FIXME: Error message omitted due to https://github.com/rust-lang/rust/issues/26448.
+#[cfg(not(str_into_output_extra_broken))]
 impl<'a, Output> ScanFromStr<'a> for NonSpace<'a, Output>
 where &'a str: Into<Output> {
     type Output = Output;
@@ -215,6 +332,41 @@ Note that this *includes* non-ASCII decimal characters, meaning it will scan num
 pub struct Number<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
 
 // FIXME: Error message omitted due to https://github.com/rust-lang/rust/issues/26448.
+#[cfg(str_into_output_extra_broken)]
+impl<'a> ScanFromStr<'a> for Number<'a, &'a str> {
+    type Output = &'a str;
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+        match NUMBER_RE.find(s) {
+            Some((a, b)) => {
+                let word = &s[a..b];
+                let tail = &s[b..];
+                Ok((word.into(), s.subslice_offset(tail).unwrap()))
+            },
+            // None => Err(ScanErrorKind::Syntax(Some("expected a number"))),
+            None => Err(ScanErrorKind::SyntaxNoMessage),
+        }
+    }
+}
+
+// FIXME: Error message omitted due to https://github.com/rust-lang/rust/issues/26448.
+#[cfg(str_into_output_extra_broken)]
+impl<'a> ScanFromStr<'a> for Number<'a, String> {
+    type Output = String;
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+        match NUMBER_RE.find(s) {
+            Some((a, b)) => {
+                let word = &s[a..b];
+                let tail = &s[b..];
+                Ok((word.into(), s.subslice_offset(tail).unwrap()))
+            },
+            // None => Err(ScanErrorKind::Syntax(Some("expected a number"))),
+            None => Err(ScanErrorKind::SyntaxNoMessage),
+        }
+    }
+}
+
+// FIXME: Error message omitted due to https://github.com/rust-lang/rust/issues/26448.
+#[cfg(not(str_into_output_extra_broken))]
 impl<'a, Output> ScanFromStr<'a> for Number<'a, Output>
 where &'a str: Into<Output> {
     type Output = Output;
@@ -378,6 +530,41 @@ Specifically, this will match a continuous run of alphabetic, digit, punctuation
 pub struct Word<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
 
 // FIXME: Error message omitted due to https://github.com/rust-lang/rust/issues/26448.
+#[cfg(str_into_output_extra_broken)]
+impl<'a> ScanFromStr<'a> for Word<'a, &'a str> {
+    type Output = &'a str;
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+        match WORD_RE.find(s) {
+            Some((a, b)) => {
+                let word = &s[a..b];
+                let tail = &s[b..];
+                Ok((word.into(), s.subslice_offset(tail).unwrap()))
+            },
+            // None => Err(ScanErrorKind::Syntax(Some("expected a word"))),
+            None => Err(ScanErrorKind::SyntaxNoMessage),
+        }
+    }
+}
+
+// FIXME: Error message omitted due to https://github.com/rust-lang/rust/issues/26448.
+#[cfg(str_into_output_extra_broken)]
+impl<'a> ScanFromStr<'a> for Word<'a, String> {
+    type Output = String;
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+        match WORD_RE.find(s) {
+            Some((a, b)) => {
+                let word = &s[a..b];
+                let tail = &s[b..];
+                Ok((word.into(), s.subslice_offset(tail).unwrap()))
+            },
+            // None => Err(ScanErrorKind::Syntax(Some("expected a word"))),
+            None => Err(ScanErrorKind::SyntaxNoMessage),
+        }
+    }
+}
+
+// FIXME: Error message omitted due to https://github.com/rust-lang/rust/issues/26448.
+#[cfg(not(str_into_output_extra_broken))]
 impl<'a, Output> ScanFromStr<'a> for Word<'a, Output>
 where &'a str: Into<Output> {
     type Output = Output;
@@ -420,6 +607,43 @@ Specifically, this will match a word (a continuous run of alphabetic, digit, pun
 pub struct Wordish<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
 
 // FIXME: Error message omitted due to https://github.com/rust-lang/rust/issues/26448.
+#[cfg(str_into_output_extra_broken)]
+impl<'a> ScanFromStr<'a> for Wordish<'a, &'a str> {
+    type Output = &'a str;
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+        // TODO: This should be modified to grab an entire *grapheme cluster* in the event it can't find a word or number.
+        match WORDISH_RE.find(s) {
+            Some((a, b)) => {
+                let word = &s[a..b];
+                let tail = &s[b..];
+                Ok((word.into(), s.subslice_offset(tail).unwrap()))
+            },
+            // None => Err(ScanErrorKind::Syntax(Some("expected a word, number or some other character"))),
+            None => Err(ScanErrorKind::SyntaxNoMessage),
+        }
+    }
+}
+
+// FIXME: Error message omitted due to https://github.com/rust-lang/rust/issues/26448.
+#[cfg(str_into_output_extra_broken)]
+impl<'a> ScanFromStr<'a> for Wordish<'a, String> {
+    type Output = String;
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+        // TODO: This should be modified to grab an entire *grapheme cluster* in the event it can't find a word or number.
+        match WORDISH_RE.find(s) {
+            Some((a, b)) => {
+                let word = &s[a..b];
+                let tail = &s[b..];
+                Ok((word.into(), s.subslice_offset(tail).unwrap()))
+            },
+            // None => Err(ScanErrorKind::Syntax(Some("expected a word, number or some other character"))),
+            None => Err(ScanErrorKind::SyntaxNoMessage),
+        }
+    }
+}
+
+// FIXME: Error message omitted due to https://github.com/rust-lang/rust/issues/26448.
+#[cfg(not(str_into_output_extra_broken))]
 impl<'a, Output> ScanFromStr<'a> for Wordish<'a, Output>
 where &'a str: Into<Output> {
     type Output = Output;

@@ -113,8 +113,14 @@ See also: [Pattern Syntax](index.html#pattern-syntax).
 #[macro_export]
 macro_rules! scan {
     ($input:expr;
+        $(($($patterns:tt)*) => $bodies:expr),+
+    ) => {
+        scan!($input; $(($($patterns)*) => $bodies,)+)
+    };
+
+    ($input:expr;
         ($($head_pattern:tt)*) => $head_body:expr
-        $(, ($($tail_patterns:tt)*) => $tail_bodies:expr)* $(,)*
+        , $(($($tail_patterns:tt)*) => $tail_bodies:expr,)*
     ) => {
         {
             let cur: $crate::input::Cursor = ::std::convert::Into::into($input);

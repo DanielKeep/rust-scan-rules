@@ -18,6 +18,12 @@ The available abstract scanners can be found in the `scanner` module.
 * [Latest Docs](https://danielkeep.github.io/rust-scan-rules/doc/scan_rules/index.html)
 * [Repository](https://github.com/DanielKeep/rust-scan-rules)
 
+## Compatibility
+
+v0.0.4 was tested against `rustc` versions 1.6.0, 1.7.0-beta.1, and nightly 2016-01-20.
+
+* `rustc` versions prior to 1.7 will have only concrete implementations of `ScanFromStr` for the `Everything`, `Ident`, `Line`, `NonSpace`, `Number`, `Word`, and `Wordish` scanners for `&str` and `String` output types.  1.7 and higher will have generic implementations for all output types such that `&str: Into<Output>`.
+
 ## Quick Examples
 
 Here is a simple CLI program that asks the user their name and age.  You can run this using `cargo run --example ask_age`.

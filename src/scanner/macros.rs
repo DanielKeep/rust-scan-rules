@@ -202,11 +202,11 @@ macro_rules! scanner {
     (
         impl<$lt:tt $(, $ty_params:ident)*> ScanFromStr for $ty:ty { $($patterns:tt)* }
     ) => {
-        scanner! { impl<$lt $(, $ty_params)*> ScanFromStr for $ty where {} { $($patterns)* } }
+        scanner! { impl<$lt $(, $ty_params)*> ScanFromStr for $ty, where {} { $($patterns)* } }
     };
 
     (
-        impl<$lt:tt $(, $ty_params:ident)*> ScanFromStr for $ty:ty where {$($clauses:tt)*} { $($patterns:tt)* }
+        impl<$lt:tt $(, $ty_params:ident)*> ScanFromStr for $ty:ty, where {$($clauses:tt)*} { $($patterns:tt)* }
     ) => {
         scanner! {
             @as_item

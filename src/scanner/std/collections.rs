@@ -19,23 +19,23 @@ use std::collections::{
 use std::hash::Hash;
 use ::scanner::KeyValuePair;
 
-scanner! { impl<'a, K, V> ScanFromStr for BTreeMap<K, V> where {K: Ord} {
+scanner! { impl<'a, K, V> ScanFromStr for BTreeMap<K, V>, where {K: Ord} {
     ("{", [ let es: KeyValuePair<K, V> ],*: BTreeMap<K, V>, "}", ..tail) => (es, tail)
 }}
 
-scanner! { impl<'a, T> ScanFromStr for BTreeSet<T> where {T: Ord} {
+scanner! { impl<'a, T> ScanFromStr for BTreeSet<T>, where {T: Ord} {
     ("{", [ let es: T ],*: BTreeSet<_>, "}", ..tail) => (es, tail)
 }}
 
-scanner! { impl<'a, T> ScanFromStr for BinaryHeap<T> where {T: Ord} {
+scanner! { impl<'a, T> ScanFromStr for BinaryHeap<T>, where {T: Ord} {
     ("[", [ let es: T ],*: BinaryHeap<_>, "]", ..tail) => (es, tail)
 }}
 
-scanner! { impl<'a, K, V> ScanFromStr for HashMap<K, V> where {K: Hash + Eq} {
+scanner! { impl<'a, K, V> ScanFromStr for HashMap<K, V>, where {K: Hash + Eq} {
     ("{", [ let es: KeyValuePair<K, V> ],*: HashMap<K, V>, "}", ..tail) => (es, tail)
 }}
 
-scanner! { impl<'a, T> ScanFromStr for HashSet<T> where {T: Hash + Eq} {
+scanner! { impl<'a, T> ScanFromStr for HashSet<T>, where {T: Hash + Eq} {
     ("{", [ let es: T ],*: HashSet<_>, "}", ..tail) => (es, tail)
 }}
 
