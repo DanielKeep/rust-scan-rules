@@ -14,7 +14,6 @@ use std::error::Error;
 use std::fmt;
 use std::io;
 use std::num::{ParseFloatError, ParseIntError};
-use input::Cursor;
 
 /**
 Represents an error that occurred during scanning.
@@ -22,11 +21,11 @@ Represents an error that occurred during scanning.
 Depending on what happened, it could represent an actual scanning failure, a problem with the pattern, an underlying IO failure, or something else entirely.
 */
 #[derive(Debug)]
-pub struct ScanError<'a> {
+pub struct ScanError {
     /**
     The rough cursor position at which this error occurred.  This will typically be the position the input cursor was at when it began trying to scan a particular literal or value.
     */
-    pub at: Cursor<'a>,
+    pub at: ScanErrorAt,
 
     /**
     The kind of error that occurred.
@@ -39,13 +38,13 @@ pub struct ScanError<'a> {
     _priv: (),
 }
 
-impl<'a> ScanError<'a> {
+impl ScanError {
     /**
     Construct a new `ScanError`.
     */
-    pub fn new(at: Cursor<'a>, kind: ScanErrorKind) -> Self {
+    pub fn new(at: usize, kind: ScanErrorKind) -> Self {
         ScanError {
-            at: at,
+            at: ScanErrorAt { bytes: at },
             kind: kind,
             _priv: (),
         }
@@ -54,7 +53,7 @@ impl<'a> ScanError<'a> {
     /**
     Shorthand for constructing an `ExpectedEnd` error.
     */
-    pub fn expected_end(at: Cursor<'a>) -> Self {
+    pub fn expected_end(at: usize) -> Self {
         Self::new(at, ScanErrorKind::ExpectedEnd)
     }
 
@@ -62,27 +61,27 @@ impl<'a> ScanError<'a> {
     Shorthand for constructing an `Io` error.
     */
     pub fn io(err: io::Error) -> Self {
-        Self::new(Cursor::new_with_offset("", 0), ScanErrorKind::Io(err))
+        Self::new(0, ScanErrorKind::Io(err))
     }
 
     /**
     Shorthand for constructing a `LiteralMismatch` error.
     */
-    pub fn literal_mismatch(at: Cursor<'a>) -> Self {
+    pub fn literal_mismatch(at: usize) -> Self {
         Self::new(at, ScanErrorKind::LiteralMismatch)
     }
 
     /**
     Shorthand for constructing a `Syntax` error.
     */
-    pub fn syntax(at: Cursor<'a>, desc: &'static str) -> Self {
+    pub fn syntax(at: usize, desc: &'static str) -> Self {
         Self::new(at, ScanErrorKind::Syntax(desc))
     }
 
     /**
     Shorthand for constructing an `Other` error.
     */
-    pub fn other<E: Into<Box<Error>>>(at: Cursor<'a>, err: E) -> Self {
+    pub fn other<E: Into<Box<Error>>>(at: usize, err: E) -> Self {
         Self::new(at, ScanErrorKind::from_other(err))
     }
 
@@ -90,41 +89,54 @@ impl<'a> ScanError<'a> {
     Compare two `ScanError`s, and return the one which occurred the furthest into the input cursor.
     */
     pub fn furthest_along(self, other: Self) -> Self {
-        if self.at.as_bytes().as_ptr() >= other.at.as_bytes().as_ptr() {
+        if self.at.offset() >= other.at.offset() {
             self
         } else {
             other
         }
     }
-
-    /**
-    Replace the borrowed components of the `ScanError` with `'static` dummy values, allowing the error to escape beyond the lifetime of the original input data.
-    */
-    pub fn into_static(self) -> ScanError<'static> {
-        ScanError {
-            at: Cursor::new_with_offset("", self.at.offset()),
-            kind: self.kind,
-            _priv: (),
-        }
-    }
 }
 
-impl<'a> fmt::Display for ScanError<'a> {
+impl<'a> fmt::Display for ScanError {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         try!("scan error: ".fmt(fmt));
         try!(self.kind.fmt(fmt));
         try!(", at offset: ".fmt(fmt));
-        fmt::Debug::fmt(&self.at.offset(), fmt)
+        try!(self.at.offset().fmt(fmt));
+        Ok(())
     }
 }
 
-impl<'a> Error for ScanError<'a> {
+impl Error for ScanError {
     fn cause(&self) -> Option<&Error> {
         self.kind.cause()
     }
 
     fn description(&self) -> &str {
         self.kind.description()
+    }
+}
+
+/**
+Represents the position at which an error occurred.
+*/
+/*
+This exists because I'm still considering including the input which generated the error, for the sake of nice error messages.
+
+I'm not using `Cursor`, because I don't want errors tied to a specific input wrapper.
+*/
+#[derive(Debug)]
+pub struct ScanErrorAt {
+    /// Offset in bytes.
+    bytes: usize,
+}
+
+impl ScanErrorAt {
+    /**
+    Return the offset from the start of input that an error occurred at, in bytes.
+    */
+    pub fn offset(&self) -> usize {
+        self.bytes
     }
 }
 

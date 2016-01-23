@@ -62,9 +62,7 @@ macro_rules! try_readln {
                     Err(err) => Err($crate::ScanError::io(err)),
                     Ok(_) => {
                         let line = $crate::strip_line_term(&line);
-                        ::std::result::Result::map_err(
-                            scan!(line; $($rules)*),
-                            $crate::ScanError::into_static)
+                        scan!(line; $($rules)*)
                     },
                 }
             },

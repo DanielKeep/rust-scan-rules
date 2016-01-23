@@ -33,20 +33,20 @@ pub trait ScanInput<'a>: Sized {
     /**
     Assert that the input has been exhausted, or that the current position is a valid place to "stop".
     */
-    fn try_end(self) -> Result<(), (ScanError<'a>, Self)>;
+    fn try_end(self) -> Result<(), (ScanError, Self)>;
 
     /**
     Scan a value from the current position.  The closure will be called with a string slice of all available input, and is expected to return *either* the scanned value, and the number of bytes of input consumed, *or* a reason why scanning failed.
 
     The input will have all leading whitespace removed, if applicable.
     */
-    fn try_scan<F, Out>(self, f: F) -> Result<(Out, Self), (ScanError<'a>, Self)>
+    fn try_scan<F, Out>(self, f: F) -> Result<(Out, Self), (ScanError, Self)>
     where F: FnOnce(&'a str) -> Result<(Out, usize), ScanErrorKind>;
 
     /**
     Performs the same task as [`try_scan`](#tymethod.try_scan), except that it *does not* perform whitespace stripping.
     */
-    fn try_scan_raw<F, Out>(self, f: F) -> Result<(Out, Self), (ScanError<'a>, Self)>
+    fn try_scan_raw<F, Out>(self, f: F) -> Result<(Out, Self), (ScanError, Self)>
     where F: FnOnce(&'a str) -> Result<(Out, usize), ScanErrorKind>;
 
     /**
@@ -54,7 +54,7 @@ pub trait ScanInput<'a>: Sized {
 
     Implementations are free to interpret "match" as they please.
     */
-    fn try_match_literal(self, lit: &str) -> Result<Self, (ScanError<'a>, Self)>;
+    fn try_match_literal(self, lit: &str) -> Result<Self, (ScanError, Self)>;
 }
 
 /**
@@ -125,32 +125,32 @@ impl<'a> From<&'a String> for Cursor<'a> {
 }
 
 impl<'a> ScanInput<'a> for Cursor<'a> {
-    fn try_end(self) -> Result<(), (ScanError<'a>, Self)> {
+    fn try_end(self) -> Result<(), (ScanError, Self)> {
         if (skip_space(self.slice).0).len() == 0 {
             Ok(())
         } else {
-            Err((ScanError::expected_end(self), self))
+            Err((ScanError::expected_end(self.offset()), self))
         }
     }
 
-    fn try_scan<F, Out>(self, f: F) -> Result<(Out, Self), (ScanError<'a>, Self)>
+    fn try_scan<F, Out>(self, f: F) -> Result<(Out, Self), (ScanError, Self)>
     where F: FnOnce(&'a str) -> Result<(Out, usize), ScanErrorKind> {
         let (tmp, tmp_off) = skip_space(self.slice);
         match f(tmp) {
             Ok((out, off)) => Ok((out, self.advance_by(tmp_off + off))),
-            Err(err) => Err((ScanError::new(self.advance_by(tmp_off), err), self))
+            Err(err) => Err((ScanError::new(self.advance_by(tmp_off).offset(), err), self))
         }
     }
 
-    fn try_scan_raw<F, Out>(self, f: F) -> Result<(Out, Self), (ScanError<'a>, Self)>
+    fn try_scan_raw<F, Out>(self, f: F) -> Result<(Out, Self), (ScanError, Self)>
     where F: FnOnce(&'a str) -> Result<(Out, usize), ScanErrorKind> {
         match f(self.slice) {
             Ok((out, off)) => Ok((out, self.advance_by(off))),
-            Err(err) => Err((ScanError::new(self, err), self))
+            Err(err) => Err((ScanError::new(self.offset(), err), self))
         }
     }
 
-    fn try_match_literal(self, lit: &str) -> Result<Self, (ScanError<'a>, Self)> {
+    fn try_match_literal(self, lit: &str) -> Result<Self, (ScanError, Self)> {
         use itertools::EitherOrBoth::{Both, Left};
         let (tmp, tmp_off) = skip_space(self.slice);
         let tmp_cur = self.advance_by(tmp_off); // for errors
@@ -162,10 +162,10 @@ impl<'a> ScanInput<'a> for Cursor<'a> {
             let (i1, ip, lp) = match ilp {
                 Both((i0, i1), (l0, l1)) => (i1, &tmp[i0..i1], &lit[l0..l1]),
                 Left(_) => break,
-                _ => return Err((ScanError::literal_mismatch(tmp_cur), self))
+                _ => return Err((ScanError::literal_mismatch(tmp_cur.offset()), self))
             };
             if ip != lp {
-                return Err((ScanError::literal_mismatch(tmp_cur), self));
+                return Err((ScanError::literal_mismatch(tmp_cur.offset()), self));
             }
             last_pos = i1;
         }

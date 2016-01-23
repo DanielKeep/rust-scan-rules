@@ -270,7 +270,7 @@ extern crate strcursor;
 
 #[macro_use] mod macros;
 
-pub use error::{ScanError, ScanErrorKind};
+pub use error::{ScanError, ScanErrorAt, ScanErrorKind};
 
 mod error;
 pub mod input;
