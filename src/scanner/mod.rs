@@ -57,7 +57,7 @@ Functions ending in `_a` are a shorthand for the common case of wrapping a runti
 It is also where implementations for existing standard and external types are kept, though these do not appear in the documentation.
 */
 pub use self::misc::{
-    Everything, NonSpace,
+    Everything, NonSpace, Space,
     Ident, Line, Number, Word, Wordish,
     KeyValuePair, QuotedString,
     Binary, Octal, Hex,
@@ -109,6 +109,13 @@ pub trait ScanFromStr<'a>: Sized {
     Implementations must return *either* the scanned value, and the number of bytes consumed from the input, *or* a reason why scanning failed.
     */
     fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError>;
+
+    /**
+    Indicates whether or not the scanner wants its input to have leading "junk", such as whitespace, stripped.
+
+    The default implementation returns `true`, which is almost *always* the correct answer.  You should only implement this explicitly (and return `false`) if you are implementing a scanner for which leading whitespace is important.
+    */
+    fn wants_leading_junk_stripped() -> bool { true }
 }
 
 /**
@@ -190,4 +197,15 @@ pub trait ScanStr<'a>: Sized {
     See: [`ScanFromStr::scan_from`](trait.ScanFromStr.html#tymethod.scan_from).
     */
     fn scan(&mut self, s: &'a str) -> Result<(Self::Output, usize), ScanError>;
+
+    /**
+    Indicates whether or not the scanner wants its input to have leading "junk", such as whitespace, stripped.
+
+    There is no default implementation of this for runtime scanners, because almost all runtime scanners forward on to some *other* scanner, and it is *that* scanner that should typically decide what to do.
+
+    Thus, in most cases, your implementation of this method should simply defer to the *next* scanner.
+
+    See: [`ScanFromStr::wants_leading_junk_stripped`](trait.ScanFromStr.html#tymethod.wants_leading_junk_stripped).
+    */
+    fn wants_leading_junk_stripped(&self) -> bool;
 }

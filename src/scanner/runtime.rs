@@ -46,6 +46,7 @@ pub struct ExactWidth<Then>(usize, Then);
 impl<'a, Then> ScanStr<'a> for ExactWidth<Then>
 where Then: ScanStr<'a> {
     type Output = Then::Output;
+
     fn scan(&mut self, s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         if s.len() < self.0 {
             return Err(ScanError::syntax("input not long enough"));
@@ -58,6 +59,10 @@ where Then: ScanStr<'a> {
             Err(err) => Err(err),
             Ok((v, _)) => Ok((v, self.0))
         }
+    }
+
+    fn wants_leading_junk_stripped(&self) -> bool {
+        self.1.wants_leading_junk_stripped()
     }
 }
 
@@ -106,12 +111,17 @@ pub struct MaxWidth<Then>(usize, Then);
 impl<'a, Then> ScanStr<'a> for MaxWidth<Then>
 where Then: ScanStr<'a> {
     type Output = Then::Output;
+
     fn scan(&mut self, s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         let len = ::std::cmp::min(s.len(), self.0);
         let stop = StrCursor::new_at_left_of_byte_pos(s, len);
         let sl = stop.slice_before();
 
         self.1.scan(sl)
+    }
+
+    fn wants_leading_junk_stripped(&self) -> bool {
+        self.1.wants_leading_junk_stripped()
     }
 }
 
@@ -160,6 +170,7 @@ pub struct MinWidth<Then>(usize, Then);
 impl<'a, Then> ScanStr<'a> for MinWidth<Then>
 where Then: ScanStr<'a> {
     type Output = Then::Output;
+
     fn scan(&mut self, s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         if s.len() < self.0 {
             return Err(ScanError::syntax("expected more bytes to scan"));
@@ -168,6 +179,10 @@ where Then: ScanStr<'a> {
             Ok((_, n)) if n < self.0 => Err(ScanError::syntax("scanned value too short")),
             other => other
         }
+    }
+
+    fn wants_leading_junk_stripped(&self) -> bool {
+        self.1.wants_leading_junk_stripped()
     }
 }
 
@@ -227,6 +242,7 @@ pub struct ScanRegex<Then>(Regex, Then);
 impl<'a, Then> ScanStr<'a> for ScanRegex<Then>
 where Then: ScanStr<'a> {
     type Output = Then::Output;
+
     fn scan(&mut self, s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         let cap = match self.0.captures(s) {
             None => return Err(ScanError::syntax("no match for regular expression")),
@@ -250,6 +266,10 @@ where Then: ScanStr<'a> {
             Ok((v, _)) => Ok((v, cover.1)),
             Err(err) => Err(err),
         }
+    }
+
+    fn wants_leading_junk_stripped(&self) -> bool {
+        self.1.wants_leading_junk_stripped()
     }
 }
 
@@ -285,7 +305,12 @@ pub struct ScanA<S>(PhantomData<S>);
 impl<'a, S> ScanStr<'a> for ScanA<S>
 where S: ScanFromStr<'a> {
     type Output = S::Output;
+
     fn scan(&mut self, s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         <S as ScanFromStr<'a>>::scan_from(s)
+    }
+
+    fn wants_leading_junk_stripped(&self) -> bool {
+        <S as ScanFromStr<'a>>::wants_leading_junk_stripped()
     }
 }

@@ -197,7 +197,7 @@ macro_rules! scan_rules_impl {
     */
     (@scan ($cur:expr); (let _: $t:ty, $($tail:tt)*) => $body:expr) => {
         {
-            match $crate::input::ScanCursor::try_scan($cur, <$t as $crate::scanner::ScanFromStr>::scan_from) {
+            match $crate::try_scan_static::<_, $t>($cur) {
                 Ok((_, new_cur)) => scan_rules_impl!(@scan (new_cur); ($($tail)*) => $body),
                 Err((err, _)) => Err(err)
             }
@@ -206,7 +206,7 @@ macro_rules! scan_rules_impl {
 
     (@scan ($cur:expr); (let _ <| $s:expr, $($tail:tt)*) => $body:expr) => {
         {
-            match $crate::input::ScanCursor::try_scan($cur, |s| $crate::scanner::ScanStr::scan(&mut $s, s)) {
+            match $crate::try_scan_runtime($cur, &mut $s) {
                 Ok((_, new_cur)) => scan_rules_impl!(@scan (new_cur); ($($tail)*) => $body),
                 Err((err, _)) => Err(err)
             }
@@ -215,7 +215,7 @@ macro_rules! scan_rules_impl {
 
     (@scan ($cur:expr); (let $name:ident, $($tail:tt)*) => $body:expr) => {
         {
-            match $crate::input::ScanCursor::try_scan($cur, $crate::scanner::ScanSelfFromStr::scan_self_from) {
+            match $crate::try_scan_static_self($cur) {
                 Ok(($name, new_cur)) => scan_rules_impl!(@scan (new_cur); ($($tail)*) => $body),
                 Err((err, _)) => Err(err)
             }
@@ -224,7 +224,7 @@ macro_rules! scan_rules_impl {
 
     (@scan ($cur:expr); (let $name:ident: $t:ty, $($tail:tt)*) => $body:expr) => {
         {
-            match $crate::input::ScanCursor::try_scan($cur, <$t as $crate::scanner::ScanFromStr>::scan_from) {
+            match $crate::try_scan_static::<_, $t>($cur) {
                 Ok(($name, new_cur)) => scan_rules_impl!(@scan (new_cur); ($($tail)*) => $body),
                 Err((err, _)) => Err(err)
             }
@@ -233,7 +233,7 @@ macro_rules! scan_rules_impl {
 
     (@scan ($cur:expr); (let $name:ident <| $s:expr, $($tail:tt)*) => $body:expr) => {
         {
-            match $crate::input::ScanCursor::try_scan($cur, |s| $crate::scanner::ScanStr::scan(&mut $s, s)) {
+            match $crate::try_scan_runtime($cur, &mut $s) {
                 Ok(($name, new_cur)) => scan_rules_impl!(@scan (new_cur); ($($tail)*) => $body),
                 Err((err, _)) => Err(err)
             }

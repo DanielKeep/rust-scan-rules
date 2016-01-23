@@ -25,6 +25,7 @@ lazy_static! {
     static ref LINE_RE: Regex = Regex::new(r"^(.*?)(\n|\r\n|\r|$)").unwrap();
     static ref NONSPACE_RE: Regex = Regex::new(r"^\S+").unwrap();
     static ref NUMBER_RE: Regex = Regex::new(r"^\d+").unwrap();
+    static ref SPACE_RE: Regex = Regex::new(r"^\s+").unwrap();
     static ref WORD_RE: Regex = Regex::new(r"^\w+").unwrap();
     static ref WORDISH_RE: Regex = Regex::new(r"^(\d+|\w+|\S)").unwrap();
 }
@@ -522,6 +523,92 @@ fn test_quoted_string() {
         Ok((ref s, 10)) if s == "abAcd");
     assert_match!(QS::scan_from("\"a\\'b\\u{5B57}c\\0d\" xyz"),
         Ok((ref s, 18)) if s == "a'b字c\0d");
+}
+
+/**
+Scans a sequence of space characters into a string.
+
+This *will not* match an empty sequence; there must be at least one space character for the scan to succeed.
+*/
+pub struct Space<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
+
+// FIXME: Error message omitted due to https://github.com/rust-lang/rust/issues/26448.
+#[cfg(str_into_output_extra_broken)]
+impl<'a> ScanFromStr<'a> for Space<'a, &'a str> {
+    type Output = &'a str;
+
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+        match SPACE_RE.find(s) {
+            Some((a, b)) => {
+                let word = &s[a..b];
+                let tail = &s[b..];
+                Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
+            },
+            // None => Err(ScanError::syntax("expected a space")),
+            None => Err(ScanError::syntax_no_message()),
+        }
+    }
+
+    fn wants_leading_junk_stripped() -> bool { false }
+}
+
+// FIXME: Error message omitted due to https://github.com/rust-lang/rust/issues/26448.
+#[cfg(str_into_output_extra_broken)]
+impl<'a> ScanFromStr<'a> for Space<'a, String> {
+    type Output = String;
+
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+        match SPACE_RE.find(s) {
+            Some((a, b)) => {
+                let word = &s[a..b];
+                let tail = &s[b..];
+                Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
+            },
+            // None => Err(ScanError::syntax("expected a space")),
+            None => Err(ScanError::syntax_no_message()),
+        }
+    }
+
+    fn wants_leading_junk_stripped() -> bool { false }
+}
+
+// FIXME: Error message omitted due to https://github.com/rust-lang/rust/issues/26448.
+#[cfg(not(str_into_output_extra_broken))]
+impl<'a, Output> ScanFromStr<'a> for Space<'a, Output>
+where &'a str: Into<Output> {
+    type Output = Output;
+
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+        match SPACE_RE.find(s) {
+            Some((a, b)) => {
+                let word = &s[a..b];
+                let tail = &s[b..];
+                Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
+            },
+            // None => Err(ScanError::syntax("expected a space")),
+            None => Err(ScanError::syntax_no_message()),
+        }
+    }
+
+    fn wants_leading_junk_stripped() -> bool { false }
+}
+
+#[cfg(test)]
+#[test]
+fn test_space() {
+    use ::ScanError as SE;
+    use ::ScanErrorKind as SEK;
+
+    assert_match!(Space::<&str>::scan_from(""), Err(SE { kind: SEK::SyntaxNoMessage, .. }));
+    assert_match!(Space::<&str>::scan_from("a"), Err(SE { kind: SEK::SyntaxNoMessage, .. }));
+    assert_match!(Space::<&str>::scan_from("0"), Err(SE { kind: SEK::SyntaxNoMessage, .. }));
+    assert_match!(Space::<&str>::scan_from(" "), Ok((" ", 1)));
+    assert_match!(Space::<&str>::scan_from("\t"), Ok(("\t", 1)));
+    assert_match!(Space::<&str>::scan_from("\r"), Ok(("\r", 1)));
+    assert_match!(Space::<&str>::scan_from("\n"), Ok(("\n", 1)));
+    assert_match!(Space::<&str>::scan_from("\r\n"), Ok(("\r\n", 2)));
+    assert_match!(Space::<&str>::scan_from("  \t \n \t\t "), Ok(("  \t \n \t\t ", 9)));
+    assert_match!(Space::<&str>::scan_from("  \t \nx \t\t "), Ok(("  \t \n", 5)));
 }
 
 /**
