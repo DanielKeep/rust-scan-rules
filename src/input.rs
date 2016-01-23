@@ -13,6 +13,7 @@ This module contains items related to input handling.
 Note that this aspect of `scan-rules` is still under design and is very likely to change drastically in future.
 */
 use std::borrow::Cow;
+use std::marker::PhantomData;
 use itertools::Itertools;
 use regex::Regex;
 use ::ScanError;
@@ -108,13 +109,29 @@ pub trait ScanCursor<'a>: Sized {
 /**
 The basic input type for scanning.
 */
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-pub struct StrCursor<'a> {
+#[derive(Debug)]
+pub struct StrCursor<'a, Cmp=ExactCompare>
+where Cmp: StrCompare {
     offset: usize,
     slice: &'a str,
+    _marker: PhantomData<Cmp>,
 }
 
-impl<'a> StrCursor<'a> {
+/*
+These have to be spelled out to avoid erroneous constraints on the type parameters.
+*/
+impl<'a, Cmp> Copy for StrCursor<'a, Cmp>
+where Cmp: StrCompare {}
+
+impl<'a, Cmp> Clone for StrCursor<'a, Cmp>
+where Cmp: StrCompare {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<'a, Cmp> StrCursor<'a, Cmp>
+where Cmp: StrCompare {
     /**
     Construct a new `StrCursor` with a specific `offset`.
 
@@ -124,6 +141,7 @@ impl<'a> StrCursor<'a> {
         StrCursor {
             offset: 0,
             slice: slice,
+            _marker: PhantomData,
         }
     }
 
@@ -134,6 +152,7 @@ impl<'a> StrCursor<'a> {
         StrCursor {
             offset: self.offset + bytes,
             slice: &self.slice[bytes..],
+            _marker: PhantomData,
         }
     }
 
@@ -145,7 +164,8 @@ impl<'a> StrCursor<'a> {
     }
 }
 
-impl<'a> ScanCursor<'a> for StrCursor<'a> {
+impl<'a, Cmp> ScanCursor<'a> for StrCursor<'a, Cmp>
+where Cmp: StrCompare {
     fn try_end(self) -> Result<(), (ScanError, Self)> {
         if (skip_space(self.slice).0).len() == 0 {
             Ok(())
@@ -185,7 +205,7 @@ impl<'a> ScanCursor<'a> for StrCursor<'a> {
                 Left(_) => break,
                 _ => return Err((ScanError::literal_mismatch().add_offset(tmp_cur.offset()), self))
             };
-            if ip != lp {
+            if !Cmp::compare(ip, lp) {
                 return Err((ScanError::literal_mismatch().add_offset(tmp_cur.offset()), self));
             }
             last_pos = i1;
@@ -208,4 +228,47 @@ fn skip_space(s: &str) -> (&str, usize) {
         .last()
         .unwrap_or(0);
     (&s[off..], off)
+}
+
+/**
+Defines an interface for comparing two strings for equality.
+
+This is used to allow `StrCursor` to be parametrised on different kinds of string comparisons: case-sensitive, case-insensitive, canonicalising, *etc.*
+*/
+pub trait StrCompare {
+    /**
+    Compare two strings and return `true` if they should be considered "equal".
+    */
+    fn compare(a: &str, b: &str) -> bool;
+}
+
+/**
+Marker type used to do exact, byte-for-byte string comparisons.
+
+This is likely the fastest kind of string comparison, and matches the default behaviour of the `==` operator on strings.
+*/
+#[derive(Debug)]
+pub enum ExactCompare {}
+
+impl StrCompare for ExactCompare {
+    fn compare(a: &str, b: &str) -> bool {
+        a == b
+    }
+}
+
+/**
+Marker type used to do ASCII case-insensitive string comparisons.
+
+Note that this is *only correct* for pure, ASCII-only strings.  To get less incorrect case-insensitive comparisons, you will need to use a Unicode-aware comparison.
+
+This exists because ASCII-only case conversions are easily understood and relatively fast.
+*/
+#[derive(Debug)]
+pub enum IgnoreAsciiCase {}
+
+impl StrCompare for IgnoreAsciiCase {
+    fn compare(a: &str, b: &str) -> bool {
+        use std::ascii::AsciiExt;
+        a.eq_ignore_ascii_case(b)
+    }
 }
