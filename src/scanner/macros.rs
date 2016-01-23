@@ -48,13 +48,13 @@ macro_rules! parse_scanner {
             @as_item
             impl<$lt> $crate::scanner::ScanFromStr<$lt> for $ty {
                 type Output = Self;
-                fn scan_from(s: &$lt str) -> ::std::result::Result<(Self::Output, usize), $crate::ScanErrorKind> {
+                fn scan_from(s: &$lt str) -> ::std::result::Result<(Self::Output, usize), $crate::ScanError> {
                     use ::std::result::Result::{Ok, Err};
                     use ::std::str::FromStr;
                     match <$scanner as $crate::scanner::ScanFromStr>::scan_from(s) {
-                        Err(_) => Err($crate::ScanErrorKind::Syntax($msg)),
+                        Err(_) => Err($crate::ScanError::syntax($msg)),
                         Ok((v, n)) => match <Self as FromStr>::from_str(v) {
-                            Err(err) => Err($crate::ScanErrorKind::$kind(err)),
+                            Err(err) => Err($crate::ScanError::new(0, $crate::ScanErrorKind::$kind(err))),
                             Ok(v) => Ok((v, n)),
                         },
                     }
@@ -68,13 +68,13 @@ macro_rules! parse_scanner {
             @as_item
             impl<$lt> $crate::scanner::ScanFromStr<$lt> for $ty {
                 type Output = Self;
-                fn scan_from(s: &$lt str) -> ::std::result::Result<(Self::Output, usize), $crate::ScanErrorKind> {
+                fn scan_from(s: &$lt str) -> ::std::result::Result<(Self::Output, usize), $crate::ScanError> {
                     use ::std::result::Result::{Ok, Err};
                     use ::std::str::FromStr;
                     match <$scanner as $crate::scanner::ScanFromStr>::scan_from(s) {
-                        Err(_) => Err($crate::ScanErrorKind::Syntax($msg)),
+                        Err(_) => Err($crate::ScanError::syntax($msg)),
                         Ok((v, n)) => match <Self as FromStr>::from_str(v) {
-                            Err(_) => Err($crate::ScanErrorKind::Syntax($msg)),
+                            Err(_) => Err($crate::ScanError::new(0, $crate::ScanErrorKind::Syntax($msg))),
                             Ok(v) => Ok((v, n)),
                         },
                     }
@@ -109,11 +109,11 @@ macro_rules! parse_scanner {
             @as_item
             impl<$lt> $crate::scanner::ScanFromStr<$lt> for $ty {
                 type Output = Self;
-                fn scan_from(s: &$lt str) -> Result<(Self::Output, usize), $crate::ScanErrorKind> {
+                fn scan_from(s: &$lt str) -> Result<(Self::Output, usize), $crate::ScanError> {
                     use ::std::option::Option;
                     use ::std::result::Result;
                     use ::regex::Regex;
-                    use $crate::ScanErrorKind;
+                    use $crate::ScanError;
 
                     let ($s, end) = try!(
                         Option::ok_or(
@@ -121,7 +121,7 @@ macro_rules! parse_scanner {
                                 Regex::find(&$regex, s),
                                 |(a, b)| (&s[a..b], b)
                             ),
-                            ScanErrorKind::Syntax($re_err)
+                            ScanError::syntax($re_err)
                         )
                     );
 
@@ -162,11 +162,11 @@ macro_rules! parse_scanner {
         parse_scanner! {
             @as_item
             impl<$lt> $crate::scanner::$tr_name<$lt> for $ty {
-                fn $tr_meth(s: &$lt str) -> Result<(Self, usize), $crate::ScanErrorKind> {
+                fn $tr_meth(s: &$lt str) -> Result<(Self, usize), $crate::ScanError> {
                     use ::std::option::Option;
                     use ::std::result::Result;
                     use ::regex::Regex;
-                    use $crate::ScanErrorKind;
+                    use $crate::ScanError;
 
                     let (w, end) = try!(
                         Option::ok_or(
@@ -174,7 +174,7 @@ macro_rules! parse_scanner {
                                 Regex::find(&$regex, s),
                                 |(a, b)| (&s[a..b], b)
                             ),
-                            ScanErrorKind::Syntax($re_err)
+                            ScanError::syntax($re_err)
                         )
                     );
 
@@ -217,13 +217,13 @@ macro_rules! scanner {
             {
                 type Output = Self;
 
-                fn scan_from(s: &$lt str) -> Result<(Self::Output, usize), $crate::ScanErrorKind> {
+                fn scan_from(s: &$lt str) -> Result<(Self::Output, usize), $crate::ScanError> {
                     match scan! { s; $($patterns)* } {
                         Ok((v, tail)) => {
                             let off = ::std::option::Option::expect($crate::subslice_offset(s, tail), "scanner returned tail that wasn't part of the original input");
                             Ok((v, off))
                         },
-                        Err(err) => Err(err.kind),
+                        Err(err) => Err(err),
                     }
                 }
             }

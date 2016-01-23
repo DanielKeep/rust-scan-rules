@@ -166,7 +166,7 @@ macro_rules! scan_rules_impl {
     */
     (@scan ($cur:expr); (.._,) => $body:expr) => {
         {
-            match $crate::input::ScanInput::try_scan_raw($cur, |s| Ok::<_, $crate::ScanErrorKind>((s, s.len()))) {
+            match $crate::input::ScanInput::try_scan_raw($cur, |s| Ok::<_, $crate::ScanError>((s, s.len()))) {
                 Ok((_, new_cur)) => scan_rules_impl!(@scan (new_cur); () => $body),
                 Err((err, _)) => Err(err)
             }
@@ -175,7 +175,7 @@ macro_rules! scan_rules_impl {
 
     (@scan ($cur:expr); (..$name:ident,) => $body:expr) => {
         {
-            match $crate::input::ScanInput::try_scan_raw($cur, |s| Ok::<_, $crate::ScanErrorKind>((s, s.len()))) {
+            match $crate::input::ScanInput::try_scan_raw($cur, |s| Ok::<_, $crate::ScanError>((s, s.len()))) {
                 Ok(($name, new_cur)) => scan_rules_impl!(@scan (new_cur); () => $body),
                 Err((err, _)) => Err(err)
             }

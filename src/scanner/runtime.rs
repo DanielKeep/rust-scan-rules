@@ -13,7 +13,7 @@ Types and constructors for various runtime scanners.
 use std::marker::PhantomData;
 use regex::Regex;
 use strcursor::StrCursor;
-use ::ScanErrorKind;
+use ::ScanError;
 use ::scanner::{Everything, ScanFromStr, ScanStr};
 
 /**
@@ -46,15 +46,15 @@ pub struct ExactWidth<Then>(usize, Then);
 impl<'a, Then> ScanStr<'a> for ExactWidth<Then>
 where Then: ScanStr<'a> {
     type Output = Then::Output;
-    fn scan(&mut self, s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+    fn scan(&mut self, s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         if s.len() < self.0 {
-            return Err(ScanErrorKind::Syntax("input not long enough"));
+            return Err(ScanError::syntax("input not long enough"));
         }
 
         let sl = &s[..self.0];
 
         match self.1.scan(sl) {
-            Ok((_, n)) if n != self.0 => Err(ScanErrorKind::Syntax("value did not consume enough characters")),
+            Ok((_, n)) if n != self.0 => Err(ScanError::syntax("value did not consume enough characters")),
             Err(err) => Err(err),
             Ok((v, _)) => Ok((v, self.0))
         }
@@ -64,13 +64,14 @@ where Then: ScanStr<'a> {
 #[cfg(test)]
 #[test]
 fn test_exact_width() {
+    use ::ScanError as SE;
     use ::ScanErrorKind as SEK;
     use ::scanner::Word;
     let scan = exact_width_a::<Word>;
 
-    assert_match!(scan(2).scan(""), Err(SEK::Syntax(_)));
-    assert_match!(scan(2).scan("a"), Err(SEK::Syntax(_)));
-    assert_match!(scan(2).scan("a b"), Err(SEK::Syntax(_)));
+    assert_match!(scan(2).scan(""), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(scan(2).scan("a"), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(scan(2).scan("a b"), Err(SE { kind: SEK::Syntax(_), .. }));
     assert_match!(scan(2).scan("ab"), Ok(("ab", 2)));
     assert_match!(scan(2).scan("abc"), Ok(("ab", 2)));
 }
@@ -105,7 +106,7 @@ pub struct MaxWidth<Then>(usize, Then);
 impl<'a, Then> ScanStr<'a> for MaxWidth<Then>
 where Then: ScanStr<'a> {
     type Output = Then::Output;
-    fn scan(&mut self, s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+    fn scan(&mut self, s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         let len = ::std::cmp::min(s.len(), self.0);
         let stop = StrCursor::new_at_left_of_byte_pos(s, len);
         let sl = stop.slice_before();
@@ -117,11 +118,12 @@ where Then: ScanStr<'a> {
 #[cfg(test)]
 #[test]
 fn test_max_width() {
+    use ::ScanError as SE;
     use ::ScanErrorKind as SEK;
     use ::scanner::Word;
     let scan = max_width_a::<Word>;
 
-    assert_match!(scan(2).scan(""), Err(SEK::SyntaxNoMessage));
+    assert_match!(scan(2).scan(""), Err(SE { kind: SEK::SyntaxNoMessage, .. }));
     assert_match!(scan(2).scan("a"), Ok(("a", 1)));
     assert_match!(scan(2).scan("a b"), Ok(("a", 1)));
     assert_match!(scan(2).scan("ab"), Ok(("ab", 2)));
@@ -158,12 +160,12 @@ pub struct MinWidth<Then>(usize, Then);
 impl<'a, Then> ScanStr<'a> for MinWidth<Then>
 where Then: ScanStr<'a> {
     type Output = Then::Output;
-    fn scan(&mut self, s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+    fn scan(&mut self, s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         if s.len() < self.0 {
-            return Err(ScanErrorKind::Syntax("expected more bytes to scan"));
+            return Err(ScanError::syntax("expected more bytes to scan"));
         }
         match self.1.scan(s) {
-            Ok((_, n)) if n < self.0 => Err(ScanErrorKind::Syntax("scanned value too short")),
+            Ok((_, n)) if n < self.0 => Err(ScanError::syntax("scanned value too short")),
             other => other
         }
     }
@@ -172,13 +174,14 @@ where Then: ScanStr<'a> {
 #[cfg(test)]
 #[test]
 fn test_min_width() {
+    use ::ScanError as SE;
     use ::ScanErrorKind as SEK;
     use ::scanner::Word;
     let scan = min_width_a::<Word>;
 
-    assert_match!(scan(2).scan(""), Err(SEK::Syntax(_)));
-    assert_match!(scan(2).scan("a"), Err(SEK::Syntax(_)));
-    assert_match!(scan(2).scan("a b"), Err(SEK::Syntax(_)));
+    assert_match!(scan(2).scan(""), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(scan(2).scan("a"), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(scan(2).scan("a b"), Err(SE { kind: SEK::Syntax(_), .. }));
     assert_match!(scan(2).scan("ab"), Ok(("ab", 2)));
     assert_match!(scan(2).scan("abc"), Ok(("abc", 3)));
 }
@@ -224,14 +227,14 @@ pub struct ScanRegex<Then>(Regex, Then);
 impl<'a, Then> ScanStr<'a> for ScanRegex<Then>
 where Then: ScanStr<'a> {
     type Output = Then::Output;
-    fn scan(&mut self, s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+    fn scan(&mut self, s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         let cap = match self.0.captures(s) {
-            None => return Err(ScanErrorKind::Syntax("no match for regular expression")),
+            None => return Err(ScanError::syntax("no match for regular expression")),
             Some(cap) => cap,
         };
 
         let cover = match cap.pos(0) {
-            None => return Err(ScanErrorKind::Syntax("no match for regular expression")),
+            None => return Err(ScanError::syntax("no match for regular expression")),
             Some(pos) => pos,
         };
 
@@ -253,12 +256,13 @@ where Then: ScanStr<'a> {
 #[cfg(test)]
 #[test]
 fn test_re() {
+    use ::ScanError as SE;
     use ::ScanErrorKind as SEK;
     let scan = re_str;
 
-    assert_match!(scan("[a-z][0-9]").scan(""), Err(SEK::Syntax(_)));
-    assert_match!(scan("[a-z][0-9]").scan("a"), Err(SEK::Syntax(_)));
-    assert_match!(scan("[a-z][0-9]").scan("a 0"), Err(SEK::Syntax(_)));
+    assert_match!(scan("[a-z][0-9]").scan(""), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(scan("[a-z][0-9]").scan("a"), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(scan("[a-z][0-9]").scan("a 0"), Err(SE { kind: SEK::Syntax(_), .. }));
     assert_match!(scan("[a-z][0-9]").scan("a0"), Ok(("a0", 2)));
     assert_match!(scan("[a-z][0-9]").scan("a0c"), Ok(("a0", 2)));
     assert_match!(scan("[a-z][0-9]").scan(" a0"), Ok(("a0", 3)));
@@ -281,7 +285,7 @@ pub struct ScanA<S>(PhantomData<S>);
 impl<'a, S> ScanStr<'a> for ScanA<S>
 where S: ScanFromStr<'a> {
     type Output = S::Output;
-    fn scan(&mut self, s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+    fn scan(&mut self, s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         <S as ScanFromStr<'a>>::scan_from(s)
     }
 }

@@ -62,13 +62,14 @@ addr_regexen! {
     sad6: (r"\[(", ipv6, r")\]:\d+"),
 }
 
-parse_scanner! { impl<'a> for Ipv4Addr, regex IPV4ADDR_RE, regex err "expected IPv4 address", err map ScanErrorKind::from_other }
-parse_scanner! { impl<'a> for Ipv6Addr, regex IPV6ADDR_RE, regex err "expected IPv6 address", err map ScanErrorKind::from_other }
-parse_scanner! { impl<'a> for SocketAddr, regex SOCKADDR_RE, regex err "expected socket address", err map ScanErrorKind::from_other }
+parse_scanner! { impl<'a> for Ipv4Addr, regex IPV4ADDR_RE, regex err "expected IPv4 address", err map ScanError::other }
+parse_scanner! { impl<'a> for Ipv6Addr, regex IPV6ADDR_RE, regex err "expected IPv6 address", err map ScanError::other }
+parse_scanner! { impl<'a> for SocketAddr, regex SOCKADDR_RE, regex err "expected socket address", err map ScanError::other }
 
 #[cfg(test)]
 #[test]
 fn test_scan_ipv4addr() {
+    use ::ScanError as SE;
     use ::ScanErrorKind as SEK;
 
     macro_rules! check_ipv4 {
@@ -98,15 +99,16 @@ fn test_scan_ipv4addr() {
     check_ipv4!("127.0.0.1");
     check_ipv4!("255.255.255.255");
 
-    check_ipv4!("256.0.0.1"; Err(SEK::Other(_)));
-    check_ipv4!("255.0.0"; Err(SEK::Syntax(_)));
+    check_ipv4!("256.0.0.1"; Err(SE { kind: SEK::Other(_), .. }));
+    check_ipv4!("255.0.0"; Err(SE { kind: SEK::Syntax(_), .. }));
     check_ipv4!("255.0.0.1.2"; Ok("255.0.0.1"));
-    check_ipv4!("255.0..1"; Err(SEK::Syntax(_)));
+    check_ipv4!("255.0..1"; Err(SE { kind: SEK::Syntax(_), .. }));
 }
 
 #[cfg(test)]
 #[test]
 fn test_scan_ipv6addr() {
+    use ::ScanError as SE;
     use ::ScanErrorKind as SEK;
 
     macro_rules! check_ipv6 {
@@ -138,9 +140,9 @@ fn test_scan_ipv6addr() {
     check_ipv6!("::");
     check_ipv6!("2a02:6b8::11:11");
 
-    check_ipv6!("::00000"; Err(SEK::Other(_)));
-    check_ipv6!("1:2:3:4:5:6:7"; Err(SEK::Other(_)));
-    check_ipv6!("1:2:3:4:5:6:7:8:9"; Err(SEK::Other(_)));
+    check_ipv6!("::00000"; Err(SE { kind: SEK::Other(_), .. }));
+    check_ipv6!("1:2:3:4:5:6:7"; Err(SE { kind: SEK::Other(_), .. }));
+    check_ipv6!("1:2:3:4:5:6:7:8:9"; Err(SE { kind: SEK::Other(_), .. }));
     check_ipv6!("1:2:::6:7:8"; Ok("1:2::"));
     check_ipv6!("1:2::6::8"; Ok("1:2::6"));
 
@@ -150,13 +152,14 @@ fn test_scan_ipv6addr() {
     check_ipv6!("2001:db8:122:c000:2:2100:192.0.2.33");
 
     check_ipv6!("::127.0.0.1:"; Ok("::127.0.0.1"));
-    check_ipv6!("1:2:3:4:5:127.0.0.1"; Err(SEK::Other(_)));
-    check_ipv6!("1:2:3:4:5:6:7:127.0.0.1"; Err(SEK::Other(_)));
+    check_ipv6!("1:2:3:4:5:127.0.0.1"; Err(SE { kind: SEK::Other(_), .. }));
+    check_ipv6!("1:2:3:4:5:6:7:127.0.0.1"; Err(SE { kind: SEK::Other(_), .. }));
 }
 
 #[cfg(test)]
 #[test]
 fn test_scan_socketaddr() {
+    use ::ScanError as SE;
     use ::ScanErrorKind as SEK;
 
     macro_rules! check_sockaddr {
@@ -185,7 +188,7 @@ fn test_scan_socketaddr() {
     check_sockaddr!("0.0.0.0:0");
     check_sockaddr!("127.0.0.1:80");
     check_sockaddr!("255.255.255.255:65535");
-    check_sockaddr!("255.255.255.255:65536"; Err(SEK::Other(_)));
+    check_sockaddr!("255.255.255.255:65536"; Err(SE { kind: SEK::Other(_), .. }));
 
     check_sockaddr!("[0:0:0:0:0:0:0:0]:0");
     check_sockaddr!("[0:0:0:0:0:0:0:1]:0");
@@ -200,12 +203,13 @@ mod socket_addr_vx_scanners {
     use super::{SOCKADDRV4_RE, SOCKADDRV6_RE};
     #[cfg(test)] use ::scanner::ScanFromStr;
 
-    parse_scanner! { impl<'a> for SocketAddrV4, regex SOCKADDRV4_RE, regex err "expected IPv4 socket address", err map ScanErrorKind::from_other }
-    parse_scanner! { impl<'a> for SocketAddrV6, regex SOCKADDRV6_RE, regex err "expected IPv6 socket address", err map ScanErrorKind::from_other }
+    parse_scanner! { impl<'a> for SocketAddrV4, regex SOCKADDRV4_RE, regex err "expected IPv4 socket address", err map ScanError::other }
+    parse_scanner! { impl<'a> for SocketAddrV6, regex SOCKADDRV6_RE, regex err "expected IPv6 socket address", err map ScanError::other }
 
     #[cfg(test)]
     #[test]
     fn test_scan_socketaddrv4() {
+        use ::ScanError as SE;
         use ::ScanErrorKind as SEK;
 
         macro_rules! check_ipv4 {
@@ -234,7 +238,7 @@ mod socket_addr_vx_scanners {
         check_ipv4!("0.0.0.0:0");
         check_ipv4!("127.0.0.1:80");
         check_ipv4!("255.255.255.255:65535");
-        check_ipv4!("255.255.255.255:65536"; Err(SEK::Other(_)));
+        check_ipv4!("255.255.255.255:65536"; Err(SE { kind: SEK::Other(_), .. }));
     }
 
     #[cfg(test)]

@@ -15,7 +15,7 @@ Note that this aspect of `scan-rules` is still under design and is very likely t
 use std::ops::Deref;
 use itertools::Itertools;
 use regex::Regex;
-use ::{ScanError, ScanErrorKind};
+use ::ScanError;
 
 lazy_static! {
     /**
@@ -41,13 +41,13 @@ pub trait ScanInput<'a>: Sized {
     The input will have all leading whitespace removed, if applicable.
     */
     fn try_scan<F, Out>(self, f: F) -> Result<(Out, Self), (ScanError, Self)>
-    where F: FnOnce(&'a str) -> Result<(Out, usize), ScanErrorKind>;
+    where F: FnOnce(&'a str) -> Result<(Out, usize), ScanError>;
 
     /**
     Performs the same task as [`try_scan`](#tymethod.try_scan), except that it *does not* perform whitespace stripping.
     */
     fn try_scan_raw<F, Out>(self, f: F) -> Result<(Out, Self), (ScanError, Self)>
-    where F: FnOnce(&'a str) -> Result<(Out, usize), ScanErrorKind>;
+    where F: FnOnce(&'a str) -> Result<(Out, usize), ScanError>;
 
     /**
     Match the provided literal term against the input.
@@ -129,24 +129,24 @@ impl<'a> ScanInput<'a> for Cursor<'a> {
         if (skip_space(self.slice).0).len() == 0 {
             Ok(())
         } else {
-            Err((ScanError::expected_end(self.offset()), self))
+            Err((ScanError::expected_end().add_offset(self.offset()), self))
         }
     }
 
     fn try_scan<F, Out>(self, f: F) -> Result<(Out, Self), (ScanError, Self)>
-    where F: FnOnce(&'a str) -> Result<(Out, usize), ScanErrorKind> {
+    where F: FnOnce(&'a str) -> Result<(Out, usize), ScanError> {
         let (tmp, tmp_off) = skip_space(self.slice);
         match f(tmp) {
             Ok((out, off)) => Ok((out, self.advance_by(tmp_off + off))),
-            Err(err) => Err((ScanError::new(self.advance_by(tmp_off).offset(), err), self))
+            Err(err) => Err((err.add_offset(self.offset() + tmp_off), self)),
         }
     }
 
     fn try_scan_raw<F, Out>(self, f: F) -> Result<(Out, Self), (ScanError, Self)>
-    where F: FnOnce(&'a str) -> Result<(Out, usize), ScanErrorKind> {
+    where F: FnOnce(&'a str) -> Result<(Out, usize), ScanError> {
         match f(self.slice) {
             Ok((out, off)) => Ok((out, self.advance_by(off))),
-            Err(err) => Err((ScanError::new(self.offset(), err), self))
+            Err(err) => Err((err.add_offset(self.offset()), self)),
         }
     }
 
@@ -162,10 +162,10 @@ impl<'a> ScanInput<'a> for Cursor<'a> {
             let (i1, ip, lp) = match ilp {
                 Both((i0, i1), (l0, l1)) => (i1, &tmp[i0..i1], &lit[l0..l1]),
                 Left(_) => break,
-                _ => return Err((ScanError::literal_mismatch(tmp_cur.offset()), self))
+                _ => return Err((ScanError::literal_mismatch().add_offset(tmp_cur.offset()), self))
             };
             if ip != lp {
-                return Err((ScanError::literal_mismatch(tmp_cur.offset()), self));
+                return Err((ScanError::literal_mismatch().add_offset(tmp_cur.offset()), self));
             }
             last_pos = i1;
         }

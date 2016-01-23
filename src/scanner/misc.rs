@@ -13,7 +13,7 @@ Miscellaneous, abstract scanners.
 use std::marker::PhantomData;
 use regex::Regex;
 use strcursor::StrCursor;
-use ::ScanErrorKind;
+use ::ScanError;
 use super::{
     ScanFromStr, ScanSelfFromStr,
     ScanFromBinary, ScanFromOctal, ScanFromHex,
@@ -37,7 +37,7 @@ pub struct Binary<Output>(PhantomData<Output>);
 impl<'a, Output> ScanFromStr<'a> for Binary<Output>
 where Output: ScanFromBinary<'a> {
     type Output = Output;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         Output::scan_from_binary(s)
     }
 }
@@ -61,7 +61,7 @@ pub struct Everything<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
 #[cfg(str_into_output_extra_broken)]
 impl<'a> ScanFromStr<'a> for Everything<'a, &'a str> {
     type Output = &'a str;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         Ok((s.into(), s.len()))
     }
 }
@@ -69,7 +69,7 @@ impl<'a> ScanFromStr<'a> for Everything<'a, &'a str> {
 #[cfg(str_into_output_extra_broken)]
 impl<'a> ScanFromStr<'a> for Everything<'a, String> {
     type Output = String;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         Ok((s.into(), s.len()))
     }
 }
@@ -78,7 +78,7 @@ impl<'a> ScanFromStr<'a> for Everything<'a, String> {
 impl<'a, Output> ScanFromStr<'a> for Everything<'a, Output>
 where &'a str: Into<Output> {
     type Output = Output;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         Ok((s.into(), s.len()))
     }
 }
@@ -100,7 +100,7 @@ pub struct Hex<Output>(PhantomData<Output>);
 impl<'a, Output> ScanFromStr<'a> for Hex<Output>
 where Output: ScanFromHex<'a> {
     type Output = Output;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         Output::scan_from_hex(s)
     }
 }
@@ -125,7 +125,7 @@ pub struct Ident<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
 #[cfg(str_into_output_extra_broken)]
 impl<'a> ScanFromStr<'a> for Ident<'a, &'a str> {
     type Output = &'a str;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         match IDENT_RE.find(s) {
             Some((a, b)) => {
                 let word = &s[a..b];
@@ -133,8 +133,8 @@ impl<'a> ScanFromStr<'a> for Ident<'a, &'a str> {
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
             None => {
-                // Err(ScanErrorKind::Syntax(Some("expected identifier")))
-                Err(ScanErrorKind::SyntaxNoMessage)
+                // Err(ScanError::syntax("expected identifier"))
+                Err(ScanError::syntax_no_message())
             },
         }
     }
@@ -144,7 +144,7 @@ impl<'a> ScanFromStr<'a> for Ident<'a, &'a str> {
 #[cfg(str_into_output_extra_broken)]
 impl<'a> ScanFromStr<'a> for Ident<'a, String> {
     type Output = String;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         match IDENT_RE.find(s) {
             Some((a, b)) => {
                 let word = &s[a..b];
@@ -152,8 +152,8 @@ impl<'a> ScanFromStr<'a> for Ident<'a, String> {
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
             None => {
-                // Err(ScanErrorKind::Syntax(Some("expected identifier")))
-                Err(ScanErrorKind::SyntaxNoMessage)
+                // Err(ScanError::syntax("expected identifier"))
+                Err(ScanError::syntax_no_message())
             },
         }
     }
@@ -164,7 +164,7 @@ impl<'a> ScanFromStr<'a> for Ident<'a, String> {
 impl<'a, Output> ScanFromStr<'a> for Ident<'a, Output>
 where &'a str: Into<Output> {
     type Output = Output;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         match IDENT_RE.find(s) {
             Some((a, b)) => {
                 let word = &s[a..b];
@@ -172,8 +172,8 @@ where &'a str: Into<Output> {
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
             None => {
-                // Err(ScanErrorKind::Syntax(Some("expected identifier")))
-                Err(ScanErrorKind::SyntaxNoMessage)
+                // Err(ScanError::syntax("expected identifier"))
+                Err(ScanError::syntax_no_message())
             },
         }
     }
@@ -182,13 +182,14 @@ where &'a str: Into<Output> {
 #[cfg(test)]
 #[test]
 fn test_ident() {
+    use ::ScanError as SE;
     use ::ScanErrorKind as SEK;
 
-    assert_match!(Ident::<&str>::scan_from(""), Err(SEK::SyntaxNoMessage));
+    assert_match!(Ident::<&str>::scan_from(""), Err(SE { kind: SEK::SyntaxNoMessage, .. }));
     assert_match!(Ident::<&str>::scan_from("a"), Ok(("a", 1)));
     assert_match!(Ident::<&str>::scan_from("two words "), Ok(("two", 3)));
     assert_match!(Ident::<&str>::scan_from("two_words "), Ok(("two_words", 9)));
-    assert_match!(Ident::<&str>::scan_from("0123abc456 "), Err(SEK::SyntaxNoMessage));
+    assert_match!(Ident::<&str>::scan_from("0123abc456 "), Err(SE { kind: SEK::SyntaxNoMessage, .. }));
     assert_match!(Ident::<&str>::scan_from("_0123abc456 "), Ok(("_0123abc456", 11)));
     assert_match!(Ident::<&str>::scan_from("f(blah)"), Ok(("f", 1)));
 }
@@ -203,7 +204,7 @@ pub struct Line<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
 #[cfg(str_into_output_extra_broken)]
 impl<'a> ScanFromStr<'a> for Line<'a, &'a str> {
     type Output = &'a str;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         const EX_MSG: &'static str = "line scanning regex failed to match anything";
         let cap = LINE_RE.captures(s).expect(EX_MSG);
         let (_, b) = cap.pos(0).expect(EX_MSG);
@@ -215,7 +216,7 @@ impl<'a> ScanFromStr<'a> for Line<'a, &'a str> {
 #[cfg(str_into_output_extra_broken)]
 impl<'a> ScanFromStr<'a> for Line<'a, String> {
     type Output = String;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         const EX_MSG: &'static str = "line scanning regex failed to match anything";
         let cap = LINE_RE.captures(s).expect(EX_MSG);
         let (_, b) = cap.pos(0).expect(EX_MSG);
@@ -227,7 +228,7 @@ impl<'a> ScanFromStr<'a> for Line<'a, String> {
 #[cfg(not(str_into_output_extra_broken))]
 impl<'a, Output> ScanFromStr<'a> for Line<'a, Output> where &'a str: Into<Output> {
     type Output = Output;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         const EX_MSG: &'static str = "line scanning regex failed to match anything";
         let cap = LINE_RE.captures(s).expect(EX_MSG);
         let (_, b) = cap.pos(0).expect(EX_MSG);
@@ -257,15 +258,15 @@ pub struct NonSpace<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
 #[cfg(str_into_output_extra_broken)]
 impl<'a> ScanFromStr<'a> for NonSpace<'a, &'a str> {
     type Output = &'a str;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         match NONSPACE_RE.find(s) {
             Some((a, b)) => {
                 let word = &s[a..b];
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
-            // None => Err(ScanErrorKind::Syntax(Some("expected at least one non-space character"))),
-            None => Err(ScanErrorKind::SyntaxNoMessage)
+            // None => Err(ScanError::syntax("expected at least one non-space character")),
+            None => Err(ScanError::syntax_no_message())
         }
     }
 }
@@ -274,15 +275,15 @@ impl<'a> ScanFromStr<'a> for NonSpace<'a, &'a str> {
 #[cfg(str_into_output_extra_broken)]
 impl<'a> ScanFromStr<'a> for NonSpace<'a, String> {
     type Output = String;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         match NONSPACE_RE.find(s) {
             Some((a, b)) => {
                 let word = &s[a..b];
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
-            // None => Err(ScanErrorKind::Syntax(Some("expected at least one non-space character"))),
-            None => Err(ScanErrorKind::SyntaxNoMessage)
+            // None => Err(ScanError::syntax("expected at least one non-space character")),
+            None => Err(ScanError::syntax_no_message())
         }
     }
 }
@@ -292,15 +293,15 @@ impl<'a> ScanFromStr<'a> for NonSpace<'a, String> {
 impl<'a, Output> ScanFromStr<'a> for NonSpace<'a, Output>
 where &'a str: Into<Output> {
     type Output = Output;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         match NONSPACE_RE.find(s) {
             Some((a, b)) => {
                 let word = &s[a..b];
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
-            // None => Err(ScanErrorKind::Syntax(Some("expected at least one non-space character"))),
-            None => Err(ScanErrorKind::SyntaxNoMessage)
+            // None => Err(ScanError::syntax("expected at least one non-space character")),
+            None => Err(ScanError::syntax_no_message())
         }
     }
 }
@@ -308,10 +309,11 @@ where &'a str: Into<Output> {
 #[cfg(test)]
 #[test]
 fn test_non_space() {
+    use ::ScanError as SE;
     use ::ScanErrorKind as SEK;
 
-    assert_match!(NonSpace::<&str>::scan_from(""), Err(SEK::SyntaxNoMessage));
-    assert_match!(NonSpace::<&str>::scan_from(" abc "), Err(SEK::SyntaxNoMessage));
+    assert_match!(NonSpace::<&str>::scan_from(""), Err(SE { kind: SEK::SyntaxNoMessage, .. }));
+    assert_match!(NonSpace::<&str>::scan_from(" abc "), Err(SE { kind: SEK::SyntaxNoMessage, .. }));
     assert_match!(NonSpace::<&str>::scan_from("abc "), Ok(("abc", 3)));
     assert_match!(NonSpace::<&str>::scan_from("abc\t"), Ok(("abc", 3)));
     assert_match!(NonSpace::<&str>::scan_from("abc\r"), Ok(("abc", 3)));
@@ -335,15 +337,15 @@ pub struct Number<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
 #[cfg(str_into_output_extra_broken)]
 impl<'a> ScanFromStr<'a> for Number<'a, &'a str> {
     type Output = &'a str;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         match NUMBER_RE.find(s) {
             Some((a, b)) => {
                 let word = &s[a..b];
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
-            // None => Err(ScanErrorKind::Syntax(Some("expected a number"))),
-            None => Err(ScanErrorKind::SyntaxNoMessage),
+            // None => Err(ScanError::syntax("expected a number")),
+            None => Err(ScanError::syntax_no_message()),
         }
     }
 }
@@ -352,15 +354,15 @@ impl<'a> ScanFromStr<'a> for Number<'a, &'a str> {
 #[cfg(str_into_output_extra_broken)]
 impl<'a> ScanFromStr<'a> for Number<'a, String> {
     type Output = String;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         match NUMBER_RE.find(s) {
             Some((a, b)) => {
                 let word = &s[a..b];
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
-            // None => Err(ScanErrorKind::Syntax(Some("expected a number"))),
-            None => Err(ScanErrorKind::SyntaxNoMessage),
+            // None => Err(ScanError::syntax("expected a number")),
+            None => Err(ScanError::syntax_no_message()),
         }
     }
 }
@@ -370,15 +372,15 @@ impl<'a> ScanFromStr<'a> for Number<'a, String> {
 impl<'a, Output> ScanFromStr<'a> for Number<'a, Output>
 where &'a str: Into<Output> {
     type Output = Output;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         match NUMBER_RE.find(s) {
             Some((a, b)) => {
                 let word = &s[a..b];
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
-            // None => Err(ScanErrorKind::Syntax(Some("expected a number"))),
-            None => Err(ScanErrorKind::SyntaxNoMessage),
+            // None => Err(ScanError::syntax("expected a number")),
+            None => Err(ScanError::syntax_no_message()),
         }
     }
 }
@@ -386,13 +388,14 @@ where &'a str: Into<Output> {
 #[cfg(test)]
 #[test]
 fn test_number() {
+    use ::ScanError as SE;
     use ::ScanErrorKind as SEK;
 
-    assert_match!(Number::<&str>::scan_from(""), Err(SEK::SyntaxNoMessage));
-    assert_match!(Number::<&str>::scan_from("a"), Err(SEK::SyntaxNoMessage));
+    assert_match!(Number::<&str>::scan_from(""), Err(SE { kind: SEK::SyntaxNoMessage, .. }));
+    assert_match!(Number::<&str>::scan_from("a"), Err(SE { kind: SEK::SyntaxNoMessage, .. }));
     assert_match!(Number::<&str>::scan_from("0"), Ok(("0", 1)));
     assert_match!(Number::<&str>::scan_from("0x"), Ok(("0", 1)));
-    assert_match!(Number::<&str>::scan_from("x0"), Err(SEK::SyntaxNoMessage));
+    assert_match!(Number::<&str>::scan_from("x0"), Err(SE { kind: SEK::SyntaxNoMessage, .. }));
     assert_match!(Number::<&str>::scan_from("123 456 xyz"), Ok(("123", 3)));
     assert_match!(Number::<&str>::scan_from("123 456 xyz"), Ok(("123", 3)));
     assert_match!(Number::<&str>::scan_from("123４５６789 "), Ok(("123４５６789", 15)));
@@ -407,7 +410,7 @@ pub struct Octal<Output>(PhantomData<Output>);
 impl<'a, Output> ScanFromStr<'a> for Octal<Output>
 where Output: ScanFromOctal<'a> {
     type Output = Output;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         Output::scan_from_octal(s)
     }
 }
@@ -443,10 +446,10 @@ pub struct KeyValuePair<K, V>(PhantomData<(K, V)>);
 impl<'a, K, V> ScanFromStr<'a> for KeyValuePair<K, V>
 where K: ScanSelfFromStr<'a>, V: ScanSelfFromStr<'a> {
     type Output = (K, V);
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         scan!(s;
             (let k: K, ":", let v: V, ..tail) => ((k, v), s.subslice_offset_stable(tail).unwrap())
-        ).map_err(|e| e.kind)
+        )
     }
 }
 
@@ -461,10 +464,8 @@ pub enum QuotedString {}
 
 impl<'a> ScanFromStr<'a> for QuotedString {
     type Output = String;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
-        use ::ScanErrorKind::Syntax;
-
-        let syn = |s| Syntax(s);
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+        let syn = |s| ScanError::syntax(s);
 
         let cur = StrCursor::new_at_start(s);
         let (cp, cur) = try!(cur.next_cp().ok_or(syn("expected quoted string")));
@@ -480,7 +481,7 @@ impl<'a> ScanFromStr<'a> for QuotedString {
                 None => return Err(syn("unterminated quoted string")),
                 Some(('\\', after)) => {
                     match after.slice_after().split_escape_default() {
-                        Err(err) => return Err(ScanErrorKind::from_other(err)),
+                        Err(err) => return Err(ScanError::other(err).add_offset(after.byte_pos())),
                         Ok((cp, tail)) => {
                             // TODO: replace this
                             unsafe { cur.unsafe_set_at(tail); }
@@ -506,12 +507,13 @@ impl<'a> ScanFromStr<'a> for QuotedString {
 #[cfg(test)]
 #[test]
 fn test_quoted_string() {
+    use ::ScanError as SE;
     use ::ScanErrorKind as SEK;
     use self::QuotedString as QS;
 
-    assert_match!(QS::scan_from(""), Err(SEK::Syntax(_)));
-    assert_match!(QS::scan_from("dummy xyz"), Err(SEK::Syntax(_)));
-    assert_match!(QS::scan_from("'dummy' xyz"), Err(SEK::Syntax(_)));
+    assert_match!(QS::scan_from(""), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(QS::scan_from("dummy xyz"), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(QS::scan_from("'dummy' xyz"), Err(SE { kind: SEK::Syntax(_), .. }));
     assert_match!(QS::scan_from("\"dummy\" xyz"),
         Ok((ref s, 7)) if s == "dummy");
     assert_match!(QS::scan_from("\"ab\\\"cd\" xyz"),
@@ -533,15 +535,15 @@ pub struct Word<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
 #[cfg(str_into_output_extra_broken)]
 impl<'a> ScanFromStr<'a> for Word<'a, &'a str> {
     type Output = &'a str;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         match WORD_RE.find(s) {
             Some((a, b)) => {
                 let word = &s[a..b];
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
-            // None => Err(ScanErrorKind::Syntax(Some("expected a word"))),
-            None => Err(ScanErrorKind::SyntaxNoMessage),
+            // None => Err(ScanError::syntax("expected a word")),
+            None => Err(ScanError::syntax_no_message()),
         }
     }
 }
@@ -550,15 +552,15 @@ impl<'a> ScanFromStr<'a> for Word<'a, &'a str> {
 #[cfg(str_into_output_extra_broken)]
 impl<'a> ScanFromStr<'a> for Word<'a, String> {
     type Output = String;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         match WORD_RE.find(s) {
             Some((a, b)) => {
                 let word = &s[a..b];
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
-            // None => Err(ScanErrorKind::Syntax(Some("expected a word"))),
-            None => Err(ScanErrorKind::SyntaxNoMessage),
+            // None => Err(ScanError::syntax("expected a word")),
+            None => Err(ScanError::syntax_no_message()),
         }
     }
 }
@@ -568,15 +570,15 @@ impl<'a> ScanFromStr<'a> for Word<'a, String> {
 impl<'a, Output> ScanFromStr<'a> for Word<'a, Output>
 where &'a str: Into<Output> {
     type Output = Output;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         match WORD_RE.find(s) {
             Some((a, b)) => {
                 let word = &s[a..b];
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
-            // None => Err(ScanErrorKind::Syntax(Some("expected a word"))),
-            None => Err(ScanErrorKind::SyntaxNoMessage),
+            // None => Err(ScanError::syntax("expected a word")),
+            None => Err(ScanError::syntax_no_message()),
         }
     }
 }
@@ -584,9 +586,10 @@ where &'a str: Into<Output> {
 #[cfg(test)]
 #[test]
 fn test_word() {
+    use ::ScanError as SE;
     use ::ScanErrorKind as SEK;
 
-    assert_match!(Word::<&str>::scan_from(""), Err(SEK::SyntaxNoMessage));
+    assert_match!(Word::<&str>::scan_from(""), Err(SE { kind: SEK::SyntaxNoMessage, .. }));
     assert_match!(Word::<&str>::scan_from("a"), Ok(("a", 1)));
     assert_match!(Word::<&str>::scan_from("0"), Ok(("0", 1)));
     assert_match!(Word::<&str>::scan_from("0x"), Ok(("0x", 2)));
@@ -610,7 +613,7 @@ pub struct Wordish<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
 #[cfg(str_into_output_extra_broken)]
 impl<'a> ScanFromStr<'a> for Wordish<'a, &'a str> {
     type Output = &'a str;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         // TODO: This should be modified to grab an entire *grapheme cluster* in the event it can't find a word or number.
         match WORDISH_RE.find(s) {
             Some((a, b)) => {
@@ -618,8 +621,8 @@ impl<'a> ScanFromStr<'a> for Wordish<'a, &'a str> {
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
-            // None => Err(ScanErrorKind::Syntax(Some("expected a word, number or some other character"))),
-            None => Err(ScanErrorKind::SyntaxNoMessage),
+            // None => Err(ScanError::syntax("expected a word, number or some other character")),
+            None => Err(ScanError::syntax_no_message()),
         }
     }
 }
@@ -628,7 +631,7 @@ impl<'a> ScanFromStr<'a> for Wordish<'a, &'a str> {
 #[cfg(str_into_output_extra_broken)]
 impl<'a> ScanFromStr<'a> for Wordish<'a, String> {
     type Output = String;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         // TODO: This should be modified to grab an entire *grapheme cluster* in the event it can't find a word or number.
         match WORDISH_RE.find(s) {
             Some((a, b)) => {
@@ -636,8 +639,8 @@ impl<'a> ScanFromStr<'a> for Wordish<'a, String> {
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
-            // None => Err(ScanErrorKind::Syntax(Some("expected a word, number or some other character"))),
-            None => Err(ScanErrorKind::SyntaxNoMessage),
+            // None => Err(ScanError::syntax("expected a word, number or some other character")),
+            None => Err(ScanError::syntax_no_message()),
         }
     }
 }
@@ -647,7 +650,7 @@ impl<'a> ScanFromStr<'a> for Wordish<'a, String> {
 impl<'a, Output> ScanFromStr<'a> for Wordish<'a, Output>
 where &'a str: Into<Output> {
     type Output = Output;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         // TODO: This should be modified to grab an entire *grapheme cluster* in the event it can't find a word or number.
         match WORDISH_RE.find(s) {
             Some((a, b)) => {
@@ -655,8 +658,8 @@ where &'a str: Into<Output> {
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
-            // None => Err(ScanErrorKind::Syntax(Some("expected a word, number or some other character"))),
-            None => Err(ScanErrorKind::SyntaxNoMessage),
+            // None => Err(ScanError::syntax("expected a word, number or some other character")),
+            None => Err(ScanError::syntax_no_message()),
         }
     }
 }

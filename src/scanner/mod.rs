@@ -79,7 +79,7 @@ mod lang;
 mod misc;
 mod std;
 
-use ::ScanErrorKind;
+use ::ScanError;
 
 /**
 This trait defines the interface to a type which can be scanned.
@@ -108,7 +108,7 @@ pub trait ScanFromStr<'a>: Sized {
 
     Implementations must return *either* the scanned value, and the number of bytes consumed from the input, *or* a reason why scanning failed.
     */
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind>;
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError>;
 }
 
 /**
@@ -124,7 +124,7 @@ pub trait ScanSelfFromStr<'a>: ScanFromStr<'a, Output=Self> {
 
     See: [`ScanFromStr::scan_from`](trait.ScanFromStr.html#tymethod.scan_from).
     */
-    fn scan_self_from(s: &'a str) -> Result<(Self, usize), ScanErrorKind> {
+    fn scan_self_from(s: &'a str) -> Result<(Self, usize), ScanError> {
         Self::scan_from(s)
     }
 }
@@ -142,7 +142,7 @@ pub trait ScanFromBinary<'a>: Sized {
 
     See: [`ScanFromStr::scan_from`](trait.ScanFromStr.html#tymethod.scan_from).
     */
-    fn scan_from_binary(s: &'a str) -> Result<(Self, usize), ScanErrorKind>;
+    fn scan_from_binary(s: &'a str) -> Result<(Self, usize), ScanError>;
 }
 
 /**
@@ -156,7 +156,7 @@ pub trait ScanFromOctal<'a>: Sized {
 
     See: [`ScanFromStr::scan_from`](trait.ScanFromStr.html#tymethod.scan_from).
     */
-    fn scan_from_octal(s: &'a str) -> Result<(Self, usize), ScanErrorKind>;
+    fn scan_from_octal(s: &'a str) -> Result<(Self, usize), ScanError>;
 }
 
 /**
@@ -170,7 +170,7 @@ pub trait ScanFromHex<'a>: Sized {
 
     See: [`ScanFromStr::scan_from`](trait.ScanFromStr.html#tymethod.scan_from).
     */
-    fn scan_from_hex(s: &'a str) -> Result<(Self, usize), ScanErrorKind>;
+    fn scan_from_hex(s: &'a str) -> Result<(Self, usize), ScanError>;
 }
 
 /**
@@ -189,5 +189,5 @@ pub trait ScanStr<'a>: Sized {
 
     See: [`ScanFromStr::scan_from`](trait.ScanFromStr.html#tymethod.scan_from).
     */
-    fn scan(&mut self, s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind>;
+    fn scan(&mut self, s: &'a str) -> Result<(Self::Output, usize), ScanError>;
 }

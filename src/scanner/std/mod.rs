@@ -13,7 +13,7 @@ Scanner implementations for standard library (and other "official" crates) types
 mod collections;
 mod net;
 
-use ::ScanErrorKind;
+use ::ScanError;
 use ::scanner::{ScanFromStr, ScanSelfFromStr};
 use ::scanner::util::StrUtil;
 
@@ -24,13 +24,13 @@ macro_rules! impl_tuple {
         impl<'a, $head $(, $tail)*> ::scanner::ScanFromStr<'a> for ($head, $($tail,)*)
         where $head: ::scanner::ScanSelfFromStr<'a>, $($tail: ::scanner::ScanSelfFromStr<'a>,)* {
             type Output = Self;
-            fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ::ScanErrorKind> {
+            fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ::ScanError> {
                 #![allow(non_snake_case)]
                 use ::scanner::util::StrUtil;
                 scan!(s;
                     ("(", let $head, $(",", let $tail,)* [","]?, ")", ..tail)
                     => (($head, $($tail,)*), s.subslice_offset_stable(tail).unwrap())
-                ).map_err(|e| e.kind)
+                )
             }
         }
 
@@ -50,8 +50,8 @@ mod impl_tuples {
 
 impl<'a> ScanFromStr<'a> for () {
     type Output = Self;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
-        scan!(s; ("(", ")", ..tail) => ((), s.subslice_offset_stable(tail).unwrap())).map_err(|e| e.kind)
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+        scan!(s; ("(", ")", ..tail) => ((), s.subslice_offset_stable(tail).unwrap()))
     }
 }
 
@@ -66,12 +66,12 @@ macro_rules! impl_array {
             @as_item
             impl<'a, T> ::scanner::ScanFromStr<'a> for [T; $len] where T: ::scanner::ScanSelfFromStr<'a> {
                 type Output = Self;
-                fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ::ScanErrorKind> {
+                fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ::ScanError> {
                     use ::scanner::util::StrUtil;
                     scan!(s;
                         ("[", let $e0, $(",", let $es,)* [","]?, "]", ..tail)
                         => ([$e0, $($es,)*], s.subslice_offset_stable(tail).unwrap())
-                    ).map_err(|e| e.kind)
+                    )
                 }
             }
         }
@@ -99,30 +99,28 @@ mod impl_arrays {
 
 impl<'a, T> ScanFromStr<'a> for [T; 0] {
     type Output = Self;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
-        scan!(s; ("[", "]", ..tail) => ([], s.subslice_offset_stable(tail).unwrap())).map_err(|e| e.kind)
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+        scan!(s; ("[", "]", ..tail) => ([], s.subslice_offset_stable(tail).unwrap()))
     }
 }
 
 impl<'a, T> ScanFromStr<'a> for Option<T> where T: ScanSelfFromStr<'a> {
     type Output = Self;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         scan!( s;
             ("Some", "(", let v, ")", ..tail) => (Some(v), tail),
             ("None", ..tail) => (None, tail),
         ).map(|(v, t)| (v, s.subslice_offset_stable(t).unwrap()))
-            .map_err(|e| e.kind)
     }
 }
 
 impl<'a, T, E> ScanFromStr<'a> for Result<T, E>
 where T: ScanSelfFromStr<'a>, E: ScanSelfFromStr<'a> {
     type Output = Self;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
+    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
         scan!( s;
             ("Some", "(", let v, ")", ..tail) => (Ok(v), tail),
             ("Err", "(", let v, ")", ..tail) => (Err(v), tail),
         ).map(|(v, t)| (v, s.subslice_offset_stable(t).unwrap()))
-            .map_err(|e| e.kind)
     }
 }
