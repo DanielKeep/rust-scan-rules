@@ -22,13 +22,13 @@ macro_rules! impl_tuple {
 
     ($head:ident $($tail:ident)*) => {
         impl<'a, $head $(, $tail)*> ::scanner::ScanFromStr<'a> for ($head, $($tail,)*)
-        where $head: ::scanner::ScanSelfFromStr<'a>, $($tail: ::scanner::ScanSelfFromStr<'a>,)* {
-            type Output = Self;
+        where $head: ::scanner::ScanFromStr<'a>, $($tail: ::scanner::ScanFromStr<'a>,)* {
+            type Output = (<$head as ::scanner::ScanFromStr<'a>>::Output, $(<$tail as ::scanner::ScanFromStr<'a>>::Output,)*);
             fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ::ScanErrorKind> {
                 #![allow(non_snake_case)]
                 use ::scanner::util::StrUtil;
                 scan!(s;
-                    ("(", let $head, $(",", let $tail,)* [","]?, ")", ..tail)
+                    ("(", let $head: $head, $(",", let $tail: $tail,)* [","]?, ")", ..tail)
                     => (($head, $($tail,)*), s.subslice_offset(tail).unwrap())
                 ).map_err(|e| e.kind)
             }
