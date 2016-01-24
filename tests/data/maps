@@ -1,0 +1,49 @@
+00400000-004ef000 r-xp 00000000 08:01 1572870                            /bin/bash
+006ef000-006f0000 r--p 000ef000 08:01 1572870                            /bin/bash
+006f0000-006f9000 rw-p 000f0000 08:01 1572870                            /bin/bash
+006f9000-006ff000 rw-p 00000000 00:00 0 
+02651000-0287b000 rw-p 00000000 00:00 0                                  [heap]
+7fba14f66000-7fba14f71000 r-xp 00000000 08:01 2888093                    /lib/x86_64-linux-gnu/libnss_files-2.19.so
+7fba14f71000-7fba15170000 ---p 0000b000 08:01 2888093                    /lib/x86_64-linux-gnu/libnss_files-2.19.so
+7fba15170000-7fba15171000 r--p 0000a000 08:01 2888093                    /lib/x86_64-linux-gnu/libnss_files-2.19.so
+7fba15171000-7fba15172000 rw-p 0000b000 08:01 2888093                    /lib/x86_64-linux-gnu/libnss_files-2.19.so
+7fba15172000-7fba1517d000 r-xp 00000000 08:01 2888103                    /lib/x86_64-linux-gnu/libnss_nis-2.19.so
+7fba1517d000-7fba1537c000 ---p 0000b000 08:01 2888103                    /lib/x86_64-linux-gnu/libnss_nis-2.19.so
+7fba1537c000-7fba1537d000 r--p 0000a000 08:01 2888103                    /lib/x86_64-linux-gnu/libnss_nis-2.19.so
+7fba1537d000-7fba1537e000 rw-p 0000b000 08:01 2888103                    /lib/x86_64-linux-gnu/libnss_nis-2.19.so
+7fba1537e000-7fba15395000 r-xp 00000000 08:01 2888087                    /lib/x86_64-linux-gnu/libnsl-2.19.so
+7fba15395000-7fba15594000 ---p 00017000 08:01 2888087                    /lib/x86_64-linux-gnu/libnsl-2.19.so
+7fba15594000-7fba15595000 r--p 00016000 08:01 2888087                    /lib/x86_64-linux-gnu/libnsl-2.19.so
+7fba15595000-7fba15596000 rw-p 00017000 08:01 2888087                    /lib/x86_64-linux-gnu/libnsl-2.19.so
+7fba15596000-7fba15598000 rw-p 00000000 00:00 0 
+7fba15598000-7fba155a1000 r-xp 00000000 08:01 2888089                    /lib/x86_64-linux-gnu/libnss_compat-2.19.so
+7fba155a1000-7fba157a0000 ---p 00009000 08:01 2888089                    /lib/x86_64-linux-gnu/libnss_compat-2.19.so
+7fba157a0000-7fba157a1000 r--p 00008000 08:01 2888089                    /lib/x86_64-linux-gnu/libnss_compat-2.19.so
+7fba157a1000-7fba157a2000 rw-p 00009000 08:01 2888089                    /lib/x86_64-linux-gnu/libnss_compat-2.19.so
+7fba157a2000-7fba15e84000 r--p 00000000 08:01 532303                     /usr/lib/locale/locale-archive
+7fba15e84000-7fba1603f000 r-xp 00000000 08:01 2888018                    /lib/x86_64-linux-gnu/libc-2.19.so
+7fba1603f000-7fba1623e000 ---p 001bb000 08:01 2888018                    /lib/x86_64-linux-gnu/libc-2.19.so
+7fba1623e000-7fba16242000 r--p 001ba000 08:01 2888018                    /lib/x86_64-linux-gnu/libc-2.19.so
+7fba16242000-7fba16244000 rw-p 001be000 08:01 2888018                    /lib/x86_64-linux-gnu/libc-2.19.so
+7fba16244000-7fba16249000 rw-p 00000000 00:00 0 
+7fba16249000-7fba1624c000 r-xp 00000000 08:01 2888035                    /lib/x86_64-linux-gnu/libdl-2.19.so
+7fba1624c000-7fba1644b000 ---p 00003000 08:01 2888035                    /lib/x86_64-linux-gnu/libdl-2.19.so
+7fba1644b000-7fba1644c000 r--p 00002000 08:01 2888035                    /lib/x86_64-linux-gnu/libdl-2.19.so
+7fba1644c000-7fba1644d000 rw-p 00003000 08:01 2888035                    /lib/x86_64-linux-gnu/libdl-2.19.so
+7fba1644d000-7fba16472000 r-xp 00000000 08:01 2888164                    /lib/x86_64-linux-gnu/libtinfo.so.5.9
+7fba16472000-7fba16671000 ---p 00025000 08:01 2888164                    /lib/x86_64-linux-gnu/libtinfo.so.5.9
+7fba16671000-7fba16675000 r--p 00024000 08:01 2888164                    /lib/x86_64-linux-gnu/libtinfo.so.5.9
+7fba16675000-7fba16676000 rw-p 00028000 08:01 2888164                    /lib/x86_64-linux-gnu/libtinfo.so.5.9
+7fba16676000-7fba16699000 r-xp 00000000 08:01 2887994                    /lib/x86_64-linux-gnu/ld-2.19.so
+7fba1687d000-7fba16880000 rw-p 00000000 00:00 0 
+7fba16887000-7fba16888000 r--p 00000000 08:01 1053447                    /usr/share/locale-langpack/en_AU/LC_MESSAGES/libc.mo
+7fba16888000-7fba1688f000 r--p 00000000 08:01 1053264                    /usr/share/locale-langpack/en_AU/LC_MESSAGES/bash.mo
+7fba1688f000-7fba16896000 r--s 00000000 08:01 789368                     /usr/lib/x86_64-linux-gnu/gconv/gconv-modules.cache
+7fba16896000-7fba16898000 rw-p 00000000 00:00 0 
+7fba16898000-7fba16899000 r--p 00022000 08:01 2887994                    /lib/x86_64-linux-gnu/ld-2.19.so
+7fba16899000-7fba1689a000 rw-p 00023000 08:01 2887994                    /lib/x86_64-linux-gnu/ld-2.19.so
+7fba1689a000-7fba1689b000 rw-p 00000000 00:00 0 
+7ffe8b62e000-7ffe8b64f000 rw-p 00000000 00:00 0                          [stack]
+7ffe8b65b000-7ffe8b65d000 r--p 00000000 00:00 0                          [vvar]
+7ffe8b65d000-7ffe8b65f000 r-xp 00000000 00:00 0                          [vdso]
+ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0                  [vsyscall]

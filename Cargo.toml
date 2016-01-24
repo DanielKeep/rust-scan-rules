@@ -26,5 +26,8 @@ lazy_static = "0.1.14"
 regex = "0.1.41"
 strcursor = "0.2.1"
 
+[dev-dependencies]
+bitflags = "0.4.0"
+
 [build-dependencies]
 rustc_version = "0.1.4"
