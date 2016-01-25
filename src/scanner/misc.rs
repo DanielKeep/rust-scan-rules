@@ -130,7 +130,7 @@ impl<'a> ScanFromStr<'a> for Ident<'a, &'a str> {
             Some((a, b)) => {
                 let word = &s[a..b];
                 let tail = &s[b..];
-                Ok((word.into(), s.subslice_offset(tail).unwrap()))
+                Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
             None => {
                 // Err(ScanErrorKind::Syntax(Some("expected identifier")))
@@ -149,7 +149,7 @@ impl<'a> ScanFromStr<'a> for Ident<'a, String> {
             Some((a, b)) => {
                 let word = &s[a..b];
                 let tail = &s[b..];
-                Ok((word.into(), s.subslice_offset(tail).unwrap()))
+                Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
             None => {
                 // Err(ScanErrorKind::Syntax(Some("expected identifier")))
@@ -169,7 +169,7 @@ where &'a str: Into<Output> {
             Some((a, b)) => {
                 let word = &s[a..b];
                 let tail = &s[b..];
-                Ok((word.into(), s.subslice_offset(tail).unwrap()))
+                Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
             None => {
                 // Err(ScanErrorKind::Syntax(Some("expected identifier")))
@@ -262,7 +262,7 @@ impl<'a> ScanFromStr<'a> for NonSpace<'a, &'a str> {
             Some((a, b)) => {
                 let word = &s[a..b];
                 let tail = &s[b..];
-                Ok((word.into(), s.subslice_offset(tail).unwrap()))
+                Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
             // None => Err(ScanErrorKind::Syntax(Some("expected at least one non-space character"))),
             None => Err(ScanErrorKind::SyntaxNoMessage)
@@ -279,7 +279,7 @@ impl<'a> ScanFromStr<'a> for NonSpace<'a, String> {
             Some((a, b)) => {
                 let word = &s[a..b];
                 let tail = &s[b..];
-                Ok((word.into(), s.subslice_offset(tail).unwrap()))
+                Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
             // None => Err(ScanErrorKind::Syntax(Some("expected at least one non-space character"))),
             None => Err(ScanErrorKind::SyntaxNoMessage)
@@ -297,7 +297,7 @@ where &'a str: Into<Output> {
             Some((a, b)) => {
                 let word = &s[a..b];
                 let tail = &s[b..];
-                Ok((word.into(), s.subslice_offset(tail).unwrap()))
+                Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
             // None => Err(ScanErrorKind::Syntax(Some("expected at least one non-space character"))),
             None => Err(ScanErrorKind::SyntaxNoMessage)
@@ -340,7 +340,7 @@ impl<'a> ScanFromStr<'a> for Number<'a, &'a str> {
             Some((a, b)) => {
                 let word = &s[a..b];
                 let tail = &s[b..];
-                Ok((word.into(), s.subslice_offset(tail).unwrap()))
+                Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
             // None => Err(ScanErrorKind::Syntax(Some("expected a number"))),
             None => Err(ScanErrorKind::SyntaxNoMessage),
@@ -357,7 +357,7 @@ impl<'a> ScanFromStr<'a> for Number<'a, String> {
             Some((a, b)) => {
                 let word = &s[a..b];
                 let tail = &s[b..];
-                Ok((word.into(), s.subslice_offset(tail).unwrap()))
+                Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
             // None => Err(ScanErrorKind::Syntax(Some("expected a number"))),
             None => Err(ScanErrorKind::SyntaxNoMessage),
@@ -375,7 +375,7 @@ where &'a str: Into<Output> {
             Some((a, b)) => {
                 let word = &s[a..b];
                 let tail = &s[b..];
-                Ok((word.into(), s.subslice_offset(tail).unwrap()))
+                Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
             // None => Err(ScanErrorKind::Syntax(Some("expected a number"))),
             None => Err(ScanErrorKind::SyntaxNoMessage),
@@ -445,7 +445,7 @@ where K: ScanSelfFromStr<'a>, V: ScanSelfFromStr<'a> {
     type Output = (K, V);
     fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
         scan!(s;
-            (let k: K, ":", let v: V, ..tail) => ((k, v), s.subslice_offset(tail).unwrap())
+            (let k: K, ":", let v: V, ..tail) => ((k, v), s.subslice_offset_stable(tail).unwrap())
         ).map_err(|e| e.kind)
     }
 }
@@ -538,7 +538,7 @@ impl<'a> ScanFromStr<'a> for Word<'a, &'a str> {
             Some((a, b)) => {
                 let word = &s[a..b];
                 let tail = &s[b..];
-                Ok((word.into(), s.subslice_offset(tail).unwrap()))
+                Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
             // None => Err(ScanErrorKind::Syntax(Some("expected a word"))),
             None => Err(ScanErrorKind::SyntaxNoMessage),
@@ -555,7 +555,7 @@ impl<'a> ScanFromStr<'a> for Word<'a, String> {
             Some((a, b)) => {
                 let word = &s[a..b];
                 let tail = &s[b..];
-                Ok((word.into(), s.subslice_offset(tail).unwrap()))
+                Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
             // None => Err(ScanErrorKind::Syntax(Some("expected a word"))),
             None => Err(ScanErrorKind::SyntaxNoMessage),
@@ -573,7 +573,7 @@ where &'a str: Into<Output> {
             Some((a, b)) => {
                 let word = &s[a..b];
                 let tail = &s[b..];
-                Ok((word.into(), s.subslice_offset(tail).unwrap()))
+                Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
             // None => Err(ScanErrorKind::Syntax(Some("expected a word"))),
             None => Err(ScanErrorKind::SyntaxNoMessage),
@@ -616,7 +616,7 @@ impl<'a> ScanFromStr<'a> for Wordish<'a, &'a str> {
             Some((a, b)) => {
                 let word = &s[a..b];
                 let tail = &s[b..];
-                Ok((word.into(), s.subslice_offset(tail).unwrap()))
+                Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
             // None => Err(ScanErrorKind::Syntax(Some("expected a word, number or some other character"))),
             None => Err(ScanErrorKind::SyntaxNoMessage),
@@ -634,7 +634,7 @@ impl<'a> ScanFromStr<'a> for Wordish<'a, String> {
             Some((a, b)) => {
                 let word = &s[a..b];
                 let tail = &s[b..];
-                Ok((word.into(), s.subslice_offset(tail).unwrap()))
+                Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
             // None => Err(ScanErrorKind::Syntax(Some("expected a word, number or some other character"))),
             None => Err(ScanErrorKind::SyntaxNoMessage),
@@ -653,7 +653,7 @@ where &'a str: Into<Output> {
             Some((a, b)) => {
                 let word = &s[a..b];
                 let tail = &s[b..];
-                Ok((word.into(), s.subslice_offset(tail).unwrap()))
+                Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
             // None => Err(ScanErrorKind::Syntax(Some("expected a word, number or some other character"))),
             None => Err(ScanErrorKind::SyntaxNoMessage),

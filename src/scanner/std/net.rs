@@ -10,6 +10,7 @@ or distributed except according to those terms.
 /*!
 Scanner implementations for `std::net::*`.
 */
+#![cfg(std_net_scanners)]
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr};
 use regex::Regex;
 #[cfg(test)] use ::scanner::ScanFromStr;

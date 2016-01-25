@@ -115,16 +115,41 @@ fn test_scan_f64() {
 
     check_f64!(0.0);
     check_f64!(1.0);
-    check_f64!(3e-5);
     check_f64!(0.1);
     check_f64!(12345.);
     check_f64!(0.12345);
-    check_f64!(12345.67890);
-    check_f64!(2.2250738585072014e-308);
     check_f64!(101e-33);
     check_f64!(1e23);
     check_f64!(2075e23);
     check_f64!(8713e-23);
+    check_f64!(1e-325);
+    check_f64!(1e-326);
+    check_f64!(1e-500);
+    check_f64!(1.448997445238699);
+}
+
+#[cfg(f64_debug_is_roundtrip_accurate)]
+#[cfg(test)]
+#[test]
+fn test_scan_f64() {
+    use ::ScanErrorKind as SEK;
+
+    macro_rules! check_f64 {
+        ($f:expr) => {
+            assert_match!(
+                <f64>::scan_from(stringify!($f)),
+                Ok(($f, n)) if n == stringify!($f).len()
+            );
+            assert_match!(
+                <f64>::scan_from(concat!("-", stringify!($f))),
+                Ok((-$f, n)) if n == concat!("-", stringify!($f)).len()
+            );
+        };
+    }
+
+    check_f64!(3e-5);
+    check_f64!(12345.67890);
+    check_f64!(2.2250738585072014e-308);
     check_f64!(1e300);
     check_f64!(123456789.34567e250);
     check_f64!(5e-324);
@@ -134,10 +159,6 @@ fn test_scan_f64() {
     check_f64!(2.22507385851e-308);
     check_f64!(2.1e-308);
     check_f64!(4.9406564584124654e-324);
-    check_f64!(1e-325);
-    check_f64!(1e-326);
-    check_f64!(1e-500);
-    check_f64!(1.448997445238699);
 }
 
 parse_scanner! { impl<'a> for i8, regex SINTEGER_RE, regex err "expected integer", err map ScanErrorKind::Int }

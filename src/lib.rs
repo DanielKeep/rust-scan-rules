@@ -296,5 +296,5 @@ This is publicly exposed for the sake of macros and **is not** considered a stab
 #[doc(hidden)]
 pub fn subslice_offset(a: &str, b: &str) -> Option<usize> {
     use scanner::util::StrUtil;
-    a.subslice_offset(b)
+    a.subslice_offset_stable(b)
 }
