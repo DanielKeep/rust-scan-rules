@@ -10,4 +10,8 @@ fn main() {
     if version_matches("< 1.7.0") {
         println!("cargo:rustc-cfg=str_into_output_extra_broken");
     }
+
+    if version_matches("1.5.0") {
+        println!("cargo:rustc-cfg=socket_addr_vx_scanners")
+    }
 }

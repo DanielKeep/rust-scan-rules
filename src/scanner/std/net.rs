@@ -10,7 +10,7 @@ or distributed except according to those terms.
 /*!
 Scanner implementations for `std::net::*`.
 */
-use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
+use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr};
 use regex::Regex;
 #[cfg(test)] use ::scanner::ScanFromStr;
 
@@ -64,8 +64,6 @@ addr_regexen! {
 parse_scanner! { impl<'a> for Ipv4Addr, regex IPV4ADDR_RE, regex err "expected IPv4 address", err map ScanErrorKind::from_other }
 parse_scanner! { impl<'a> for Ipv6Addr, regex IPV6ADDR_RE, regex err "expected IPv6 address", err map ScanErrorKind::from_other }
 parse_scanner! { impl<'a> for SocketAddr, regex SOCKADDR_RE, regex err "expected socket address", err map ScanErrorKind::from_other }
-parse_scanner! { impl<'a> for SocketAddrV4, regex SOCKADDRV4_RE, regex err "expected IPv4 socket address", err map ScanErrorKind::from_other }
-parse_scanner! { impl<'a> for SocketAddrV6, regex SOCKADDRV6_RE, regex err "expected IPv6 socket address", err map ScanErrorKind::from_other }
 
 #[cfg(test)]
 #[test]
@@ -195,69 +193,79 @@ fn test_scan_socketaddr() {
     check_sockaddr!("[2a02:6b8::11:11]:0");
 }
 
-#[cfg(test)]
-#[test]
-fn test_scan_socketaddrv4() {
-    use ::ScanErrorKind as SEK;
+#[cfg(socket_addr_vx_scanners)]
+mod socket_addr_vx_scanners {
+    use std::net::{SocketAddrV4, SocketAddrV6};
+    use super::{SOCKADDRV4_RE, SOCKADDRV6_RE};
+    #[cfg(test)] use ::scanner::ScanFromStr;
 
-    macro_rules! check_ipv4 {
-        ($s:expr) => {
-            assert_match!(
-                <SocketAddrV4>::scan_from($s),
-                Ok((v, n)) if v == $s.parse().unwrap() && n == $s.len()
-            )
-        };
+    parse_scanner! { impl<'a> for SocketAddrV4, regex SOCKADDRV4_RE, regex err "expected IPv4 socket address", err map ScanErrorKind::from_other }
+    parse_scanner! { impl<'a> for SocketAddrV6, regex SOCKADDRV6_RE, regex err "expected IPv6 socket address", err map ScanErrorKind::from_other }
 
-        ($s:expr; Ok($v:expr)) => {
-            assert_match!(
-                <SocketAddrV4>::scan_from($s),
-                Ok((v, n)) if v == $v.parse().unwrap() && n == $v.len()
-            )
-        };
+    #[cfg(test)]
+    #[test]
+    fn test_scan_socketaddrv4() {
+        use ::ScanErrorKind as SEK;
 
-        ($s:expr; Err($err:pat)) => {
-            assert_match!(
-                <SocketAddrV4>::scan_from($s),
-                Err($err)
-            )
-        };
+        macro_rules! check_ipv4 {
+            ($s:expr) => {
+                assert_match!(
+                    <SocketAddrV4>::scan_from($s),
+                    Ok((v, n)) if v == $s.parse().unwrap() && n == $s.len()
+                )
+            };
+
+            ($s:expr; Ok($v:expr)) => {
+                assert_match!(
+                    <SocketAddrV4>::scan_from($s),
+                    Ok((v, n)) if v == $v.parse().unwrap() && n == $v.len()
+                )
+            };
+
+            ($s:expr; Err($err:pat)) => {
+                assert_match!(
+                    <SocketAddrV4>::scan_from($s),
+                    Err($err)
+                )
+            };
+        }
+
+        check_ipv4!("0.0.0.0:0");
+        check_ipv4!("127.0.0.1:80");
+        check_ipv4!("255.255.255.255:65535");
+        check_ipv4!("255.255.255.255:65536"; Err(SEK::Other(_)));
     }
 
-    check_ipv4!("0.0.0.0:0");
-    check_ipv4!("127.0.0.1:80");
-    check_ipv4!("255.255.255.255:65535");
-    check_ipv4!("255.255.255.255:65536"; Err(SEK::Other(_)));
-}
+    #[cfg(test)]
+    #[test]
+    fn test_scan_socketaddrv6() {
+        macro_rules! check_ipv6 {
+            ($s:expr) => {
+                assert_match!(
+                    <SocketAddrV6>::scan_from($s),
+                    Ok((v, n)) if v == $s.parse().unwrap() && n == $s.len()
+                )
+            };
 
-#[cfg(test)]
-#[test]
-fn test_scan_socketaddrv6() {
-    macro_rules! check_ipv6 {
-        ($s:expr) => {
-            assert_match!(
-                <SocketAddrV6>::scan_from($s),
-                Ok((v, n)) if v == $s.parse().unwrap() && n == $s.len()
-            )
-        };
+            ($s:expr; Ok($v:expr)) => {
+                assert_match!(
+                    <SocketAddrV6>::scan_from($s),
+                    Ok((v, n)) if v == $v.parse().unwrap() && n == $v.len()
+                )
+            };
 
-        ($s:expr; Ok($v:expr)) => {
-            assert_match!(
-                <SocketAddrV6>::scan_from($s),
-                Ok((v, n)) if v == $v.parse().unwrap() && n == $v.len()
-            )
-        };
+            ($s:expr; Err($err:pat)) => {
+                assert_match!(
+                    <SocketAddrV6>::scan_from($s),
+                    Err($err)
+                )
+            };
+        }
 
-        ($s:expr; Err($err:pat)) => {
-            assert_match!(
-                <SocketAddrV6>::scan_from($s),
-                Err($err)
-            )
-        };
+        check_ipv6!("[0:0:0:0:0:0:0:0]:0");
+        check_ipv6!("[0:0:0:0:0:0:0:1]:0");
+        check_ipv6!("[::1]:0");
+        check_ipv6!("[::]:0");
+        check_ipv6!("[2a02:6b8::11:11]:0");
     }
-
-    check_ipv6!("[0:0:0:0:0:0:0:0]:0");
-    check_ipv6!("[0:0:0:0:0:0:0:1]:0");
-    check_ipv6!("[::1]:0");
-    check_ipv6!("[::]:0");
-    check_ipv6!("[2a02:6b8::11:11]:0");
 }
