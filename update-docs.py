@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # coding: utf-8
 
 # Copyright ⓒ 2016 Daniel Keep.
@@ -112,7 +112,7 @@ def really_rmtree(path):
 def init_doc_branch():
     msg("Initialising %s branch" % DOC_TARGET_BRANCH)
 
-    dir = os.getcwdu()
+    dir = os.getcwd()
     msg_trace('dir = %r' % dir)
 
     tmp = tempfile.mkdtemp(prefix=TEMP_CHECKOUT_PREFIX)
@@ -153,7 +153,7 @@ def main():
     msg_trace('last_rev = %r' % last_rev)
     msg_trace('last_msg = %r' % last_msg)
 
-    dir = os.getcwdu()
+    dir = os.getcwd()
     msg_trace('dir = %r' % dir)
 
     tmp1 = tempfile.mkdtemp(prefix=TEMP_CHECKOUT_PREFIX)
