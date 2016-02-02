@@ -16,6 +16,7 @@ exclude = [
 ]
 
 [features]
+all = ["arrays-32", "tuples-16"]
 "tuples-16" = []
 "arrays-32" = []
 
