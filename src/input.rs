@@ -47,33 +47,33 @@ pub trait IntoScanCursor<'a>: Sized {
     /**
     Convert this into a scannable cursor.
     */
-    fn into_scan_input(self) -> Self::Output;
+    fn into_scan_cursor(self) -> Self::Output;
 }
 
 impl<'a, T> IntoScanCursor<'a> for T where T: 'a + ScanCursor<'a> {
     type Output = Self;
-    fn into_scan_input(self) -> Self::Output {
+    fn into_scan_cursor(self) -> Self::Output {
         self
     }
 }
 
 impl<'a> IntoScanCursor<'a> for &'a str {
     type Output = StrCursor<'a>;
-    fn into_scan_input(self) -> Self::Output {
+    fn into_scan_cursor(self) -> Self::Output {
         StrCursor::new(self)
     }
 }
 
 impl<'a> IntoScanCursor<'a> for &'a String {
     type Output = StrCursor<'a>;
-    fn into_scan_input(self) -> Self::Output {
+    fn into_scan_cursor(self) -> Self::Output {
         StrCursor::new(self)
     }
 }
 
 impl<'a> IntoScanCursor<'a> for &'a Cow<'a, str> {
     type Output = StrCursor<'a>;
-    fn into_scan_input(self) -> Self::Output {
+    fn into_scan_cursor(self) -> Self::Output {
         StrCursor::new(self)
     }
 }
