@@ -117,6 +117,11 @@ pub trait ScanCursor<'a>: 'a + Sized + Clone {
     Returns the remaining input as a string slice.
     */
     fn as_str(self) -> &'a str;
+
+    /**
+    Returns the number of bytes consumed by this cursor since its creation.
+    */
+    fn offset(&self) -> usize;
 }
 
 /**
@@ -266,6 +271,10 @@ where Cmp: StrCompare {
     fn as_str(self) -> &'a str {
         self.slice
     }
+
+    fn offset(&self) -> usize {
+        self.offset
+    }
 }
 
 impl<'a, Cmp> ScanInput<'a> for StrCursor<'a, Cmp>
@@ -291,7 +300,10 @@ where Cmp: StrCompare {
     }
 
     fn to_cursor(&self) -> Self::ScanCursor {
-        *self
+        /*
+        Note that we strip the offset information here, essentially making this a *new* cursor, not just a copy of the existing one.
+        */
+        StrCursor::new(self.slice)
     }
 }
 
