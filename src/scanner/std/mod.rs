@@ -23,14 +23,14 @@ macro_rules! impl_tuple {
 
     ($head:ident $($tail:ident)*) => {
         impl<'a, $head $(, $tail)*> ::scanner::ScanFromStr<'a> for ($head, $($tail,)*)
-        where $head: ::scanner::ScanSelfFromStr<'a>, $($tail: ::scanner::ScanSelfFromStr<'a>,)* {
-            type Output = Self;
+        where $head: ::scanner::ScanFromStr<'a>, $($tail: ::scanner::ScanFromStr<'a>,)* {
+            type Output = (<$head as ::scanner::ScanFromStr<'a>>::Output, $(<$tail as ::scanner::ScanFromStr<'a>>::Output,)*);
             fn scan_from<I: $crate::input::ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ::ScanError> {
                 #![allow(non_snake_case)]
                 use ::scanner::util::StrUtil;
                 let s = s.as_str();
                 scan!(s;
-                    ("(", let $head, $(",", let $tail,)* [","]?, ")", ..tail)
+                    ("(", let $head: $head, $(",", let $tail: $tail,)* [","]?, ")", ..tail)
                     => (($head, $($tail,)*), s.subslice_offset_stable(tail).unwrap())
                 )
             }
@@ -127,5 +127,12 @@ where T: ScanSelfFromStr<'a>, E: ScanSelfFromStr<'a> {
             ("Some", "(", let v, ")", ..tail) => (Ok(v), tail),
             ("Err", "(", let v, ")", ..tail) => (Err(v), tail),
         ).map(|(v, t)| (v, s.as_str().subslice_offset_stable(t).unwrap()))
+    }
+}
+
+impl<'a> ScanFromStr<'a> for String {
+    type Output = Self;
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        ::scanner::QuotedString::scan_from(s)
     }
 }
