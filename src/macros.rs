@@ -429,7 +429,7 @@ macro_rules! scan_rules_impl {
                     () // Do nothing.
                 } else {
                     if repeats > 0 {
-                        match scan_rules_impl!(@scan (cur);
+                        match scan_rules_impl!(@scan (cur.clone());
                             ($($sep)*, ^..after,) => {
                                 cur = after;
                                 scan_rules_impl!(@with_bindings ($($sep)*), then: scan_rules_impl!(@repeat.tuple))
@@ -449,7 +449,7 @@ macro_rules! scan_rules_impl {
                 });
 
                 // Scan the repeating pattern.
-                match scan_rules_impl!(@scan (cur);
+                match scan_rules_impl!(@scan (cur.clone());
                     ($($pat)*, ^..after,) => {
                         cur = after;
                         scan_rules_impl!(@with_bindings ($($pat)*), then: scan_rules_impl!(@repeat.tuple))

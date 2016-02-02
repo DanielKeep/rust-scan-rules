@@ -221,10 +221,9 @@ macro_rules! scanner {
                 type Output = $dest<$(<$ty_params as $crate::scanner::ScanFromStr<$lt>>::Output,)*>;
 
                 fn scan_from<I: $crate::input::ScanInput<$lt>>(s: I) -> Result<(Self::Output, usize), $crate::ScanError> {
-                    let s = s.as_str();
-                    match scan! { s; $($patterns)* } {
+                    match scan! { s.to_cursor(); $($patterns)* } {
                         Ok((v, tail)) => {
-                            let off = ::std::option::Option::expect($crate::subslice_offset(s, tail), "scanner returned tail that wasn't part of the original input");
+                            let off = ::std::option::Option::expect($crate::subslice_offset(s.as_str(), tail), "scanner returned tail that wasn't part of the original input");
                             Ok((v, off))
                         },
                         Err(err) => Err(err),
