@@ -15,7 +15,7 @@ use scan_rules::ScanErrorKind as SEK;
 use scan_rules::input::{StrCursor, ExactCompare, IgnoreAsciiCase};
 
 #[test]
-fn test_scan_space() {
+fn test_case_match() {
     let inp = "UPPERCASE lowercase mIxeDcAsE TitleCase";
 
     assert_match!(
@@ -75,6 +75,36 @@ fn test_scan_space() {
     assert_match!(
         scan!(StrCursor::<IgnoreAsciiCase>::new(inp);
             ("UPPERCASE", "lowercase", "mIxeDcAsE", "TitLecAse") => ()),
+        Ok(())
+    );
+}
+
+/**
+This makes sure that case sensitivity works for the std enums, if nothing else.
+*/
+#[test]
+fn test_case_match_option() {
+    assert_match!(
+        scan!(StrCursor::<ExactCompare>::new("Some(42)");
+            (let _: Option<i32>) => ()),
+        Ok(())
+    );
+
+    assert_match!(
+        scan!(StrCursor::<ExactCompare>::new("some(42)");
+            (let _: Option<i32>) => ()),
+        Err(SE { ref at, kind: SEK::LiteralMismatch, .. }) if at.offset() == 0
+    );
+
+    assert_match!(
+        scan!(StrCursor::<IgnoreAsciiCase>::new("Some(42)");
+            (let _: Option<i32>) => ()),
+        Ok(())
+    );
+
+    assert_match!(
+        scan!(StrCursor::<IgnoreAsciiCase>::new("some(42)");
+            (let _: Option<i32>) => ()),
         Ok(())
     );
 }
