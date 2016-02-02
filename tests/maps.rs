@@ -15,7 +15,8 @@ Demonstrates parsing the contents of `/proc/$PID/maps`.
 #[macro_use] mod util;
 
 use std::ops::Range;
-use scan_rules::ScanErrorKind;
+use scan_rules::ScanError;
+use scan_rules::input::{ScanCursor, ScanInput};
 use scan_rules::scanner::ScanFromStr;
 use scan_rules::scanner::Hex;
 
@@ -43,11 +44,11 @@ bitflags! {
 impl<'a> ScanFromStr<'a> for Permissions {
     type Output = Self;
 
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
-        let bs = s.as_bytes();
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let bs = s.as_str().as_bytes();
 
         if bs.len() < 4 {
-            return Err(ScanErrorKind::Syntax("expected permissions"));
+            return Err(ScanError::syntax("expected permissions"));
         }
 
         let mut r = Permissions::empty();
@@ -55,22 +56,22 @@ impl<'a> ScanFromStr<'a> for Permissions {
         match bs[0] {
             b'r' => r = r | PERM_R,
             b'-' => (),
-            _ => return Err(ScanErrorKind::Syntax("expected `r` or `-`")),
+            _ => return Err(ScanError::syntax("expected `r` or `-`")),
         }
         match bs[1] {
             b'w' => r = r | PERM_W,
             b'-' => (),
-            _ => return Err(ScanErrorKind::Syntax("expected `w` or `-`")),
+            _ => return Err(ScanError::syntax("expected `w` or `-`")),
         }
         match bs[2] {
             b'x' => r = r | PERM_X,
             b'-' => (),
-            _ => return Err(ScanErrorKind::Syntax("expected `x` or `-`")),
+            _ => return Err(ScanError::syntax("expected `x` or `-`")),
         }
         match bs[3] {
             b's' => r = r | PERM_S,
             b'p' => (),
-            _ => return Err(ScanErrorKind::Syntax("expected `p` or `s`")),
+            _ => return Err(ScanError::syntax("expected `p` or `s`")),
         }
 
         Ok((r, 4))
@@ -83,12 +84,12 @@ struct Device(u8, u8);
 impl<'a> ScanFromStr<'a> for Device {
     type Output = Self;
 
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanErrorKind> {
-        scan!(s;
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        scan!(s.to_cursor();
             (let major: Hex<u8>, ":", let minor: Hex<u8>, ^..tail) => {
                 (Device(major, minor), tail.offset())
             }
-        ).map_err(|e| e.kind)
+        )
     }
 }
 
