@@ -203,13 +203,13 @@ macro_rules! scanner {
     (@as_item $i:item) => {$i};
 
     (
-        impl<$lt:tt $(, $ty_params:ident)*> ScanFromStr for $ty:ty { $($patterns:tt)* }
+        impl<$lt:tt $(, $ty_params:ident)*> ScanFromStr for $ty:ty => $dest:ident { $($patterns:tt)* }
     ) => {
-        scanner! { impl<$lt $(, $ty_params)*> ScanFromStr for $ty, where {} { $($patterns)* } }
+        scanner! { impl<$lt $(, $ty_params)*> ScanFromStr for $ty => $dest, where {} { $($patterns)* } }
     };
 
     (
-        impl<$lt:tt $(, $ty_params:ident)*> ScanFromStr for $ty:ty, where {$($clauses:tt)*} { $($patterns:tt)* }
+        impl<$lt:tt $(, $ty_params:ident)*> ScanFromStr for $ty:ty => $dest:ident, where {$($clauses:tt)*} { $($patterns:tt)* }
     ) => {
         scanner! {
             @as_item
@@ -218,7 +218,7 @@ macro_rules! scanner {
                 $($ty_params: $crate::scanner::ScanFromStr<$lt, Output=$ty_params>,)*
                 $($clauses)*
             {
-                type Output = Self;
+                type Output = $dest<$(<$ty_params as $crate::scanner::ScanFromStr<$lt>>::Output,)*>;
 
                 fn scan_from<I: $crate::input::ScanInput<$lt>>(s: I) -> Result<(Self::Output, usize), $crate::ScanError> {
                     let s = s.as_str();

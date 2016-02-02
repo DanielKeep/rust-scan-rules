@@ -15,7 +15,7 @@ mod net;
 
 use ::ScanError;
 use ::input::ScanInput;
-use ::scanner::{ScanFromStr, ScanSelfFromStr};
+use ::scanner::ScanFromStr;
 use ::scanner::util::StrUtil;
 
 macro_rules! impl_tuple {
@@ -67,13 +67,13 @@ macro_rules! impl_array {
     ($len:tt $e0:ident $($ns:tt $es:ident)*) => {
         impl_array! {
             @as_item
-            impl<'a, T> ::scanner::ScanFromStr<'a> for [T; $len] where T: ::scanner::ScanSelfFromStr<'a> {
-                type Output = Self;
+            impl<'a, T> ::scanner::ScanFromStr<'a> for [T; $len] where T: ::scanner::ScanFromStr<'a> {
+                type Output = [T::Output; $len];
                 fn scan_from<I: $crate::input::ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ::ScanError> {
                     use ::scanner::util::StrUtil;
                     let s = s.as_str();
                     scan!(s;
-                        ("[", let $e0, $(",", let $es,)* [","]?, "]", ..tail)
+                        ("[", let $e0: T, $(",", let $es: T,)* [","]?, "]", ..tail)
                         => ([$e0, $($es,)*], s.subslice_offset_stable(tail).unwrap())
                     )
                 }
@@ -109,23 +109,23 @@ impl<'a, T> ScanFromStr<'a> for [T; 0] {
     }
 }
 
-impl<'a, T> ScanFromStr<'a> for Option<T> where T: ScanSelfFromStr<'a> {
-    type Output = Self;
+impl<'a, T> ScanFromStr<'a> for Option<T> where T: ScanFromStr<'a> {
+    type Output = Option<T::Output>;
     fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
         scan!( s.to_cursor();
-            ("Some", "(", let v, ")", ..tail) => (Some(v), tail),
+            ("Some", "(", let v: T, ")", ..tail) => (Some(v), tail),
             ("None", ..tail) => (None, tail),
         ).map(|(v, t)| (v, s.as_str().subslice_offset_stable(t).unwrap()))
     }
 }
 
 impl<'a, T, E> ScanFromStr<'a> for Result<T, E>
-where T: ScanSelfFromStr<'a>, E: ScanSelfFromStr<'a> {
-    type Output = Self;
+where T: ScanFromStr<'a>, E: ScanFromStr<'a> {
+    type Output = Result<T::Output, E::Output>;
     fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
         scan!( s.to_cursor();
-            ("Some", "(", let v, ")", ..tail) => (Ok(v), tail),
-            ("Err", "(", let v, ")", ..tail) => (Err(v), tail),
+            ("Some", "(", let v: T, ")", ..tail) => (Ok(v), tail),
+            ("Err", "(", let v: E, ")", ..tail) => (Err(v), tail),
         ).map(|(v, t)| (v, s.as_str().subslice_offset_stable(t).unwrap()))
     }
 }
