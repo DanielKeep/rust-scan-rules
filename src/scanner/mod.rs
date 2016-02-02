@@ -59,7 +59,7 @@ It is also where implementations for existing standard and external types are ke
 pub use self::misc::{
     Everything, NonSpace, Space,
     Ident, Line, Number, Word, Wordish,
-    KeyValuePair, QuotedString,
+    Inferred, KeyValuePair, QuotedString,
     Binary, Octal, Hex,
 };
 #[doc(inline)] pub use self::runtime::{

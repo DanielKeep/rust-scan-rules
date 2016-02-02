@@ -203,6 +203,25 @@ fn test_ident() {
 }
 
 /**
+Explicitly infer the type of a scanner.
+
+This is useful in cases where you want to only *partially* specify a scanner type, but the partial type cannot be inferred under normal circumstances.
+
+For example, tuples allow their element types to scan to be abstract scanners; *e.g.* `(Word<String>, Hex<i32>)` will scan to `(String, i32)`.  However, this interferes with inferring the scanner type when you *partially* specify a tuple type.  If you attempt to store the result of scanning `(_, _)` into a `(String, i32)`, Rust cannot determine whether the *scanner* type should be `(String, Hex<i32>)`, or `(Word<String>, i32)`, or something else entirely.
+
+This scanner, then, *requires* that the inner type scan to itself and *only* to itself.
+*/
+pub struct Inferred<T>(PhantomData<T>);
+
+impl<'a, T> ScanFromStr<'a> for Inferred<T>
+where T: ScanSelfFromStr<'a> {
+    type Output = T;
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        T::scan_from(s)
+    }
+}
+
+/**
 Scans everything up to the end of the current line, *or* the end of the input, whichever comes first.  The scanned result *does not* include the line terminator.
 
 Note that this is effectively equivalent to the `Everything` matcher when used with `readln!`.
