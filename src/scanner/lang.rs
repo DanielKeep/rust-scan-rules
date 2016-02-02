@@ -13,6 +13,7 @@ Implementations of `ScanFromStr` for primitive language types.
 use regex::Regex;
 use strcursor::StrCursor;
 use ::ScanError;
+use ::input::ScanInput;
 use super::ScanFromStr;
 use super::misc::Word;
 
@@ -61,8 +62,8 @@ fn test_scan_bool() {
 
 impl<'a> ScanFromStr<'a> for char {
     type Output = char;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
-        let cur = try!(StrCursor::new_at_start(s).at_next_cp()
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let cur = try!(StrCursor::new_at_start(s.as_str()).at_next_cp()
             .ok_or(ScanError::syntax("expected a character")));
         Ok((cur.cp_before().unwrap(), cur.byte_pos()))
     }

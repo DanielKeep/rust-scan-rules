@@ -80,6 +80,7 @@ mod misc;
 mod std;
 
 use ::ScanError;
+use ::input::ScanInput;
 
 /**
 This trait defines the interface to a type which can be scanned.
@@ -108,7 +109,7 @@ pub trait ScanFromStr<'a>: Sized {
 
     Implementations must return *either* the scanned value, and the number of bytes consumed from the input, *or* a reason why scanning failed.
     */
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError>;
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError>;
 
     /**
     Indicates whether or not the scanner wants its input to have leading "junk", such as whitespace, stripped.
@@ -131,7 +132,7 @@ pub trait ScanSelfFromStr<'a>: ScanFromStr<'a, Output=Self> {
 
     See: [`ScanFromStr::scan_from`](trait.ScanFromStr.html#tymethod.scan_from).
     */
-    fn scan_self_from(s: &'a str) -> Result<(Self, usize), ScanError> {
+    fn scan_self_from<I: ScanInput<'a>>(s: I) -> Result<(Self, usize), ScanError> {
         Self::scan_from(s)
     }
 }
@@ -149,7 +150,7 @@ pub trait ScanFromBinary<'a>: Sized {
 
     See: [`ScanFromStr::scan_from`](trait.ScanFromStr.html#tymethod.scan_from).
     */
-    fn scan_from_binary(s: &'a str) -> Result<(Self, usize), ScanError>;
+    fn scan_from_binary<I: ScanInput<'a>>(s: I) -> Result<(Self, usize), ScanError>;
 }
 
 /**
@@ -163,7 +164,7 @@ pub trait ScanFromOctal<'a>: Sized {
 
     See: [`ScanFromStr::scan_from`](trait.ScanFromStr.html#tymethod.scan_from).
     */
-    fn scan_from_octal(s: &'a str) -> Result<(Self, usize), ScanError>;
+    fn scan_from_octal<I: ScanInput<'a>>(s: I) -> Result<(Self, usize), ScanError>;
 }
 
 /**
@@ -177,7 +178,7 @@ pub trait ScanFromHex<'a>: Sized {
 
     See: [`ScanFromStr::scan_from`](trait.ScanFromStr.html#tymethod.scan_from).
     */
-    fn scan_from_hex(s: &'a str) -> Result<(Self, usize), ScanError>;
+    fn scan_from_hex<I: ScanInput<'a>>(s: I) -> Result<(Self, usize), ScanError>;
 }
 
 /**
@@ -196,7 +197,7 @@ pub trait ScanStr<'a>: Sized {
 
     See: [`ScanFromStr::scan_from`](trait.ScanFromStr.html#tymethod.scan_from).
     */
-    fn scan(&mut self, s: &'a str) -> Result<(Self::Output, usize), ScanError>;
+    fn scan<I: ScanInput<'a>>(&mut self, s: I) -> Result<(Self::Output, usize), ScanError>;
 
     /**
     Indicates whether or not the scanner wants its input to have leading "junk", such as whitespace, stripped.

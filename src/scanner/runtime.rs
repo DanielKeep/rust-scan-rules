@@ -14,6 +14,7 @@ use std::marker::PhantomData;
 use regex::Regex;
 use strcursor::StrCursor;
 use ::ScanError;
+use ::input::ScanInput;
 use ::scanner::{Everything, ScanFromStr, ScanStr};
 
 /**
@@ -47,12 +48,13 @@ impl<'a, Then> ScanStr<'a> for ExactWidth<Then>
 where Then: ScanStr<'a> {
     type Output = Then::Output;
 
-    fn scan(&mut self, s: &'a str) -> Result<(Self::Output, usize), ScanError> {
-        if s.len() < self.0 {
+    fn scan<I: ScanInput<'a>>(&mut self, s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s_str = s.as_str();
+        if s_str.len() < self.0 {
             return Err(ScanError::syntax("input not long enough"));
         }
 
-        let sl = &s[..self.0];
+        let sl = s.from_subslice(&s_str[..self.0]);
 
         match self.1.scan(sl) {
             Ok((_, n)) if n != self.0 => Err(ScanError::syntax("value did not consume enough characters")),
@@ -112,10 +114,11 @@ impl<'a, Then> ScanStr<'a> for MaxWidth<Then>
 where Then: ScanStr<'a> {
     type Output = Then::Output;
 
-    fn scan(&mut self, s: &'a str) -> Result<(Self::Output, usize), ScanError> {
-        let len = ::std::cmp::min(s.len(), self.0);
-        let stop = StrCursor::new_at_left_of_byte_pos(s, len);
-        let sl = stop.slice_before();
+    fn scan<I: ScanInput<'a>>(&mut self, s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s_str = s.as_str();
+        let len = ::std::cmp::min(s_str.len(), self.0);
+        let stop = StrCursor::new_at_left_of_byte_pos(s_str, len);
+        let sl = s.from_subslice(stop.slice_before());
 
         self.1.scan(sl)
     }
@@ -171,8 +174,9 @@ impl<'a, Then> ScanStr<'a> for MinWidth<Then>
 where Then: ScanStr<'a> {
     type Output = Then::Output;
 
-    fn scan(&mut self, s: &'a str) -> Result<(Self::Output, usize), ScanError> {
-        if s.len() < self.0 {
+    fn scan<I: ScanInput<'a>>(&mut self, s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s_str = s.as_str();
+        if s_str.len() < self.0 {
             return Err(ScanError::syntax("expected more bytes to scan"));
         }
         match self.1.scan(s) {
@@ -207,6 +211,8 @@ Creates a runtime scanner that extracts a slice of the input using a regular exp
 If the regular expression defines a group named `scan`, then it will extract the contents of that group.  Failing that, it will use the the first capturing group.  If there are no capturing groups, it will extract the entire match.
 
 Irrespective of the amount of input provided by the regex scanner to the inner scanner, the regex scanner will only consume the portion that the inner scanner did.
+
+Note that this scanner *does not* respect the case sensitivity of the input.
 
 See: [`regex` crate](http://doc.rust-lang.org/regex/regex/index.html), [`re_a`](fn.re_a.html), [`re_str`](fn.re_str.html).
 */
@@ -243,8 +249,9 @@ impl<'a, Then> ScanStr<'a> for ScanRegex<Then>
 where Then: ScanStr<'a> {
     type Output = Then::Output;
 
-    fn scan(&mut self, s: &'a str) -> Result<(Self::Output, usize), ScanError> {
-        let cap = match self.0.captures(s) {
+    fn scan<I: ScanInput<'a>>(&mut self, s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s_str = s.as_str();
+        let cap = match self.0.captures(s_str) {
             None => return Err(ScanError::syntax("no match for regular expression")),
             Some(cap) => cap,
         };
@@ -257,10 +264,12 @@ where Then: ScanStr<'a> {
         let sl = if let Some(sl) = cap.name("scan") {
             sl
         } else if let Some((a, b)) = cap.pos(1) {
-            &s[a..b]
+            &s_str[a..b]
         } else {
-            &s[cover.0 .. cover.1]
+            &s_str[cover.0 .. cover.1]
         };
+
+        let sl = s.from_subslice(sl);
 
         match self.1.scan(sl) {
             Ok((v, _)) => Ok((v, cover.1)),
@@ -306,7 +315,7 @@ impl<'a, S> ScanStr<'a> for ScanA<S>
 where S: ScanFromStr<'a> {
     type Output = S::Output;
 
-    fn scan(&mut self, s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+    fn scan<I: ScanInput<'a>>(&mut self, s: I) -> Result<(Self::Output, usize), ScanError> {
         <S as ScanFromStr<'a>>::scan_from(s)
     }
 

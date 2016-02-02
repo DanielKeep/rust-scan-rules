@@ -48,9 +48,10 @@ macro_rules! parse_scanner {
             @as_item
             impl<$lt> $crate::scanner::ScanFromStr<$lt> for $ty {
                 type Output = Self;
-                fn scan_from(s: &$lt str) -> ::std::result::Result<(Self::Output, usize), $crate::ScanError> {
+                fn scan_from<I: $crate::input::ScanInput<$lt>>(s: I) -> ::std::result::Result<(Self::Output, usize), $crate::ScanError> {
                     use ::std::result::Result::{Ok, Err};
                     use ::std::str::FromStr;
+                    let s = s.as_str();
                     match <$scanner as $crate::scanner::ScanFromStr>::scan_from(s) {
                         Err(_) => Err($crate::ScanError::syntax($msg)),
                         Ok((v, n)) => match <Self as FromStr>::from_str(v) {
@@ -68,7 +69,7 @@ macro_rules! parse_scanner {
             @as_item
             impl<$lt> $crate::scanner::ScanFromStr<$lt> for $ty {
                 type Output = Self;
-                fn scan_from(s: &$lt str) -> ::std::result::Result<(Self::Output, usize), $crate::ScanError> {
+                fn scan_from<I: $crate::input::ScanInput<$lt>>(s: I) -> ::std::result::Result<(Self::Output, usize), $crate::ScanError> {
                     use ::std::result::Result::{Ok, Err};
                     use ::std::str::FromStr;
                     match <$scanner as $crate::scanner::ScanFromStr>::scan_from(s) {
@@ -109,12 +110,13 @@ macro_rules! parse_scanner {
             @as_item
             impl<$lt> $crate::scanner::ScanFromStr<$lt> for $ty {
                 type Output = Self;
-                fn scan_from(s: &$lt str) -> Result<(Self::Output, usize), $crate::ScanError> {
+                fn scan_from<I: $crate::input::ScanInput<$lt>>(s: I) -> Result<(Self::Output, usize), $crate::ScanError> {
                     use ::std::option::Option;
                     use ::std::result::Result;
                     use ::regex::Regex;
                     use $crate::ScanError;
 
+                    let s = s.as_str();
                     let ($s, end) = try!(
                         Option::ok_or(
                             Option::map(
@@ -162,17 +164,18 @@ macro_rules! parse_scanner {
         parse_scanner! {
             @as_item
             impl<$lt> $crate::scanner::$tr_name<$lt> for $ty {
-                fn $tr_meth(s: &$lt str) -> Result<(Self, usize), $crate::ScanError> {
+                fn $tr_meth<I: $crate::input::ScanInput<$lt>>(s: I) -> Result<(Self, usize), $crate::ScanError> {
                     use ::std::option::Option;
                     use ::std::result::Result;
                     use ::regex::Regex;
                     use $crate::ScanError;
 
+                    let s_str = s.as_str();
                     let (w, end) = try!(
                         Option::ok_or(
                             Option::map(
-                                Regex::find(&$regex, s),
-                                |(a, b)| (&s[a..b], b)
+                                Regex::find(&$regex, s_str),
+                                |(a, b)| (&s_str[a..b], b)
                             ),
                             ScanError::syntax($re_err)
                         )
@@ -217,7 +220,8 @@ macro_rules! scanner {
             {
                 type Output = Self;
 
-                fn scan_from(s: &$lt str) -> Result<(Self::Output, usize), $crate::ScanError> {
+                fn scan_from<I: $crate::input::ScanInput<$lt>>(s: I) -> Result<(Self::Output, usize), $crate::ScanError> {
+                    let s = s.as_str();
                     match scan! { s; $($patterns)* } {
                         Ok((v, tail)) => {
                             let off = ::std::option::Option::expect($crate::subslice_offset(s, tail), "scanner returned tail that wasn't part of the original input");

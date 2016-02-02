@@ -14,6 +14,7 @@ use std::marker::PhantomData;
 use regex::Regex;
 use strcursor::StrCursor;
 use ::ScanError;
+use ::input::ScanInput;
 use super::{
     ScanFromStr, ScanSelfFromStr,
     ScanFromBinary, ScanFromOctal, ScanFromHex,
@@ -38,7 +39,7 @@ pub struct Binary<Output>(PhantomData<Output>);
 impl<'a, Output> ScanFromStr<'a> for Binary<Output>
 where Output: ScanFromBinary<'a> {
     type Output = Output;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
         Output::scan_from_binary(s)
     }
 }
@@ -62,7 +63,8 @@ pub struct Everything<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
 #[cfg(str_into_output_extra_broken)]
 impl<'a> ScanFromStr<'a> for Everything<'a, &'a str> {
     type Output = &'a str;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s = s.as_str();
         Ok((s.into(), s.len()))
     }
 }
@@ -70,7 +72,8 @@ impl<'a> ScanFromStr<'a> for Everything<'a, &'a str> {
 #[cfg(str_into_output_extra_broken)]
 impl<'a> ScanFromStr<'a> for Everything<'a, String> {
     type Output = String;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s = s.as_str();
         Ok((s.into(), s.len()))
     }
 }
@@ -79,7 +82,8 @@ impl<'a> ScanFromStr<'a> for Everything<'a, String> {
 impl<'a, Output> ScanFromStr<'a> for Everything<'a, Output>
 where &'a str: Into<Output> {
     type Output = Output;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s = s.as_str();
         Ok((s.into(), s.len()))
     }
 }
@@ -101,7 +105,7 @@ pub struct Hex<Output>(PhantomData<Output>);
 impl<'a, Output> ScanFromStr<'a> for Hex<Output>
 where Output: ScanFromHex<'a> {
     type Output = Output;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
         Output::scan_from_hex(s)
     }
 }
@@ -126,7 +130,8 @@ pub struct Ident<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
 #[cfg(str_into_output_extra_broken)]
 impl<'a> ScanFromStr<'a> for Ident<'a, &'a str> {
     type Output = &'a str;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s = s.as_str();
         match IDENT_RE.find(s) {
             Some((a, b)) => {
                 let word = &s[a..b];
@@ -145,7 +150,8 @@ impl<'a> ScanFromStr<'a> for Ident<'a, &'a str> {
 #[cfg(str_into_output_extra_broken)]
 impl<'a> ScanFromStr<'a> for Ident<'a, String> {
     type Output = String;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s = s.as_str();
         match IDENT_RE.find(s) {
             Some((a, b)) => {
                 let word = &s[a..b];
@@ -165,7 +171,8 @@ impl<'a> ScanFromStr<'a> for Ident<'a, String> {
 impl<'a, Output> ScanFromStr<'a> for Ident<'a, Output>
 where &'a str: Into<Output> {
     type Output = Output;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s = s.as_str();
         match IDENT_RE.find(s) {
             Some((a, b)) => {
                 let word = &s[a..b];
@@ -205,7 +212,8 @@ pub struct Line<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
 #[cfg(str_into_output_extra_broken)]
 impl<'a> ScanFromStr<'a> for Line<'a, &'a str> {
     type Output = &'a str;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s = s.as_str();
         const EX_MSG: &'static str = "line scanning regex failed to match anything";
         let cap = LINE_RE.captures(s).expect(EX_MSG);
         let (_, b) = cap.pos(0).expect(EX_MSG);
@@ -217,7 +225,8 @@ impl<'a> ScanFromStr<'a> for Line<'a, &'a str> {
 #[cfg(str_into_output_extra_broken)]
 impl<'a> ScanFromStr<'a> for Line<'a, String> {
     type Output = String;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s = s.as_str();
         const EX_MSG: &'static str = "line scanning regex failed to match anything";
         let cap = LINE_RE.captures(s).expect(EX_MSG);
         let (_, b) = cap.pos(0).expect(EX_MSG);
@@ -229,7 +238,8 @@ impl<'a> ScanFromStr<'a> for Line<'a, String> {
 #[cfg(not(str_into_output_extra_broken))]
 impl<'a, Output> ScanFromStr<'a> for Line<'a, Output> where &'a str: Into<Output> {
     type Output = Output;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s = s.as_str();
         const EX_MSG: &'static str = "line scanning regex failed to match anything";
         let cap = LINE_RE.captures(s).expect(EX_MSG);
         let (_, b) = cap.pos(0).expect(EX_MSG);
@@ -259,7 +269,8 @@ pub struct NonSpace<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
 #[cfg(str_into_output_extra_broken)]
 impl<'a> ScanFromStr<'a> for NonSpace<'a, &'a str> {
     type Output = &'a str;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s = s.as_str();
         match NONSPACE_RE.find(s) {
             Some((a, b)) => {
                 let word = &s[a..b];
@@ -276,7 +287,8 @@ impl<'a> ScanFromStr<'a> for NonSpace<'a, &'a str> {
 #[cfg(str_into_output_extra_broken)]
 impl<'a> ScanFromStr<'a> for NonSpace<'a, String> {
     type Output = String;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s = s.as_str();
         match NONSPACE_RE.find(s) {
             Some((a, b)) => {
                 let word = &s[a..b];
@@ -294,7 +306,8 @@ impl<'a> ScanFromStr<'a> for NonSpace<'a, String> {
 impl<'a, Output> ScanFromStr<'a> for NonSpace<'a, Output>
 where &'a str: Into<Output> {
     type Output = Output;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s = s.as_str();
         match NONSPACE_RE.find(s) {
             Some((a, b)) => {
                 let word = &s[a..b];
@@ -338,7 +351,8 @@ pub struct Number<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
 #[cfg(str_into_output_extra_broken)]
 impl<'a> ScanFromStr<'a> for Number<'a, &'a str> {
     type Output = &'a str;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s = s.as_str();
         match NUMBER_RE.find(s) {
             Some((a, b)) => {
                 let word = &s[a..b];
@@ -355,7 +369,8 @@ impl<'a> ScanFromStr<'a> for Number<'a, &'a str> {
 #[cfg(str_into_output_extra_broken)]
 impl<'a> ScanFromStr<'a> for Number<'a, String> {
     type Output = String;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s = s.as_str();
         match NUMBER_RE.find(s) {
             Some((a, b)) => {
                 let word = &s[a..b];
@@ -373,7 +388,8 @@ impl<'a> ScanFromStr<'a> for Number<'a, String> {
 impl<'a, Output> ScanFromStr<'a> for Number<'a, Output>
 where &'a str: Into<Output> {
     type Output = Output;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s = s.as_str();
         match NUMBER_RE.find(s) {
             Some((a, b)) => {
                 let word = &s[a..b];
@@ -411,7 +427,7 @@ pub struct Octal<Output>(PhantomData<Output>);
 impl<'a, Output> ScanFromStr<'a> for Octal<Output>
 where Output: ScanFromOctal<'a> {
     type Output = Output;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
         Output::scan_from_octal(s)
     }
 }
@@ -447,7 +463,8 @@ pub struct KeyValuePair<K, V>(PhantomData<(K, V)>);
 impl<'a, K, V> ScanFromStr<'a> for KeyValuePair<K, V>
 where K: ScanSelfFromStr<'a>, V: ScanSelfFromStr<'a> {
     type Output = (K, V);
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s = s.as_str();
         scan!(s;
             (let k: K, ":", let v: V, ..tail) => ((k, v), s.subslice_offset_stable(tail).unwrap())
         )
@@ -465,7 +482,8 @@ pub enum QuotedString {}
 
 impl<'a> ScanFromStr<'a> for QuotedString {
     type Output = String;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s = s.as_str();
         let syn = |s| ScanError::syntax(s);
 
         let cur = StrCursor::new_at_start(s);
@@ -537,7 +555,8 @@ pub struct Space<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
 impl<'a> ScanFromStr<'a> for Space<'a, &'a str> {
     type Output = &'a str;
 
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s = s.as_str();
         match SPACE_RE.find(s) {
             Some((a, b)) => {
                 let word = &s[a..b];
@@ -557,7 +576,8 @@ impl<'a> ScanFromStr<'a> for Space<'a, &'a str> {
 impl<'a> ScanFromStr<'a> for Space<'a, String> {
     type Output = String;
 
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s = s.as_str();
         match SPACE_RE.find(s) {
             Some((a, b)) => {
                 let word = &s[a..b];
@@ -578,7 +598,8 @@ impl<'a, Output> ScanFromStr<'a> for Space<'a, Output>
 where &'a str: Into<Output> {
     type Output = Output;
 
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s = s.as_str();
         match SPACE_RE.find(s) {
             Some((a, b)) => {
                 let word = &s[a..b];
@@ -622,7 +643,8 @@ pub struct Word<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
 #[cfg(str_into_output_extra_broken)]
 impl<'a> ScanFromStr<'a> for Word<'a, &'a str> {
     type Output = &'a str;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s = s.as_str();
         match WORD_RE.find(s) {
             Some((a, b)) => {
                 let word = &s[a..b];
@@ -639,7 +661,8 @@ impl<'a> ScanFromStr<'a> for Word<'a, &'a str> {
 #[cfg(str_into_output_extra_broken)]
 impl<'a> ScanFromStr<'a> for Word<'a, String> {
     type Output = String;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s = s.as_str();
         match WORD_RE.find(s) {
             Some((a, b)) => {
                 let word = &s[a..b];
@@ -657,7 +680,8 @@ impl<'a> ScanFromStr<'a> for Word<'a, String> {
 impl<'a, Output> ScanFromStr<'a> for Word<'a, Output>
 where &'a str: Into<Output> {
     type Output = Output;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s = s.as_str();
         match WORD_RE.find(s) {
             Some((a, b)) => {
                 let word = &s[a..b];
@@ -700,7 +724,8 @@ pub struct Wordish<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
 #[cfg(str_into_output_extra_broken)]
 impl<'a> ScanFromStr<'a> for Wordish<'a, &'a str> {
     type Output = &'a str;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s = s.as_str();
         // TODO: This should be modified to grab an entire *grapheme cluster* in the event it can't find a word or number.
         match WORDISH_RE.find(s) {
             Some((a, b)) => {
@@ -718,7 +743,8 @@ impl<'a> ScanFromStr<'a> for Wordish<'a, &'a str> {
 #[cfg(str_into_output_extra_broken)]
 impl<'a> ScanFromStr<'a> for Wordish<'a, String> {
     type Output = String;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s = s.as_str();
         // TODO: This should be modified to grab an entire *grapheme cluster* in the event it can't find a word or number.
         match WORDISH_RE.find(s) {
             Some((a, b)) => {
@@ -737,7 +763,8 @@ impl<'a> ScanFromStr<'a> for Wordish<'a, String> {
 impl<'a, Output> ScanFromStr<'a> for Wordish<'a, Output>
 where &'a str: Into<Output> {
     type Output = Output;
-    fn scan_from(s: &'a str) -> Result<(Self::Output, usize), ScanError> {
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s = s.as_str();
         // TODO: This should be modified to grab an entire *grapheme cluster* in the event it can't find a word or number.
         match WORDISH_RE.find(s) {
             Some((a, b)) => {

@@ -10,7 +10,13 @@ or distributed except according to those terms.
 /*!
 This module contains items related to input handling.
 
-Note that this aspect of `scan-rules` is still under design and is very likely to change drastically in future.
+The short version is this:
+
+* Values provided as input to the user-facing scanning macros must implement `IntoScanCursor`, which converts them into something that implements `ScanCursor`.
+
+* The input provided to actual type scanners will be something that implements the `ScanInput` trait.
+
+`IntoScanCursor` will be of interest if you are implementing a type which you want to be scannable.  `StrCursor` will be of interest if you want to construct a specialised cursor.  `ScanCursor` will be of interest if you are using a `^..cursor` pattern to capture a cursor.
 */
 use std::borrow::Cow;
 use std::marker::PhantomData;
@@ -29,15 +35,17 @@ lazy_static! {
 
 /**
 Conversion into a `ScanCursor`.
+
+This is a helper trait used to convert different values into a scannable cursor type.  Implement this if you want your type to be usable as input to one of the scanning macros.
 */
 pub trait IntoScanCursor<'a>: Sized {
     /**
-    The corresponding scannable input type.
+    The corresponding scannable cursor type.
     */
     type Output: 'a + ScanCursor<'a>;
 
     /**
-    Convert this into a scannable input.
+    Convert this into a scannable cursor.
     */
     fn into_scan_input(self) -> Self::Output;
 }
@@ -75,23 +83,28 @@ This trait defines the interface to input values that can be scanned.
 */
 pub trait ScanCursor<'a>: Sized {
     /**
+    Corresponding scan input type.
+    */
+    type ScanInput: ScanInput<'a>;
+
+    /**
     Assert that the input has been exhausted, or that the current position is a valid place to "stop".
     */
     fn try_end(self) -> Result<(), (ScanError, Self)>;
 
     /**
-    Scan a value from the current position.  The closure will be called with a string slice of all available input, and is expected to return *either* the scanned value, and the number of bytes of input consumed, *or* a reason why scanning failed.
+    Scan a value from the current position.  The closure will be called with all available input, and is expected to return *either* the scanned value, and the number of bytes of input consumed, *or* a reason why scanning failed.
 
     The input will have all leading whitespace removed, if applicable.
     */
     fn try_scan<F, Out>(self, f: F) -> Result<(Out, Self), (ScanError, Self)>
-    where F: FnOnce(&'a str) -> Result<(Out, usize), ScanError>;
+    where F: FnOnce(Self::ScanInput) -> Result<(Out, usize), ScanError>;
 
     /**
     Performs the same task as [`try_scan`](#tymethod.try_scan), except that it *does not* perform whitespace stripping.
     */
     fn try_scan_raw<F, Out>(self, f: F) -> Result<(Out, Self), (ScanError, Self)>
-    where F: FnOnce(&'a str) -> Result<(Out, usize), ScanError>;
+    where F: FnOnce(Self::ScanInput) -> Result<(Out, usize), ScanError>;
 
     /**
     Match the provided literal term against the input.
@@ -107,7 +120,31 @@ pub trait ScanCursor<'a>: Sized {
 }
 
 /**
-The basic input type for scanning.
+This trait is the interface scanners use to access the input being scanned.
+*/
+pub trait ScanInput<'a>: Sized + Clone {
+    /**
+    Marker type used to do string comparisons.
+    */
+    type StrCompare: StrCompare;
+
+    /**
+    Get the contents of the input as a string slice.
+    */
+    fn as_str(&self) -> &'a str;
+
+    /**
+    Create a new input from a subslice of *this* input's contents.
+
+    This should be used to ensure that additional state and settings (such as the string comparison marker) are preserved.
+    */
+    fn from_subslice(&self, subslice: &'a str) -> Self;
+}
+
+/**
+Basic cursor implementation wrapping a string slice.
+
+The `Cmp` parameter can be used to control the string comparison logic used.
 */
 #[derive(Debug)]
 pub struct StrCursor<'a, Cmp=ExactCompare>
@@ -166,6 +203,8 @@ where Cmp: StrCompare {
 
 impl<'a, Cmp> ScanCursor<'a> for StrCursor<'a, Cmp>
 where Cmp: StrCompare {
+    type ScanInput = Self;
+
     fn try_end(self) -> Result<(), (ScanError, Self)> {
         if (skip_space(self.slice).0).len() == 0 {
             Ok(())
@@ -175,17 +214,18 @@ where Cmp: StrCompare {
     }
 
     fn try_scan<F, Out>(self, f: F) -> Result<(Out, Self), (ScanError, Self)>
-    where F: FnOnce(&'a str) -> Result<(Out, usize), ScanError> {
-        let (tmp, tmp_off) = skip_space(self.slice);
+    where F: FnOnce(Self::ScanInput) -> Result<(Out, usize), ScanError> {
+        let (_, tmp_off) = skip_space(self.slice);
+        let tmp = self.advance_by(tmp_off);
         match f(tmp) {
-            Ok((out, off)) => Ok((out, self.advance_by(tmp_off + off))),
-            Err(err) => Err((err.add_offset(self.offset() + tmp_off), self)),
+            Ok((out, off)) => Ok((out, tmp.advance_by(off))),
+            Err(err) => Err((err.add_offset(tmp.offset()), self)),
         }
     }
 
     fn try_scan_raw<F, Out>(self, f: F) -> Result<(Out, Self), (ScanError, Self)>
-    where F: FnOnce(&'a str) -> Result<(Out, usize), ScanError> {
-        match f(self.slice) {
+    where F: FnOnce(Self::ScanInput) -> Result<(Out, usize), ScanError> {
+        match f(self) {
             Ok((out, off)) => Ok((out, self.advance_by(off))),
             Err(err) => Err((err.add_offset(self.offset()), self)),
         }
@@ -215,6 +255,45 @@ where Cmp: StrCompare {
 
     fn as_str(self) -> &'a str {
         self.slice
+    }
+}
+
+impl<'a, Cmp> ScanInput<'a> for StrCursor<'a, Cmp>
+where Cmp: StrCompare {
+    type StrCompare = Cmp;
+
+    fn as_str(&self) -> &'a str {
+        self.slice
+    }
+
+    fn from_subslice(&self, subslice: &'a str) -> Self {
+        // TODO: Promote `StrUtil` out of `scanner::util`.
+        use ::scanner::util::StrUtil;
+        let offset = self.as_str().subslice_offset_stable(subslice)
+            .expect("called `StrCursor::from_subslice` with disjoint subslice");
+
+        StrCursor {
+            offset: self.offset + offset,
+            slice: subslice,
+            _marker: PhantomData,
+        }
+    }
+}
+
+/**
+This implementation is provided to allow scanners to be used manually with a minimum of fuss.
+
+It *only* supports direct, exact equality comparison.
+*/
+impl<'a> ScanInput<'a> for &'a str {
+    type StrCompare = ExactCompare;
+
+    fn as_str(&self) -> &'a str {
+        *self
+    }
+
+    fn from_subslice(&self, subslice: &'a str) -> Self {
+        subslice
     }
 }
 
