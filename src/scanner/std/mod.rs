@@ -13,6 +13,7 @@ Scanner implementations for standard library (and other "official" crates) types
 mod collections;
 mod net;
 
+use std::ops::{Range, RangeFrom, RangeFull, RangeTo};
 use ::ScanError;
 use ::input::ScanInput;
 use ::scanner::ScanFromStr;
@@ -134,5 +135,28 @@ impl<'a> ScanFromStr<'a> for String {
     type Output = Self;
     fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
         ::scanner::QuotedString::scan_from(s)
+    }
+}
+
+scanner! { impl<'a, T> ScanFromStr for Range<T> => Range {
+    (let a: T, "..", let b: T, ..tail) => (a..b, tail)
+}}
+
+scanner! { impl<'a, T> ScanFromStr for RangeFrom<T> => RangeFrom {
+    (let a: T, "..", ..tail) => (a.., tail)
+}}
+
+scanner! { impl<'a, T> ScanFromStr for RangeTo<T> => RangeTo {
+    ("..", let b: T, ..tail) => (..b, tail)
+}}
+
+impl<'a> ScanFromStr<'a> for RangeFull {
+    type Output = Self;
+
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        use ::input::ScanCursor;
+        scan! { s.to_cursor();
+            ("..", ^..tail) => (.., tail.offset())
+        }
     }
 }
