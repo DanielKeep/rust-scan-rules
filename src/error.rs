@@ -153,7 +153,7 @@ Represents the position at which an error occurred.
 /*
 This exists because I'm still considering including the input which generated the error, for the sake of nice error messages.
 
-I'm not using `Cursor`, because I don't want errors tied to a specific input wrapper.
+I'm not using `StrCursor`, because I don't want errors tied to a specific input wrapper.
 */
 #[derive(Debug)]
 pub struct ScanErrorAt {

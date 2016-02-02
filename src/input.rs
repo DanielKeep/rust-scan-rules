@@ -12,7 +12,7 @@ This module contains items related to input handling.
 
 Note that this aspect of `scan-rules` is still under design and is very likely to change drastically in future.
 */
-use std::ops::Deref;
+use std::borrow::Cow;
 use itertools::Itertools;
 use regex::Regex;
 use ::ScanError;
@@ -27,9 +27,52 @@ lazy_static! {
 }
 
 /**
+Conversion into a `ScanCursor`.
+*/
+pub trait IntoScanCursor<'a>: Sized {
+    /**
+    The corresponding scannable input type.
+    */
+    type Output: 'a + ScanCursor<'a>;
+
+    /**
+    Convert this into a scannable input.
+    */
+    fn into_scan_input(self) -> Self::Output;
+}
+
+impl<'a, T> IntoScanCursor<'a> for T where T: 'a + ScanCursor<'a> {
+    type Output = Self;
+    fn into_scan_input(self) -> Self::Output {
+        self
+    }
+}
+
+impl<'a> IntoScanCursor<'a> for &'a str {
+    type Output = StrCursor<'a>;
+    fn into_scan_input(self) -> Self::Output {
+        StrCursor::new(self)
+    }
+}
+
+impl<'a> IntoScanCursor<'a> for &'a String {
+    type Output = StrCursor<'a>;
+    fn into_scan_input(self) -> Self::Output {
+        StrCursor::new(self)
+    }
+}
+
+impl<'a> IntoScanCursor<'a> for &'a Cow<'a, str> {
+    type Output = StrCursor<'a>;
+    fn into_scan_input(self) -> Self::Output {
+        StrCursor::new(self)
+    }
+}
+
+/**
 This trait defines the interface to input values that can be scanned.
 */
-pub trait ScanInput<'a>: Sized {
+pub trait ScanCursor<'a>: Sized {
     /**
     Assert that the input has been exhausted, or that the current position is a valid place to "stop".
     */
@@ -55,26 +98,31 @@ pub trait ScanInput<'a>: Sized {
     Implementations are free to interpret "match" as they please.
     */
     fn try_match_literal(self, lit: &str) -> Result<Self, (ScanError, Self)>;
+
+    /**
+    Returns the remaining input as a string slice.
+    */
+    fn as_str(self) -> &'a str;
 }
 
 /**
 The basic input type for scanning.
 */
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-pub struct Cursor<'a> {
+pub struct StrCursor<'a> {
     offset: usize,
     slice: &'a str,
 }
 
-impl<'a> Cursor<'a> {
+impl<'a> StrCursor<'a> {
     /**
-    Construct a new `Cursor` with a specific `offset`.
+    Construct a new `StrCursor` with a specific `offset`.
 
     The `offset` is logically the number of bytes which have already been consumed from the original input; these already-consumed bytes *must not* be included in `slice`.
     */
-    pub fn new_with_offset(slice: &'a str, offset: usize) -> Self {
-        Cursor {
-            offset: offset,
+    pub fn new(slice: &'a str) -> Self {
+        StrCursor {
+            offset: 0,
             slice: slice,
         }
     }
@@ -82,49 +130,22 @@ impl<'a> Cursor<'a> {
     /**
     Advance the cursor by the given number of bytes.
     */
-    pub fn advance_by(self, bytes: usize) -> Self {
-        Cursor {
+    fn advance_by(self, bytes: usize) -> Self {
+        StrCursor {
             offset: self.offset + bytes,
             slice: &self.slice[bytes..],
         }
     }
 
     /**
-    Access the wrapped string slice.
+    Returns the number of bytes of input that have been consumed by this `StrCursor`.
     */
-    pub fn as_str(self) -> &'a str {
-        self.slice
-    }
-
-    /**
-    Returns the number of bytes of input that have been consumed by this `Cursor`.
-    */
-    pub fn offset(self) -> usize {
+    fn offset(self) -> usize {
         self.offset
     }
 }
 
-impl<'a> Deref for Cursor<'a> {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        self.slice
-    }
-}
-
-impl<'a> From<&'a str> for Cursor<'a> {
-    fn from(v: &'a str) -> Self {
-        Cursor::new_with_offset(v, 0)
-    }
-}
-
-impl<'a> From<&'a String> for Cursor<'a> {
-    fn from(v: &'a String) -> Self {
-        Cursor::new_with_offset(v, 0)
-    }
-}
-
-impl<'a> ScanInput<'a> for Cursor<'a> {
+impl<'a> ScanCursor<'a> for StrCursor<'a> {
     fn try_end(self) -> Result<(), (ScanError, Self)> {
         if (skip_space(self.slice).0).len() == 0 {
             Ok(())
@@ -170,6 +191,10 @@ impl<'a> ScanInput<'a> for Cursor<'a> {
             last_pos = i1;
         }
         Ok(self.advance_by(tmp_off + last_pos))
+    }
+
+    fn as_str(self) -> &'a str {
+        self.slice
     }
 }
 

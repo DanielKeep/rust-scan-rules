@@ -11,6 +11,7 @@ or distributed except according to those terms.
 #[macro_use] mod util;
 
 use scan_rules::{ScanError, ScanErrorKind};
+use scan_rules::input::ScanCursor;
 use scan_rules::scanner::Word;
 
 #[test]
