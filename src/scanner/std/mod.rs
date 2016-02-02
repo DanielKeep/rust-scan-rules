@@ -112,11 +112,10 @@ impl<'a, T> ScanFromStr<'a> for [T; 0] {
 impl<'a, T> ScanFromStr<'a> for Option<T> where T: ScanSelfFromStr<'a> {
     type Output = Self;
     fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
-        let s = s.as_str();
-        scan!( s;
+        scan!( s.to_cursor();
             ("Some", "(", let v, ")", ..tail) => (Some(v), tail),
             ("None", ..tail) => (None, tail),
-        ).map(|(v, t)| (v, s.subslice_offset_stable(t).unwrap()))
+        ).map(|(v, t)| (v, s.as_str().subslice_offset_stable(t).unwrap()))
     }
 }
 
@@ -124,10 +123,9 @@ impl<'a, T, E> ScanFromStr<'a> for Result<T, E>
 where T: ScanSelfFromStr<'a>, E: ScanSelfFromStr<'a> {
     type Output = Self;
     fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
-        let s = s.as_str();
-        scan!( s;
+        scan!( s.to_cursor();
             ("Some", "(", let v, ")", ..tail) => (Ok(v), tail),
             ("Err", "(", let v, ")", ..tail) => (Err(v), tail),
-        ).map(|(v, t)| (v, s.subslice_offset_stable(t).unwrap()))
+        ).map(|(v, t)| (v, s.as_str().subslice_offset_stable(t).unwrap()))
     }
 }

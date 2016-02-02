@@ -121,7 +121,7 @@ macro_rules! scan {
         , $(($($tail_patterns:tt)*) => $tail_bodies:expr,)*
     ) => {
         {
-            let cur = $crate::input::IntoScanCursor::into_scan_input($input);
+            let cur = $crate::input::IntoScanCursor::into_scan_cursor($input);
 
             let result = scan_rules_impl!(@scan (cur.clone()); ($($head_pattern)*,) => $head_body);
 

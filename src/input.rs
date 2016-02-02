@@ -81,7 +81,7 @@ impl<'a> IntoScanCursor<'a> for &'a Cow<'a, str> {
 /**
 This trait defines the interface to input values that can be scanned.
 */
-pub trait ScanCursor<'a>: Sized {
+pub trait ScanCursor<'a>: 'a + Sized + Clone {
     /**
     Corresponding scan input type.
     */
@@ -122,7 +122,12 @@ pub trait ScanCursor<'a>: Sized {
 /**
 This trait is the interface scanners use to access the input being scanned.
 */
-pub trait ScanInput<'a>: Sized + Clone {
+pub trait ScanInput<'a>: 'a + Sized + Clone {
+    /**
+    Corresponding cursor type.
+    */
+    type ScanCursor: ScanCursor<'a>;
+
     /**
     Marker type used to do string comparisons.
     */
@@ -139,6 +144,11 @@ pub trait ScanInput<'a>: Sized + Clone {
     This should be used to ensure that additional state and settings (such as the string comparison marker) are preserved.
     */
     fn from_subslice(&self, subslice: &'a str) -> Self;
+
+    /**
+    Turn the input into an independent cursor, suitable for feeding back into a user-facing scanning macro.
+    */
+    fn to_cursor(&self) -> Self::ScanCursor;
 }
 
 /**
@@ -260,6 +270,7 @@ where Cmp: StrCompare {
 
 impl<'a, Cmp> ScanInput<'a> for StrCursor<'a, Cmp>
 where Cmp: StrCompare {
+    type ScanCursor = Self;
     type StrCompare = Cmp;
 
     fn as_str(&self) -> &'a str {
@@ -278,6 +289,10 @@ where Cmp: StrCompare {
             _marker: PhantomData,
         }
     }
+
+    fn to_cursor(&self) -> Self::ScanCursor {
+        *self
+    }
 }
 
 /**
@@ -286,6 +301,7 @@ This implementation is provided to allow scanners to be used manually with a min
 It *only* supports direct, exact equality comparison.
 */
 impl<'a> ScanInput<'a> for &'a str {
+    type ScanCursor = StrCursor<'a>;
     type StrCompare = ExactCompare;
 
     fn as_str(&self) -> &'a str {
@@ -294,6 +310,10 @@ impl<'a> ScanInput<'a> for &'a str {
 
     fn from_subslice(&self, subslice: &'a str) -> Self {
         subslice
+    }
+
+    fn to_cursor(&self) -> Self::ScanCursor {
+        self.into_scan_cursor()
     }
 }
 
@@ -314,7 +334,7 @@ Defines an interface for comparing two strings for equality.
 
 This is used to allow `StrCursor` to be parametrised on different kinds of string comparisons: case-sensitive, case-insensitive, canonicalising, *etc.*
 */
-pub trait StrCompare {
+pub trait StrCompare: 'static {
     /**
     Compare two strings and return `true` if they should be considered "equal".
     */
