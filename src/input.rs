@@ -287,8 +287,7 @@ where Cmp: StrCompare {
     }
 
     fn from_subslice(&self, subslice: &'a str) -> Self {
-        // TODO: Promote `StrUtil` out of `scanner::util`.
-        use ::scanner::util::StrUtil;
+        use ::util::StrUtil;
         let offset = self.as_str().subslice_offset_stable(subslice)
             .expect("called `StrCursor::from_subslice` with disjoint subslice");
 

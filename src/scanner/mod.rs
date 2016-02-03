@@ -73,7 +73,6 @@ pub use self::misc::{
 #[macro_use] mod macros;
 
 pub mod runtime;
-pub mod util;
 
 mod lang;
 mod misc;

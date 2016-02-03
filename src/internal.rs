@@ -31,7 +31,7 @@ Compute the offset of `b`, which must be a subslice of `a`.
 This is publicly exposed for the sake of macros and **is not** considered a stable part of the public API.
 */
 pub fn subslice_offset(a: &str, b: &str) -> Option<usize> {
-    use ::scanner::util::StrUtil;
+    use ::util::StrUtil;
     a.subslice_offset_stable(b)
 }
 

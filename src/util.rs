@@ -8,7 +8,7 @@ files in the project carrying such notice may not be copied, modified,
 or distributed except according to those terms.
 */
 /*!
-Internal utilities for scanner implementations.
+Internal utilities.
 */
 use std::error::Error;
 use std::fmt::{self, Display};

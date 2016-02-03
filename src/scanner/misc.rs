@@ -15,11 +15,11 @@ use regex::Regex;
 use strcursor::StrCursor;
 use ::ScanError;
 use ::input::ScanInput;
+use ::util::StrUtil;
 use super::{
     ScanFromStr, ScanSelfFromStr,
     ScanFromBinary, ScanFromOctal, ScanFromHex,
 };
-use super::util::StrUtil;
 
 lazy_static! {
     static ref IDENT_RE: Regex = Regex::new(r"^(\p{XID_Start}|_)\p{XID_Continue}*").unwrap();

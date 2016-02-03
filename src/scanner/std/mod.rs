@@ -17,7 +17,7 @@ use std::ops::{Range, RangeFrom, RangeFull, RangeTo};
 use ::ScanError;
 use ::input::ScanInput;
 use ::scanner::ScanFromStr;
-use ::scanner::util::StrUtil;
+use ::util::StrUtil;
 
 macro_rules! impl_tuple {
     () => {};
@@ -28,7 +28,7 @@ macro_rules! impl_tuple {
             type Output = (<$head as ::scanner::ScanFromStr<'a>>::Output, $(<$tail as ::scanner::ScanFromStr<'a>>::Output,)*);
             fn scan_from<I: $crate::input::ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ::ScanError> {
                 #![allow(non_snake_case)]
-                use ::scanner::util::StrUtil;
+                use ::util::StrUtil;
                 let s = s.as_str();
                 scan!(s;
                     ("(", let $head: $head, $(",", let $tail: $tail,)* [","]?, ")", ..tail)
@@ -71,7 +71,7 @@ macro_rules! impl_array {
             impl<'a, T> ::scanner::ScanFromStr<'a> for [T; $len] where T: ::scanner::ScanFromStr<'a> {
                 type Output = [T::Output; $len];
                 fn scan_from<I: $crate::input::ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ::ScanError> {
-                    use ::scanner::util::StrUtil;
+                    use ::util::StrUtil;
                     let s = s.as_str();
                     scan!(s;
                         ("[", let $e0: T, $(",", let $es: T,)* [","]?, "]", ..tail)
