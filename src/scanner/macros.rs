@@ -223,7 +223,7 @@ macro_rules! scanner {
                 fn scan_from<I: $crate::input::ScanInput<$lt>>(s: I) -> Result<(Self::Output, usize), $crate::ScanError> {
                     match scan! { s.to_cursor(); $($patterns)* } {
                         Ok((v, tail)) => {
-                            let off = ::std::option::Option::expect($crate::subslice_offset(s.as_str(), tail), "scanner returned tail that wasn't part of the original input");
+                            let off = ::std::option::Option::expect($crate::internal::subslice_offset(s.as_str(), tail), "scanner returned tail that wasn't part of the original input");
                             Ok((v, off))
                         },
                         Err(err) => Err(err),

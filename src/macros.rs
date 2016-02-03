@@ -34,7 +34,7 @@ macro_rules! readln {
                 match ::std::io::Stdin::read_line(&::std::io::stdin(), &mut line) {
                     Err(err) => panic!("{:?}", err),
                     Ok(_) => {
-                        let line = $crate::strip_line_term(&line);
+                        let line = $crate::internal::strip_line_term(&line);
                         match scan!(line; $($rules)*) {
                             Err(err) => panic!("{:?}", err),
                             Ok(v) => v,
@@ -61,7 +61,7 @@ macro_rules! try_readln {
                 match ::std::io::Stdin::read_line(&::std::io::stdin(), &mut line) {
                     Err(err) => Err($crate::ScanError::io(err)),
                     Ok(_) => {
-                        let line = $crate::strip_line_term(&line);
+                        let line = $crate::internal::strip_line_term(&line);
                         scan!(line; $($rules)*)
                     },
                 }
@@ -209,7 +209,7 @@ macro_rules! scan_rules_impl {
     */
     (@scan ($cur:expr); (let _: $t:ty, $($tail:tt)*) => $body:expr) => {
         {
-            match $crate::try_scan_static::<_, $t>($cur) {
+            match $crate::internal::try_scan_static::<_, $t>($cur) {
                 Ok((_, new_cur)) => scan_rules_impl!(@scan (new_cur); ($($tail)*) => $body),
                 Err((err, _)) => Err(err)
             }
@@ -218,7 +218,7 @@ macro_rules! scan_rules_impl {
 
     (@scan ($cur:expr); (let _ <| $s:expr, $($tail:tt)*) => $body:expr) => {
         {
-            match $crate::try_scan_runtime($cur, &mut $s) {
+            match $crate::internal::try_scan_runtime($cur, &mut $s) {
                 Ok((_, new_cur)) => scan_rules_impl!(@scan (new_cur); ($($tail)*) => $body),
                 Err((err, _)) => Err(err)
             }
@@ -227,7 +227,7 @@ macro_rules! scan_rules_impl {
 
     (@scan ($cur:expr); (let $name:ident, $($tail:tt)*) => $body:expr) => {
         {
-            match $crate::try_scan_static_self($cur) {
+            match $crate::internal::try_scan_static_self($cur) {
                 Ok(($name, new_cur)) => scan_rules_impl!(@scan (new_cur); ($($tail)*) => $body),
                 Err((err, _)) => Err(err)
             }
@@ -236,7 +236,7 @@ macro_rules! scan_rules_impl {
 
     (@scan ($cur:expr); (let $name:ident: $t:ty, $($tail:tt)*) => $body:expr) => {
         {
-            match $crate::try_scan_static::<_, $t>($cur) {
+            match $crate::internal::try_scan_static::<_, $t>($cur) {
                 Ok(($name, new_cur)) => scan_rules_impl!(@scan (new_cur); ($($tail)*) => $body),
                 Err((err, _)) => Err(err)
             }
@@ -245,7 +245,7 @@ macro_rules! scan_rules_impl {
 
     (@scan ($cur:expr); (let $name:ident <| $s:expr, $($tail:tt)*) => $body:expr) => {
         {
-            match $crate::try_scan_runtime($cur, &mut $s) {
+            match $crate::internal::try_scan_runtime($cur, &mut $s) {
                 Ok(($name, new_cur)) => scan_rules_impl!(@scan (new_cur); ($($tail)*) => $body),
                 Err((err, _)) => Err(err)
             }
