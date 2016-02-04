@@ -18,7 +18,7 @@ import tempfile
 import time
 
 DOC_ARGS = '--no-deps'
-DOC_FEATURES = "arrays-32 tuples-16"
+DOC_FEATURES = "arrays-32 tuples-16 regex"
 DOC_TARGET_BRANCH = 'gh-pages'
 TEMP_CHECKOUT_PREFIX = 'gh-pages-checkout-'
 TEMP_OUTPUT_PREFIX = 'gh-pages-generated-'
@@ -170,7 +170,7 @@ def main():
 
         msg("Generating documentation...")
         args = '%s --features="%s"' % (DOC_ARGS, DOC_FEATURES)
-        sh('cargo doc %s' % DOC_ARGS)
+        sh('cargo doc %s' % args)
         tmp1_target_doc = '%s/target/doc' % tmp1
         msg_trace('shutil.move(%r, %r)' % (tmp1_target_doc, tmp2))
         shutil.move(tmp1_target_doc, tmp2)
@@ -198,7 +198,10 @@ def main():
         msg_trace('shutil.rmtree(%r)' % tmp1)
         really_rmtree(tmp1)
 
-    msg('Done.  Use `git push origin %s` to update live documentation.' % DOC_TARGET_BRANCH)
+    msg('Publishing...')
+    sh('git push -f origin "%s"' % DOC_TARGET_BRANCH)
+
+    msg('Done.')
 
 
 if __name__ == '__main__':
