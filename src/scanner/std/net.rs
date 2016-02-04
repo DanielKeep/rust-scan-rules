@@ -12,59 +12,213 @@ Scanner implementations for `std::net::*`.
 */
 #![cfg(std_net_scanners)]
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr};
-use regex::Regex;
+use itertools::Itertools;
 #[cfg(test)] use ::scanner::ScanFromStr;
 
-macro_rules! as_expr { ($e:expr) => { $e } }
+parse_scanner! { impl<'a> for Ipv4Addr, matcher match_ipv4, matcher err "expected IPv4 address", err map ScanError::other }
+parse_scanner! { impl<'a> for Ipv6Addr, matcher match_ipv6, matcher err "expected IPv6 address", err map ScanError::other }
+parse_scanner! { impl<'a> for SocketAddr, matcher match_sock_addr, matcher err "expected socket address", err map ScanError::other }
 
-macro_rules! addr_regexen {
-    (
-        ipv4: $ipv4:tt,
-        ipv6: $ipv6:tt,
-        sad4: ($sad4a:tt, ipv4, $sad4b:tt),
-        sad6: ($sad6a:tt, ipv6, $sad6b:tt),
-    ) => {
-        lazy_static! {
-            static ref IPV4ADDR_RE: Regex = Regex::new(
-                as_expr!(concat!("(?x)^", $ipv4))
-            ).unwrap();
+fn match_ipv4(s: &str) -> Option<((usize, usize), usize)> {
+    let ibs = &mut s.bytes().enumerate();
+    try_opt!(eat_dec_digs(ibs));
+    if !matches!(ibs.next(), Some((_, b'.'))) { return None; }
+    try_opt!(eat_dec_digs(ibs));
+    if !matches!(ibs.next(), Some((_, b'.'))) { return None; }
+    try_opt!(eat_dec_digs(ibs));
+    if !matches!(ibs.next(), Some((_, b'.'))) { return None; }
+    eat_dec_digs(ibs)
+}
 
-            static ref IPV6ADDR_RE: Regex = Regex::new(
-                as_expr!(concat!("(?x)^", $ipv6))
-            ).unwrap();
-
-            static ref SOCKADDRV4_RE: Regex = Regex::new(
-                as_expr!(concat!("(?x)^", $sad4a, $ipv4, $sad4b))
-            ).unwrap();
-
-            static ref SOCKADDRV6_RE: Regex = Regex::new(
-                as_expr!(concat!("(?x)^", $sad6a, $ipv6, $sad6b))
-            ).unwrap();
-
-            static ref SOCKADDR_RE: Regex = Regex::new(
-                as_expr!(concat!("(?x)^(", $sad4a, $ipv4, $sad4b, ")|(", $sad6a, $ipv6, $sad6b, ")"))
-            ).unwrap();
+fn match_ipv6(s: &str) -> Option<((usize, usize), usize)> {
+    /*
+        digraph ipv6 {
+            START;
+            Ok;
+            Err;
+        
+            START -> 1 [label="\\x+"];
+            START -> Err [label="*"];
+            START -> "::" [label="::"];
+            
+            1 -> "1+" [label=":\\x+"];
+            1 -> Err [label="*"];
+        
+            "1+" -> "1+" [label=":\\x+"];
+            "1+" -> "::" [label="::"];
+            "1+" -> Ok [label=":\\d+.\\d+.\\d+.\\d+"];
+            "1+" -> Ok [label="*"];
+        
+            "::" -> "::+" [label="\\x+"];
+            "::" -> Ok [label="\\d+.\\d+.\\d+.\\d+"];
+            "::" -> Ok [label="*"];
+        
+            "::+" -> "::+" [label=":\\x+"];
+            "::+" -> Ok [label=":\\d+.\\d+.\\d+.\\d+"];
+            "::+" -> Ok [label="*"];
         }
-    };
+    */
+    fn eat_hex<I: Clone + Iterator<Item=(usize, u8)>>(ibs: &mut I) -> Option<((usize, usize), usize)> {
+        let reset = ibs.clone();
+        ibs.take_while_ref(|&(_, b)|
+                matches!(b, b'0'...b'9' | b'a'...b'f' | b'A'...b'F'))
+            .last()
+            .map(|(i, _)| i + 1)
+            .map(|n| ((0, n), n))
+            .or_else(|| { *ibs = reset; None })
+    }
+
+    fn eat_dec<I: Clone + Iterator<Item=(usize, u8)>>(ibs: &mut I) -> Option<((usize, usize), usize)> {
+        let reset = ibs.clone();
+        ibs.take_while_ref(|&(_, b)|
+                matches!(b, b'0'...b'9'))
+            .last()
+            .map(|(i, _)| i + 1)
+            .map(|n| ((0, n), n))
+            .or_else(|| { *ibs = reset; None })
+    }
+
+    fn eat_colon_hex<I: Clone + Iterator<Item=(usize, u8)>>(ibs: &mut I) -> Option<((usize, usize), usize)> {
+        let reset = ibs.clone();
+        (|| {
+            if !matches!(ibs.next(), Some((_, b':'))) { return None; }
+            eat_hex(ibs)
+        })().or_else(|| { *ibs = reset; None })
+    }
+
+    fn eat_dbl_colon<I: Clone + Iterator<Item=(usize, u8)>>(ibs: &mut I) -> Option<((usize, usize), usize)> {
+        let reset = ibs.clone();
+        (|| {
+            if !matches!(ibs.next(), Some((_, b':'))) { return None; }
+            match ibs.next() {
+                Some((i, b':')) => Some(((0, i + 1), i + 1)),
+                _ => None,
+            }
+        })().or_else(|| { *ibs = reset; None })
+    }
+
+    fn eat_ipv4<I: Clone + Iterator<Item=(usize, u8)>>(ibs: &mut I) -> Option<((usize, usize), usize)> {
+        let reset = ibs.clone();
+        (|| {
+            let _ = try_opt!(eat_dec(ibs));
+            if !matches!(ibs.next(), Some((_, b'.'))) { return None; }
+            let _ = try_opt!(eat_dec(ibs));
+            if !matches!(ibs.next(), Some((_, b'.'))) { return None; }
+            let _ = try_opt!(eat_dec(ibs));
+            if !matches!(ibs.next(), Some((_, b'.'))) { return None; }
+            eat_dec(ibs)
+        })().or_else(|| { *ibs = reset; None })
+    }
+
+    fn eat_colon_ipv4<I: Clone + Iterator<Item=(usize, u8)>>(ibs: &mut I) -> Option<((usize, usize), usize)> {
+        let reset = ibs.clone();
+        (|| {
+            if !matches!(ibs.next(), Some((_, b':'))) { return None; }
+            eat_ipv4(ibs)
+        })().or_else(|| { *ibs = reset; None })
+    }
+
+    fn start<I: Clone + Iterator<Item=(usize, u8)>>(ibs: &mut I) -> Option<((usize, usize), usize)> {
+        println!("start");
+        if let Some(_) = eat_hex(ibs) {
+            one(ibs)
+        } else if let Some(end) = eat_dbl_colon(ibs) {
+            dbl_colon(ibs, end)
+        } else {
+            None
+        }
+    }
+
+    fn one<I: Clone + Iterator<Item=(usize, u8)>>(ibs: &mut I) -> Option<((usize, usize), usize)> {
+        println!("one");
+        if let Some(end) = eat_colon_hex(ibs) {
+            one_plus(ibs, end)
+        } else {
+            None
+        }
+    }
+
+    fn one_plus<I: Clone + Iterator<Item=(usize, u8)>>(ibs: &mut I, mut end: ((usize, usize), usize)) -> Option<((usize, usize), usize)> {
+        loop {
+            println!("one_plus");
+            if let Some(end) = eat_colon_ipv4(ibs) {
+                return Some(end);
+            } else if let Some(end) = eat_dbl_colon(ibs) {
+                return dbl_colon(ibs, end);
+            } else if let Some(new_end) = eat_colon_hex(ibs) {
+                end = new_end;
+                continue;
+            } else {
+                return Some(end);
+            }
+        }
+    }
+
+    fn dbl_colon<I: Clone + Iterator<Item=(usize, u8)>>(ibs: &mut I, end: ((usize, usize), usize)) -> Option<((usize, usize), usize)> {
+        println!("dbl_colon");
+        if let Some(end) = eat_ipv4(ibs) {
+            Some(end)
+        } else if let Some(end) = eat_hex(ibs) {
+            dbl_colon_plus(ibs, end)
+        } else {
+            Some(end)
+        }
+    }
+
+    fn dbl_colon_plus<I: Clone + Iterator<Item=(usize, u8)>>(ibs: &mut I, mut end: ((usize, usize), usize)) -> Option<((usize, usize), usize)> {
+        loop {
+            println!("dbl_colon_plus");
+            if let Some(end) = eat_colon_ipv4(ibs) {
+                return Some(end);
+            } else if let Some(new_end) = eat_colon_hex(ibs) {
+                end = new_end;
+                continue;
+            } else {
+                return Some(end);
+            }
+        }
+    }
+
+    println!("match_ipv6({:?})", s);
+    let mut ibs = s.bytes().enumerate();
+    match start(&mut ibs) {
+        res => {
+            println!("-> {:?}", res);
+            res
+        }
+    }
 }
 
-addr_regexen! {
-    ipv4: r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}",
-    ipv6: r"
-          (
-            ( [:xdigit:]+ (:[:xdigit:]+)* )?
-            ::
-            ( [:xdigit:]+ (:[:xdigit:]+)* (\.\d+\.\d+\.\d+)? )?
-        )
-        | [:xdigit:]+ (:[:xdigit:]+)+ (\.\d+\.\d+\.\d+)?
-    ",
-    sad4: (r"(", ipv4, r"):\d+"),
-    sad6: (r"\[(", ipv6, r")\]:\d+"),
+fn match_sock_addr(s: &str) -> Option<((usize, usize), usize)> {
+    match_ipv4_sock(s)
+        .or_else(|| match_ipv6_sock(s))
 }
 
-parse_scanner! { impl<'a> for Ipv4Addr, regex IPV4ADDR_RE, regex err "expected IPv4 address", err map ScanError::other }
-parse_scanner! { impl<'a> for Ipv6Addr, regex IPV6ADDR_RE, regex err "expected IPv6 address", err map ScanError::other }
-parse_scanner! { impl<'a> for SocketAddr, regex SOCKADDR_RE, regex err "expected socket address", err map ScanError::other }
+fn match_ipv4_sock(s: &str) -> Option<((usize, usize), usize)> {
+    let ((_, _), off) = try_opt!(match_ipv4(s));
+    let mut ibs = s[off..].bytes().enumerate();
+    if !matches!(ibs.next(), Some((_, b':'))) { return None; }
+    eat_dec_digs(&mut ibs)
+        .map(|((_, b), c)| ((0, b + off), c + off))
+}
+
+fn match_ipv6_sock(s: &str) -> Option<((usize, usize), usize)> {
+    if !s.starts_with("[") { return None; }
+    let ((_, _), off) = try_opt!(match_ipv6(&s[1..]));
+    let off = off + 1;
+    let mut ibs = s[off..].bytes().enumerate();
+    if !matches!(ibs.next(), Some((_, b']'))) { return None; }
+    if !matches!(ibs.next(), Some((_, b':'))) { return None; }
+    eat_dec_digs(&mut ibs)
+        .map(|((_, b), c)| ((0, b + off), c + off))
+}
+
+fn eat_dec_digs<I: Clone + Iterator<Item=(usize, u8)>>(ibs: &mut I) -> Option<((usize, usize), usize)> {
+    ibs.take_while_ref(|&(_, b)| matches!(b, b'0'...b'9'))
+        .last()
+        .map(|(i, _)| i + 1)
+        .map(|n| ((0, n), n))
+}
 
 #[cfg(test)]
 #[test]
@@ -200,11 +354,11 @@ fn test_scan_socketaddr() {
 #[cfg(socket_addr_vx_scanners)]
 mod socket_addr_vx_scanners {
     use std::net::{SocketAddrV4, SocketAddrV6};
-    use super::{SOCKADDRV4_RE, SOCKADDRV6_RE};
+    use super::{match_ipv4_sock, match_ipv6_sock};
     #[cfg(test)] use ::scanner::ScanFromStr;
 
-    parse_scanner! { impl<'a> for SocketAddrV4, regex SOCKADDRV4_RE, regex err "expected IPv4 socket address", err map ScanError::other }
-    parse_scanner! { impl<'a> for SocketAddrV6, regex SOCKADDRV6_RE, regex err "expected IPv6 socket address", err map ScanError::other }
+    parse_scanner! { impl<'a> for SocketAddrV4, matcher match_ipv4_sock, matcher err "expected IPv4 socket address", err map ScanError::other }
+    parse_scanner! { impl<'a> for SocketAddrV6, matcher match_ipv6_sock, matcher err "expected IPv6 socket address", err map ScanError::other }
 
     #[cfg(test)]
     #[test]

@@ -34,6 +34,23 @@ macro_rules! assert_match {
 }
 
 /**
+Determines whether an expression matches a pattern.
+*/
+macro_rules! matches {
+    (@as_expr $e:expr) => { $e };
+
+    ($e:expr, $($pat:tt)+) => {
+        matches!(
+            @as_expr
+            match $e {
+                $($pat)* => true,
+                _ => false,
+            }
+        )
+    };
+}
+
+/**
 Define a scanner implementation based on a few common cases:
 
 * `impl<'a> for Ty, from OtherTy`: run the scanner for `OtherTy`, passing the result through `FromStr`.
@@ -140,6 +157,60 @@ macro_rules! parse_scanner {
     };
 
     (
+        impl<$lt:tt> for $ty:ty,
+        matcher $matcher:expr,
+        matcher err $ma_err:expr,
+        err map $err:expr
+    ) => {
+        parse_scanner! {
+            impl<$lt> for $ty,
+                matcher $matcher,
+                matcher err $ma_err,
+                map |m| <$ty as ::std::str::FromStr>::from_str(m),
+                err map $err
+        }
+    };
+
+    (
+        impl<$lt:tt> for $ty:ty,
+        matcher $matcher:expr,
+        matcher err $ma_err:expr,
+        map |$s:ident| $map:expr,
+        err map $err:expr
+    ) => {
+        parse_scanner! {
+            @as_item
+            impl<$lt> $crate::scanner::ScanFromStr<$lt> for $ty {
+                type Output = Self;
+                fn scan_from<I: $crate::input::ScanInput<$lt>>(s: I) -> Result<(Self::Output, usize), $crate::ScanError> {
+                    use ::std::option::Option;
+                    use ::std::result::Result;
+                    use $crate::ScanError;
+
+                    let s = s.as_str();
+                    let ($s, end) = try!(
+                        Option::ok_or(
+                            Option::map(
+                                $matcher(s),
+                                |((a, b), c)| (&s[a..b], c)
+                            ),
+                            ScanError::syntax($ma_err)
+                        )
+                    );
+
+                    Result::map_err(
+                        Result::map(
+                            $map,
+                            |v| (v, end)
+                        ),
+                        $err
+                    )
+                }
+            }
+        }
+    };
+
+    (
         impl<$lt:tt> $tr_name:ident::$tr_meth:ident for $ty:ty,
         regex $regex:expr,
         regex err $re_err:expr,
@@ -192,6 +263,44 @@ macro_rules! parse_scanner {
             }
         }
     };
+
+    (
+        impl<$lt:tt> $tr_name:ident::$tr_meth:ident for $ty:ty,
+        matcher $matcher:expr,
+        matcher err $ma_err:expr,
+        map $map:expr,
+        err map $err:expr
+    ) => {
+        parse_scanner! {
+            @as_item
+            impl<$lt> $crate::scanner::$tr_name<$lt> for $ty {
+                fn $tr_meth<I: $crate::input::ScanInput<$lt>>(s: I) -> Result<(Self, usize), $crate::ScanError> {
+                    use ::std::option::Option;
+                    use ::std::result::Result;
+                    use $crate::ScanError;
+
+                    let s_str = s.as_str();
+                    let (w, end) = try!(
+                        Option::ok_or(
+                            Option::map(
+                                $matcher(s_str),
+                                |((a, b), c)| (&s_str[a..b], c)
+                            ),
+                            ScanError::syntax($ma_err)
+                        )
+                    );
+
+                    Result::map_err(
+                        Result::map(
+                            ($map)(w),
+                            |v| (v, end)
+                        ),
+                        $err
+                    )
+                }
+            }
+        }
+    };
 }
 
 /**
@@ -230,6 +339,18 @@ macro_rules! scanner {
                     }
                 }
             }
+        }
+    };
+}
+
+/**
+Returns the contents of an `Option`, or returns `None` from the current function.
+*/
+macro_rules! try_opt {
+    ($e:expr) => {
+        match $e {
+            Some(v) => v,
+            None => return None,
         }
     };
 }

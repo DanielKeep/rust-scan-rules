@@ -66,6 +66,8 @@ The following optional features are available:
 
 * `arrays-32`: implement scanning for arrays of up to 32 elements.  The default is up to 8 elements.
 
+* `regex`: include support for the `re`, `re_a`, and `re_str` regular expression-based runtime scanners.  Adds a dependency on the `regex` crate.
+
 * `tuples-16`: implement scanning for tuples of up to 16 elements.  The default is up to 4 elements.
 
 ## Important Notes
@@ -265,8 +267,8 @@ A scanning pattern is made up of one or more pattern terms, separated by commas.
 #![recursion_limit="128"]
 #[macro_use] extern crate lazy_static;
 extern crate itertools;
-extern crate regex;
 extern crate strcursor;
+#[cfg(feature="regex")] extern crate regex;
 
 #[macro_use] mod macros;
 
@@ -276,4 +278,5 @@ mod error;
 pub mod input;
 pub mod internal;
 pub mod scanner;
+mod unicode;
 mod util;

@@ -11,11 +11,12 @@ or distributed except according to those terms.
 Types and constructors for various runtime scanners.
 */
 use std::marker::PhantomData;
-use regex::Regex;
 use strcursor::StrCursor;
 use ::ScanError;
 use ::input::ScanInput;
-use ::scanner::{Everything, ScanFromStr, ScanStr};
+use ::scanner::{ScanFromStr, ScanStr};
+
+#[cfg(feature="regex")] use regex::Regex;
 
 /**
 Creates a runtime scanner that forces *exactly* `width` bytes to be consumed.
@@ -216,6 +217,7 @@ Note that this scanner *does not* respect the case sensitivity of the input.
 
 See: [`regex` crate](http://doc.rust-lang.org/regex/regex/index.html), [`re_a`](fn.re_a.html), [`re_str`](fn.re_str.html).
 */
+#[cfg(feature="regex")]
 pub fn re<Then>(s: &str, then: Then) -> ScanRegex<Then> {
     ScanRegex(Regex::new(s).unwrap(), then)
 }
@@ -225,6 +227,7 @@ Creates a runtime regex scanner that passes the matched input to a static scanne
 
 See: [`re`](fn.re_a.html).
 */
+#[cfg(feature="regex")]
 pub fn re_a<S>(s: &str) -> ScanRegex<ScanA<S>> {
     re(s, scan_a::<S>())
 }
@@ -234,8 +237,9 @@ Creates a runtime regex scanner that yields the matched input as a string slice.
 
 See: [`re`](fn.re_a.html).
 */
-pub fn re_str(s: &str) -> ScanRegex<ScanA<Everything<&str>>> {
-    re_a::<Everything<&str>>(s)
+#[cfg(feature="regex")]
+pub fn re_str(s: &str) -> ScanRegex<ScanA<::scanner::Everything<&str>>> {
+    re_a::<::scanner::Everything<&str>>(s)
 }
 
 /**
@@ -243,8 +247,10 @@ Runtime scanner that slices the input based on a regular expression.
 
 See: [`re`](../fn.re.html), [`re_a`](../fn.re_a.html), [`re_str`](../fn.re_str.html).
 */
+#[cfg(feature="regex")]
 pub struct ScanRegex<Then>(Regex, Then);
 
+#[cfg(feature="regex")]
 impl<'a, Then> ScanStr<'a> for ScanRegex<Then>
 where Then: ScanStr<'a> {
     type Output = Then::Output;
@@ -282,6 +288,7 @@ where Then: ScanStr<'a> {
     }
 }
 
+#[cfg(feature="regex")]
 #[cfg(test)]
 #[test]
 fn test_re() {

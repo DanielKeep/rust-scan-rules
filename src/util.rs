@@ -12,13 +12,7 @@ Internal utilities.
 */
 use std::error::Error;
 use std::fmt::{self, Display};
-use regex::Regex;
 use strcursor::StrCursor;
-
-lazy_static! {
-    static ref HEX_ESC_RE: Regex = Regex::new(r"^([:xdigit:]{2})").unwrap();
-    static ref UNI_ESC_RE: Regex = Regex::new(r"^\{([:xdigit:]+)\}").unwrap();
-}
 
 /**
 Various string utility methods.
@@ -66,11 +60,16 @@ impl StrUtil for str {
             cp => return Err(UnknownEscape(cp))
         };
 
-        let re = if is_x_esc { &*HEX_ESC_RE } else { &*UNI_ESC_RE };
+        let s = cur.slice_after();
+        let esc: fn(_) -> _ = if is_x_esc {
+            match_hex_esc
+        } else {
+            match_uni_esc
+        };
         let err = if is_x_esc { MalformedHex } else { MalformedUnicode };
-        let cap = try!(re.captures(cur.slice_after()).ok_or(err));
-        let hex = try!(cap.at(1).ok_or(err));
-        let tail = &cur.slice_after()[try!(cap.pos(0).ok_or(err)).1 ..];
+        let (hex, tail) = try!(esc(s).ok_or(err));
+        let hex = &s[(hex.0)..(hex.1)];
+        let tail = &s[tail..];
         let usv = try!(u32::from_str_radix(hex, 16).map_err(|_| InvalidValue));
         if is_x_esc && usv > 0x7f {
             return Err(InvalidValue);
@@ -78,6 +77,80 @@ impl StrUtil for str {
         let cp = try!(::std::char::from_u32(usv).ok_or(InvalidValue));
         Ok((cp, tail))
     }
+}
+
+/**
+Extension trait for Unicode tables.
+*/
+pub trait TableUtil<T: Ord> {
+    /**
+    Determines whether or not the given character is in the table.
+    */
+    fn span_table_contains(&self, e: &T) -> bool;
+}
+
+impl<T: Ord> TableUtil<T> for [(T, T)] {
+    fn span_table_contains(&self, e: &T) -> bool {
+        use std::cmp::Ordering::*;
+        let len = self.len();
+
+        let mut lo = 0;
+        let mut hi = len;
+        while lo < hi && hi <= len {
+            let mid = lo + (hi - lo) / 2;
+            let mid_e = &self[mid];
+            match e.cmp(&mid_e.0) {
+                Less => hi = mid,
+                Equal => return true,
+                Greater => {
+                    match e.cmp(&mid_e.1) {
+                        Less | Equal => return true,
+                        Greater => lo = mid + 1,
+                    }
+                }
+            }
+        }
+
+        false
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn test_span_table_contains() {
+    use ::unicode::general_category::Nd_table as Nd;
+
+    // ('\u{30}', '\u{39}')
+    assert_eq!(Nd.span_table_contains(&'/'), false);
+    assert_eq!(Nd.span_table_contains(&'0'), true);
+    assert_eq!(Nd.span_table_contains(&'1'), true);
+    assert_eq!(Nd.span_table_contains(&'2'), true);
+    assert_eq!(Nd.span_table_contains(&'3'), true);
+    assert_eq!(Nd.span_table_contains(&'4'), true);
+    assert_eq!(Nd.span_table_contains(&'5'), true);
+    assert_eq!(Nd.span_table_contains(&'6'), true);
+    assert_eq!(Nd.span_table_contains(&'7'), true);
+    assert_eq!(Nd.span_table_contains(&'8'), true);
+    assert_eq!(Nd.span_table_contains(&'9'), true);
+    assert_eq!(Nd.span_table_contains(&':'), false);
+
+    // ('\u{1090}', '\u{1099}')
+    assert_eq!(Nd.span_table_contains(&'\u{108f}'), false);
+    assert_eq!(Nd.span_table_contains(&'\u{1090}'), true);
+    assert_eq!(Nd.span_table_contains(&'\u{1099}'), true);
+    assert_eq!(Nd.span_table_contains(&'\u{109a}'), false);
+
+    // ('\u{111d0}', '\u{111d9}')
+    assert_eq!(Nd.span_table_contains(&'\u{111cf}'), false);
+    assert_eq!(Nd.span_table_contains(&'\u{111d0}'), true);
+    assert_eq!(Nd.span_table_contains(&'\u{111d9}'), true);
+    assert_eq!(Nd.span_table_contains(&'\u{111da}'), false);
+
+    // ('\u{1d7ce}', '\u{1d7ff}')
+    assert_eq!(Nd.span_table_contains(&'\u{1d7cd}'), false);
+    assert_eq!(Nd.span_table_contains(&'\u{1d7ce}'), true);
+    assert_eq!(Nd.span_table_contains(&'\u{1d7ff}'), true);
+    assert_eq!(Nd.span_table_contains(&'\u{1d800}'), false);
 }
 
 /**
@@ -162,4 +235,40 @@ fn test_split_escape_default() {
     assert_eq!("u{80}".split_escape_default(), Ok(('\u{80}', "")));
     assert_eq!("u{2764}".split_escape_default(), Ok(('❤', "")));
     assert_eq!("u{110000}".split_escape_default(), Err(InvalidValue));
+}
+
+fn match_hex_esc(s: &str) -> Option<((usize, usize), usize)> {
+    if s.bytes().take_while(|b| is_xdigit(*b)).take(2).count() == 2 {
+        Some(((0, 2), 2))
+    } else {
+        None
+    }
+}
+
+fn match_uni_esc(s: &str) -> Option<((usize, usize), usize)> {
+    let mut bs = s.bytes().enumerate();
+    match bs.next() {
+        Some((_, b'{')) => (),
+        _ => return None,
+    }
+    match bs.next() {
+        Some((_, b)) if is_xdigit(b) => (),
+        _ => return None,
+    }
+    while let Some((i, b)) = bs.next() {
+        if is_xdigit(b) { /* do nothing */ }
+        else if b == b'}' {
+            return Some(((1, i), i+1));
+        } else {
+            return None;
+        }
+    }
+    None
+}
+
+fn is_xdigit(b: u8) -> bool {
+    match b {
+        b'0'...b'9' | b'a'...b'f' | b'A'...b'F' => true,
+        _ => false,
+    }
 }

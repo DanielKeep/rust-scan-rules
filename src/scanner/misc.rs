@@ -11,7 +11,6 @@ or distributed except according to those terms.
 Miscellaneous, abstract scanners.
 */
 use std::marker::PhantomData;
-use regex::Regex;
 use strcursor::StrCursor;
 use ::ScanError;
 use ::input::ScanInput;
@@ -20,16 +19,6 @@ use super::{
     ScanFromStr, ScanSelfFromStr,
     ScanFromBinary, ScanFromOctal, ScanFromHex,
 };
-
-lazy_static! {
-    static ref IDENT_RE: Regex = Regex::new(r"^(\p{XID_Start}|_)\p{XID_Continue}*").unwrap();
-    static ref LINE_RE: Regex = Regex::new(r"^(.*?)(\n|\r\n|\r|$)").unwrap();
-    static ref NONSPACE_RE: Regex = Regex::new(r"^\S+").unwrap();
-    static ref NUMBER_RE: Regex = Regex::new(r"^\d+").unwrap();
-    static ref SPACE_RE: Regex = Regex::new(r"^\s+").unwrap();
-    static ref WORD_RE: Regex = Regex::new(r"^\w+").unwrap();
-    static ref WORDISH_RE: Regex = Regex::new(r"^(\d+|\w+|\S)").unwrap();
-}
 
 /**
 Scans the given `Output` type from its binary representation.
@@ -132,9 +121,9 @@ impl<'a> ScanFromStr<'a> for Ident<'a, &'a str> {
     type Output = &'a str;
     fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
         let s = s.as_str();
-        match IDENT_RE.find(s) {
-            Some((a, b)) => {
-                let word = &s[a..b];
+        match match_ident(s) {
+            Some(b) => {
+                let word = &s[..b];
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
@@ -152,9 +141,9 @@ impl<'a> ScanFromStr<'a> for Ident<'a, String> {
     type Output = String;
     fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
         let s = s.as_str();
-        match IDENT_RE.find(s) {
-            Some((a, b)) => {
-                let word = &s[a..b];
+        match match_ident(s) {
+            Some(b) => {
+                let word = &s[..b];
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
@@ -173,9 +162,9 @@ where &'a str: Into<Output> {
     type Output = Output;
     fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
         let s = s.as_str();
-        match IDENT_RE.find(s) {
-            Some((a, b)) => {
-                let word = &s[a..b];
+        match match_ident(s) {
+            Some(b) => {
+                let word = &s[..b];
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
@@ -187,11 +176,34 @@ where &'a str: Into<Output> {
     }
 }
 
+fn match_ident(s: &str) -> Option<usize> {
+    use ::util::TableUtil;
+    use ::unicode::derived_property::{XID_Continue_table, XID_Start_table};
+
+    let mut ics = s.char_indices();
+
+    let first_len = match ics.next() {
+        Some((_, '_')) => 1,
+        Some((_, c)) if XID_Start_table.span_table_contains(&c) => c.len_utf8(),
+        _ => return None,
+    };
+
+    let len = ics
+        .take_while(|&(_, c)| XID_Continue_table.span_table_contains(&c))
+        .map(|(i, c)| i + c.len_utf8())
+        .last()
+        .unwrap_or(first_len);
+
+    Some(len)
+}
+
 #[cfg(test)]
 #[test]
 fn test_ident() {
     use ::ScanError as SE;
     use ::ScanErrorKind as SEK;
+
+    assert_eq!(match_ident("a"), Some(1));
 
     assert_match!(Ident::<&str>::scan_from(""), Err(SE { kind: SEK::SyntaxNoMessage, .. }));
     assert_match!(Ident::<&str>::scan_from("a"), Ok(("a", 1)));
@@ -233,11 +245,8 @@ impl<'a> ScanFromStr<'a> for Line<'a, &'a str> {
     type Output = &'a str;
     fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
         let s = s.as_str();
-        const EX_MSG: &'static str = "line scanning regex failed to match anything";
-        let cap = LINE_RE.captures(s).expect(EX_MSG);
-        let (_, b) = cap.pos(0).expect(EX_MSG);
-        let (c, d) = cap.pos(1).expect(EX_MSG);
-        Ok((s[c..d].into(), b))
+        let (a, b) = match_line(s);
+        Ok((s[..a].into(), b))
     }
 }
 
@@ -246,11 +255,8 @@ impl<'a> ScanFromStr<'a> for Line<'a, String> {
     type Output = String;
     fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
         let s = s.as_str();
-        const EX_MSG: &'static str = "line scanning regex failed to match anything";
-        let cap = LINE_RE.captures(s).expect(EX_MSG);
-        let (_, b) = cap.pos(0).expect(EX_MSG);
-        let (c, d) = cap.pos(1).expect(EX_MSG);
-        Ok((s[c..d].into(), b))
+        let (a, b) = match_line(s);
+        Ok((s[..a].into(), b))
     }
 }
 
@@ -259,11 +265,33 @@ impl<'a, Output> ScanFromStr<'a> for Line<'a, Output> where &'a str: Into<Output
     type Output = Output;
     fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
         let s = s.as_str();
-        const EX_MSG: &'static str = "line scanning regex failed to match anything";
-        let cap = LINE_RE.captures(s).expect(EX_MSG);
-        let (_, b) = cap.pos(0).expect(EX_MSG);
-        let (c, d) = cap.pos(1).expect(EX_MSG);
-        Ok((s[c..d].into(), b))
+        let (a, b) = match_line(s);
+        Ok((s[..a].into(), b))
+    }
+}
+
+fn match_line(s: &str) -> (usize, usize) {
+    let mut ibs = s.bytes().enumerate();
+
+    let line_end;
+
+    loop {
+        match ibs.next() {
+            Some((i, b'\r')) => {
+                line_end = i;
+                break;
+            },
+            Some((i, b'\n')) => return (i, i+1),
+            Some(_) => (),
+            None => return (s.len(), s.len()),
+        }
+    }
+
+    // If we get here, it's because we found an `\r` and need to look for an `\n`.
+    if let Some((_, b'\n')) = ibs.next() {
+        (line_end, line_end + 2)
+    } else {
+        (line_end, line_end + 1)
     }
 }
 
@@ -290,9 +318,9 @@ impl<'a> ScanFromStr<'a> for NonSpace<'a, &'a str> {
     type Output = &'a str;
     fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
         let s = s.as_str();
-        match NONSPACE_RE.find(s) {
-            Some((a, b)) => {
-                let word = &s[a..b];
+        match match_non_space(s) {
+            Some(b) => {
+                let word = &s[..b];
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
@@ -308,9 +336,9 @@ impl<'a> ScanFromStr<'a> for NonSpace<'a, String> {
     type Output = String;
     fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
         let s = s.as_str();
-        match NONSPACE_RE.find(s) {
-            Some((a, b)) => {
-                let word = &s[a..b];
+        match match_non_space(s) {
+            Some(b) => {
+                let word = &s[..b];
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
@@ -327,9 +355,9 @@ where &'a str: Into<Output> {
     type Output = Output;
     fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
         let s = s.as_str();
-        match NONSPACE_RE.find(s) {
-            Some((a, b)) => {
-                let word = &s[a..b];
+        match match_non_space(s) {
+            Some(b) => {
+                let word = &s[..b];
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
@@ -337,6 +365,16 @@ where &'a str: Into<Output> {
             None => Err(ScanError::syntax_no_message())
         }
     }
+}
+
+fn match_non_space(s: &str) -> Option<usize> {
+    use ::util::TableUtil;
+    use ::unicode::property::White_Space_table as WS;
+
+    s.char_indices()
+        .take_while(|&(_, c)| !WS.span_table_contains(&c))
+        .map(|(i, c)| i + c.len_utf8())
+        .last()
 }
 
 #[cfg(test)]
@@ -372,9 +410,9 @@ impl<'a> ScanFromStr<'a> for Number<'a, &'a str> {
     type Output = &'a str;
     fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
         let s = s.as_str();
-        match NUMBER_RE.find(s) {
-            Some((a, b)) => {
-                let word = &s[a..b];
+        match match_number(s) {
+            Some(b) => {
+                let word = &s[..b];
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
@@ -390,9 +428,9 @@ impl<'a> ScanFromStr<'a> for Number<'a, String> {
     type Output = String;
     fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
         let s = s.as_str();
-        match NUMBER_RE.find(s) {
-            Some((a, b)) => {
-                let word = &s[a..b];
+        match match_number(s) {
+            Some(b) => {
+                let word = &s[..b];
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
@@ -409,9 +447,9 @@ where &'a str: Into<Output> {
     type Output = Output;
     fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
         let s = s.as_str();
-        match NUMBER_RE.find(s) {
-            Some((a, b)) => {
-                let word = &s[a..b];
+        match match_number(s) {
+            Some(b) => {
+                let word = &s[..b];
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
@@ -419,6 +457,16 @@ where &'a str: Into<Output> {
             None => Err(ScanError::syntax_no_message()),
         }
     }
+}
+
+fn match_number(s: &str) -> Option<usize> {
+    use ::util::TableUtil;
+    use ::unicode::general_category::Nd_table as Nd;
+
+    s.char_indices()
+        .take_while(|&(_, c)| Nd.span_table_contains(&c))
+        .map(|(i, c)| i + c.len_utf8())
+        .last()
 }
 
 #[cfg(test)]
@@ -576,9 +624,9 @@ impl<'a> ScanFromStr<'a> for Space<'a, &'a str> {
 
     fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
         let s = s.as_str();
-        match SPACE_RE.find(s) {
-            Some((a, b)) => {
-                let word = &s[a..b];
+        match match_space(s) {
+            Some(b) => {
+                let word = &s[..b];
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
@@ -597,9 +645,9 @@ impl<'a> ScanFromStr<'a> for Space<'a, String> {
 
     fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
         let s = s.as_str();
-        match SPACE_RE.find(s) {
-            Some((a, b)) => {
-                let word = &s[a..b];
+        match match_space(s) {
+            Some(b) => {
+                let word = &s[..b];
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
@@ -619,9 +667,9 @@ where &'a str: Into<Output> {
 
     fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
         let s = s.as_str();
-        match SPACE_RE.find(s) {
-            Some((a, b)) => {
-                let word = &s[a..b];
+        match match_space(s) {
+            Some(b) => {
+                let word = &s[..b];
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
@@ -631,6 +679,16 @@ where &'a str: Into<Output> {
     }
 
     fn wants_leading_junk_stripped() -> bool { false }
+}
+
+fn match_space(s: &str) -> Option<usize> {
+    use ::util::TableUtil;
+    use ::unicode::property::White_Space_table as WS;
+
+    s.char_indices()
+        .take_while(|&(_, c)| WS.span_table_contains(&c))
+        .map(|(i, c)| i + c.len_utf8())
+        .last()
 }
 
 #[cfg(test)]
@@ -664,9 +722,9 @@ impl<'a> ScanFromStr<'a> for Word<'a, &'a str> {
     type Output = &'a str;
     fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
         let s = s.as_str();
-        match WORD_RE.find(s) {
-            Some((a, b)) => {
-                let word = &s[a..b];
+        match match_word(s) {
+            Some(b) => {
+                let word = &s[..b];
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
@@ -682,9 +740,9 @@ impl<'a> ScanFromStr<'a> for Word<'a, String> {
     type Output = String;
     fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
         let s = s.as_str();
-        match WORD_RE.find(s) {
-            Some((a, b)) => {
-                let word = &s[a..b];
+        match match_word(s) {
+            Some(b) => {
+                let word = &s[..b];
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
@@ -701,9 +759,9 @@ where &'a str: Into<Output> {
     type Output = Output;
     fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
         let s = s.as_str();
-        match WORD_RE.find(s) {
-            Some((a, b)) => {
-                let word = &s[a..b];
+        match match_word(s) {
+            Some(b) => {
+                let word = &s[..b];
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
@@ -711,6 +769,16 @@ where &'a str: Into<Output> {
             None => Err(ScanError::syntax_no_message()),
         }
     }
+}
+
+fn match_word(s: &str) -> Option<usize> {
+    use ::util::TableUtil;
+    use ::unicode::regex::PERLW as W;
+
+    s.char_indices()
+        .take_while(|&(_, c)| W.span_table_contains(&c))
+        .map(|(i, c)| i + c.len_utf8())
+        .last()
 }
 
 #[cfg(test)]
@@ -746,9 +814,9 @@ impl<'a> ScanFromStr<'a> for Wordish<'a, &'a str> {
     fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
         let s = s.as_str();
         // TODO: This should be modified to grab an entire *grapheme cluster* in the event it can't find a word or number.
-        match WORDISH_RE.find(s) {
-            Some((a, b)) => {
-                let word = &s[a..b];
+        match match_wordish(s) {
+            Some(b) => {
+                let word = &s[..b];
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
@@ -765,9 +833,9 @@ impl<'a> ScanFromStr<'a> for Wordish<'a, String> {
     fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
         let s = s.as_str();
         // TODO: This should be modified to grab an entire *grapheme cluster* in the event it can't find a word or number.
-        match WORDISH_RE.find(s) {
-            Some((a, b)) => {
-                let word = &s[a..b];
+        match match_wordish(s) {
+            Some(b) => {
+                let word = &s[..b];
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
@@ -785,14 +853,29 @@ where &'a str: Into<Output> {
     fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
         let s = s.as_str();
         // TODO: This should be modified to grab an entire *grapheme cluster* in the event it can't find a word or number.
-        match WORDISH_RE.find(s) {
-            Some((a, b)) => {
-                let word = &s[a..b];
+        match match_wordish(s) {
+            Some(b) => {
+                let word = &s[..b];
                 let tail = &s[b..];
                 Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
             },
             // None => Err(ScanError::syntax("expected a word, number or some other character")),
             None => Err(ScanError::syntax_no_message()),
         }
+    }
+}
+
+fn match_wordish(s: &str) -> Option<usize> {
+    use ::util::TableUtil;
+    use ::unicode::regex::PERLW;
+
+    let word_len = s.char_indices()
+        .take_while(|&(_, c)| PERLW.span_table_contains(&c))
+        .map(|(i, c)| i + c.len_utf8())
+        .last();
+
+    match word_len {
+        Some(n) => Some(n),
+        None => s.chars().next().map(|c| c.len_utf8()),
     }
 }

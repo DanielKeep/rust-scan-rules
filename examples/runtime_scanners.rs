@@ -9,12 +9,13 @@ or distributed except according to those terms.
 */
 #[macro_use] extern crate scan_rules;
 
-use scan_rules::scanner::{
-    NonSpace, Number, Word,             // static scanners
-    max_width_a, exact_width_a, re_str, // runtime scanners
-};
-
+#[cfg(feature="regex")]
 fn main() {
+    use scan_rules::scanner::{
+        NonSpace, Number, Word,             // static scanners
+        max_width_a, exact_width_a, re_str, // runtime scanners
+    };
+
     // Adapted example from <http://en.cppreference.com/w/cpp/io/c/fscanf>.
     let inp = "25 54.32E-1 Thompson 56789 0123 56ß水";
 
@@ -43,4 +44,9 @@ fn main() {
             warr = {warr:?}",
         i=i, j=j, x=x, y=y,
         str1=str1, str2=str2, warr=warr);
+}
+
+#[cfg(not(feature="regex"))]
+fn main() {
+    panic!("This example requires the `regex` feature.");
 }

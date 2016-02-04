@@ -25,7 +25,7 @@ fn test_tom() {
 
     assert_match!(
         scan!(inp; ("Hi, my name is Major", let name: Word, "! I was born in 1947.") => name),
-        Err(ScanError { ref at, kind: ScanErrorKind::LiteralMismatch, .. }) if at.offset() == 29
+        Err(ScanError { ref at, kind: ScanErrorKind::LiteralMismatch, .. }) if at.offset() == 45
     );
 
     assert_match!(

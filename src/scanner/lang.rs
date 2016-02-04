@@ -10,33 +10,12 @@ or distributed except according to those terms.
 /*!
 Implementations of `ScanFromStr` for primitive language types.
 */
-use regex::Regex;
+use itertools::Itertools;
 use strcursor::StrCursor;
 use ::ScanError;
 use ::input::ScanInput;
 use super::ScanFromStr;
 use super::misc::Word;
-
-lazy_static! {
-    static ref BININT_RE: Regex = Regex::new(r"^[01]+").unwrap();
-    static ref FLOAT_RE: Regex = Regex::new(r#"(?x)
-        ^(
-              inf
-            | -inf
-            | NaN
-            | -? (
-                  \d+ \. \d+ [eE] -? \d+
-                | \d+ \. \d+
-                | \d+ [eE] -? \d+
-                | \d+ \.?
-            )
-        )
-    "#).unwrap();
-    static ref OCTINT_RE: Regex = Regex::new(r"^[0-7]+").unwrap();
-    static ref HEXINT_RE: Regex = Regex::new(r"^[:xdigit:]+").unwrap();
-    static ref SINTEGER_RE: Regex = Regex::new(r"^[+-]?\d+").unwrap();
-    static ref UINTEGER_RE: Regex = Regex::new(r"^[+]?\d+").unwrap();
-}
 
 parse_scanner! { impl<'a> for bool, from Word, err desc "expected `true` or `false`" }
 
@@ -84,8 +63,85 @@ fn test_scan_char() {
     assert_match!(<char>::scan_from("字"), Ok(('字', 3)));
 }
 
-parse_scanner! { impl<'a> for f32, regex FLOAT_RE, regex err "expected floating point number", err map ScanError::float }
-parse_scanner! { impl<'a> for f64, regex FLOAT_RE, regex err "expected floating point number", err map ScanError::float }
+parse_scanner! { impl<'a> for f32, matcher match_float, matcher err "expected floating point number", err map ScanError::float }
+parse_scanner! { impl<'a> for f64, matcher match_float, matcher err "expected floating point number", err map ScanError::float }
+
+fn match_float(s: &str) -> Option<((usize, usize), usize)> {
+    use std::iter::Peekable;
+
+    // First, check for one of the named constants.
+    if s.starts_with("inf") {
+        if s[3..].chars().next().map(|c| !c.is_alphabetic()).unwrap_or(true) {
+            return Some(((0, 3), 3));
+        }
+    }
+
+    if s.starts_with("-inf") {
+        if s[4..].chars().next().map(|c| !c.is_alphabetic()).unwrap_or(true) {
+            return Some(((0, 4), 4));
+        }
+    }
+
+    if s.starts_with("NaN") {
+        if s[3..].chars().next().map(|c| !c.is_alphabetic()).unwrap_or(true) {
+            return Some(((0, 3), 3));
+        }
+    }
+
+    // Ok, try scanning an actual number.
+    let mut ibs = s.bytes().enumerate().peekable();
+
+    match ibs.peek().map(|&(_, b)| b) {
+        Some(b'-') | Some(b'+') => { ibs.next(); },
+        _ => ()
+    }
+
+    // Skip over leading integer part.
+    println!("before: {:?}", ibs.peek());
+    let _ = (&mut ibs)
+        .take_while_ref(|&(_, b)| matches!(b, b'0'...b'9'))
+        .count();
+    println!("after:  {:?}", ibs.peek());
+
+    // At this point, we *must* get *either* a decimal point *or* an "e".
+    fn match_exp<I: Iterator<Item=(usize, u8)>>(mut ibs: Peekable<I>)
+    -> Option<((usize, usize), usize)> {
+
+        match ibs.peek().map(|&(_, b)| b) {
+            Some(b'-') | Some(b'+') => { ibs.next(); },
+            _ => ()
+        }
+
+        ibs.take_while(|&(_, b)| matches!(b, b'0'...b'9'))
+            .last()
+            .map(|(i, _)| i + 1)
+            .map(|n| ((0, n), n))
+    }
+
+    match ibs.next() {
+        Some((i, b'.')) => {
+            // There *might* be another sequence of digits.
+            let end = (&mut ibs)
+                .take_while_ref(|&(_, b)| matches!(b, b'0'...b'9'))
+                .map(|(i, _)| i + 1)
+                .last()
+                .unwrap_or(i + 1);
+            
+            // Finally, there *might* be an exponent
+            match ibs.peek().map(|&(_, b)| b) {
+                Some(b'e') | Some(b'E') => {
+                    ibs.next();
+                    match_exp(ibs)
+                },
+                _ => Some(((0, end), end))
+            }
+        },
+
+        Some((_, b'e')) | Some((_, b'E')) => match_exp(ibs),
+
+        _ => None
+    }
+}
 
 #[cfg(test)]
 #[test]
@@ -163,29 +219,29 @@ fn test_scan_f64_debug_is_roundtrip_accurate() {
     check_f64!(4.9406564584124654e-324);
 }
 
-parse_scanner! { impl<'a> for i8, regex SINTEGER_RE, regex err "expected integer", err map ScanError::int }
-parse_scanner! { impl<'a> for i16, regex SINTEGER_RE, regex err "expected integer", err map ScanError::int }
-parse_scanner! { impl<'a> for i32, regex SINTEGER_RE, regex err "expected integer", err map ScanError::int }
-parse_scanner! { impl<'a> for i64, regex SINTEGER_RE, regex err "expected integer", err map ScanError::int }
-parse_scanner! { impl<'a> for isize, regex SINTEGER_RE, regex err "expected integer", err map ScanError::int }
+parse_scanner! { impl<'a> for i8, matcher match_sinteger, matcher err "expected integer", err map ScanError::int }
+parse_scanner! { impl<'a> for i16, matcher match_sinteger, matcher err "expected integer", err map ScanError::int }
+parse_scanner! { impl<'a> for i32, matcher match_sinteger, matcher err "expected integer", err map ScanError::int }
+parse_scanner! { impl<'a> for i64, matcher match_sinteger, matcher err "expected integer", err map ScanError::int }
+parse_scanner! { impl<'a> for isize, matcher match_sinteger, matcher err "expected integer", err map ScanError::int }
 
-parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for i8, regex BININT_RE, regex err "expected binary integer", map |s| i8::from_str_radix(s, 2), err map ScanError::int }
-parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for i16, regex BININT_RE, regex err "expected binary integer", map |s| i16::from_str_radix(s, 2), err map ScanError::int }
-parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for i32, regex BININT_RE, regex err "expected binary integer", map |s| i32::from_str_radix(s, 2), err map ScanError::int }
-parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for i64, regex BININT_RE, regex err "expected binary integer", map |s| i64::from_str_radix(s, 2), err map ScanError::int }
-parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for isize, regex BININT_RE, regex err "expected binary integer", map |s| isize::from_str_radix(s, 2), err map ScanError::int }
+parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for i8, matcher match_bin_int, matcher err "expected binary integer", map |s| i8::from_str_radix(s, 2), err map ScanError::int }
+parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for i16, matcher match_bin_int, matcher err "expected binary integer", map |s| i16::from_str_radix(s, 2), err map ScanError::int }
+parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for i32, matcher match_bin_int, matcher err "expected binary integer", map |s| i32::from_str_radix(s, 2), err map ScanError::int }
+parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for i64, matcher match_bin_int, matcher err "expected binary integer", map |s| i64::from_str_radix(s, 2), err map ScanError::int }
+parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for isize, matcher match_bin_int, matcher err "expected binary integer", map |s| isize::from_str_radix(s, 2), err map ScanError::int }
 
-parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for i8, regex OCTINT_RE, regex err "expected octal integer", map |s| i8::from_str_radix(s, 8), err map ScanError::int }
-parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for i16, regex OCTINT_RE, regex err "expected octal integer", map |s| i16::from_str_radix(s, 8), err map ScanError::int }
-parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for i32, regex OCTINT_RE, regex err "expected octal integer", map |s| i32::from_str_radix(s, 8), err map ScanError::int }
-parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for i64, regex OCTINT_RE, regex err "expected octal integer", map |s| i64::from_str_radix(s, 8), err map ScanError::int }
-parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for isize, regex OCTINT_RE, regex err "expected octal integer", map |s| isize::from_str_radix(s, 8), err map ScanError::int }
+parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for i8, matcher match_oct_int, matcher err "expected octal integer", map |s| i8::from_str_radix(s, 8), err map ScanError::int }
+parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for i16, matcher match_oct_int, matcher err "expected octal integer", map |s| i16::from_str_radix(s, 8), err map ScanError::int }
+parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for i32, matcher match_oct_int, matcher err "expected octal integer", map |s| i32::from_str_radix(s, 8), err map ScanError::int }
+parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for i64, matcher match_oct_int, matcher err "expected octal integer", map |s| i64::from_str_radix(s, 8), err map ScanError::int }
+parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for isize, matcher match_oct_int, matcher err "expected octal integer", map |s| isize::from_str_radix(s, 8), err map ScanError::int }
 
-parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for i8, regex HEXINT_RE, regex err "expected hex integer", map |s| i8::from_str_radix(s, 16), err map ScanError::int }
-parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for i16, regex HEXINT_RE, regex err "expected hex integer", map |s| i16::from_str_radix(s, 16), err map ScanError::int }
-parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for i32, regex HEXINT_RE, regex err "expected hex integer", map |s| i32::from_str_radix(s, 16), err map ScanError::int }
-parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for i64, regex HEXINT_RE, regex err "expected hex integer", map |s| i64::from_str_radix(s, 16), err map ScanError::int }
-parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for isize, regex HEXINT_RE, regex err "expected hex integer", map |s| isize::from_str_radix(s, 16), err map ScanError::int }
+parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for i8, matcher match_hex_int, matcher err "expected hex integer", map |s| i8::from_str_radix(s, 16), err map ScanError::int }
+parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for i16, matcher match_hex_int, matcher err "expected hex integer", map |s| i16::from_str_radix(s, 16), err map ScanError::int }
+parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for i32, matcher match_hex_int, matcher err "expected hex integer", map |s| i32::from_str_radix(s, 16), err map ScanError::int }
+parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for i64, matcher match_hex_int, matcher err "expected hex integer", map |s| i64::from_str_radix(s, 16), err map ScanError::int }
+parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for isize, matcher match_hex_int, matcher err "expected hex integer", map |s| isize::from_str_radix(s, 16), err map ScanError::int }
 
 #[cfg(test)]
 #[test]
@@ -205,29 +261,29 @@ fn test_scan_i32() {
     assert_match!(<i32>::scan_from("1_234"), Ok((1, 1)));
 }
 
-parse_scanner! { impl<'a> for u8, regex UINTEGER_RE, regex err "expected integer", err map ScanError::int }
-parse_scanner! { impl<'a> for u16, regex UINTEGER_RE, regex err "expected integer", err map ScanError::int }
-parse_scanner! { impl<'a> for u32, regex UINTEGER_RE, regex err "expected integer", err map ScanError::int }
-parse_scanner! { impl<'a> for u64, regex UINTEGER_RE, regex err "expected integer", err map ScanError::int }
-parse_scanner! { impl<'a> for usize, regex UINTEGER_RE, regex err "expected integer", err map ScanError::int }
+parse_scanner! { impl<'a> for u8, matcher match_uinteger, matcher err "expected integer", err map ScanError::int }
+parse_scanner! { impl<'a> for u16, matcher match_uinteger, matcher err "expected integer", err map ScanError::int }
+parse_scanner! { impl<'a> for u32, matcher match_uinteger, matcher err "expected integer", err map ScanError::int }
+parse_scanner! { impl<'a> for u64, matcher match_uinteger, matcher err "expected integer", err map ScanError::int }
+parse_scanner! { impl<'a> for usize, matcher match_uinteger, matcher err "expected integer", err map ScanError::int }
 
-parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for u8, regex BININT_RE, regex err "expected binary integer", map |s| u8::from_str_radix(s, 2), err map ScanError::int }
-parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for u16, regex BININT_RE, regex err "expected binary integer", map |s| u16::from_str_radix(s, 2), err map ScanError::int }
-parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for u32, regex BININT_RE, regex err "expected binary integer", map |s| u32::from_str_radix(s, 2), err map ScanError::int }
-parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for u64, regex BININT_RE, regex err "expected binary integer", map |s| u64::from_str_radix(s, 2), err map ScanError::int }
-parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for usize, regex BININT_RE, regex err "expected binary integer", map |s| usize::from_str_radix(s, 2), err map ScanError::int }
+parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for u8, matcher match_bin_int, matcher err "expected binary integer", map |s| u8::from_str_radix(s, 2), err map ScanError::int }
+parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for u16, matcher match_bin_int, matcher err "expected binary integer", map |s| u16::from_str_radix(s, 2), err map ScanError::int }
+parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for u32, matcher match_bin_int, matcher err "expected binary integer", map |s| u32::from_str_radix(s, 2), err map ScanError::int }
+parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for u64, matcher match_bin_int, matcher err "expected binary integer", map |s| u64::from_str_radix(s, 2), err map ScanError::int }
+parse_scanner! { impl<'a> ScanFromBinary::scan_from_binary for usize, matcher match_bin_int, matcher err "expected binary integer", map |s| usize::from_str_radix(s, 2), err map ScanError::int }
 
-parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for u8, regex OCTINT_RE, regex err "expected octal integer", map |s| u8::from_str_radix(s, 8), err map ScanError::int }
-parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for u16, regex OCTINT_RE, regex err "expected octal integer", map |s| u16::from_str_radix(s, 8), err map ScanError::int }
-parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for u32, regex OCTINT_RE, regex err "expected octal integer", map |s| u32::from_str_radix(s, 8), err map ScanError::int }
-parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for u64, regex OCTINT_RE, regex err "expected octal integer", map |s| u64::from_str_radix(s, 8), err map ScanError::int }
-parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for usize, regex OCTINT_RE, regex err "expected octal integer", map |s| usize::from_str_radix(s, 8), err map ScanError::int }
+parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for u8, matcher match_oct_int, matcher err "expected octal integer", map |s| u8::from_str_radix(s, 8), err map ScanError::int }
+parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for u16, matcher match_oct_int, matcher err "expected octal integer", map |s| u16::from_str_radix(s, 8), err map ScanError::int }
+parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for u32, matcher match_oct_int, matcher err "expected octal integer", map |s| u32::from_str_radix(s, 8), err map ScanError::int }
+parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for u64, matcher match_oct_int, matcher err "expected octal integer", map |s| u64::from_str_radix(s, 8), err map ScanError::int }
+parse_scanner! { impl<'a> ScanFromOctal::scan_from_octal for usize, matcher match_oct_int, matcher err "expected octal integer", map |s| usize::from_str_radix(s, 8), err map ScanError::int }
 
-parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for u8, regex HEXINT_RE, regex err "expected hex integer", map |s| u8::from_str_radix(s, 16), err map ScanError::int }
-parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for u16, regex HEXINT_RE, regex err "expected hex integer", map |s| u16::from_str_radix(s, 16), err map ScanError::int }
-parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for u32, regex HEXINT_RE, regex err "expected hex integer", map |s| u32::from_str_radix(s, 16), err map ScanError::int }
-parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for u64, regex HEXINT_RE, regex err "expected hex integer", map |s| u64::from_str_radix(s, 16), err map ScanError::int }
-parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for usize, regex HEXINT_RE, regex err "expected hex integer", map |s| usize::from_str_radix(s, 16), err map ScanError::int }
+parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for u8, matcher match_hex_int, matcher err "expected hex integer", map |s| u8::from_str_radix(s, 16), err map ScanError::int }
+parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for u16, matcher match_hex_int, matcher err "expected hex integer", map |s| u16::from_str_radix(s, 16), err map ScanError::int }
+parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for u32, matcher match_hex_int, matcher err "expected hex integer", map |s| u32::from_str_radix(s, 16), err map ScanError::int }
+parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for u64, matcher match_hex_int, matcher err "expected hex integer", map |s| u64::from_str_radix(s, 16), err map ScanError::int }
+parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for usize, matcher match_hex_int, matcher err "expected hex integer", map |s| usize::from_str_radix(s, 16), err map ScanError::int }
 
 #[cfg(test)]
 #[test]
@@ -245,4 +301,57 @@ fn test_scan_u32() {
     assert_match!(<u32>::scan_from("42"), Ok((42, 2)));
     assert_match!(<u32>::scan_from("-312"), Err(SE { kind: SEK::Syntax(_), .. }));
     assert_match!(<u32>::scan_from("1_234"), Ok((1, 1)));
+}
+
+fn match_bin_int(s: &str) -> Option<((usize, usize), usize)> {
+    s.bytes().enumerate()
+        .take_while(|&(_, b)| matches!(b, b'0' | b'1'))
+        .last()
+        .map(|(i, _)| i + 1)
+        .map(|n| ((0, n), n))
+}
+
+fn match_hex_int(s: &str) -> Option<((usize, usize), usize)> {
+    s.bytes().enumerate()
+        .take_while(|&(_, b)|
+            matches!(b, b'0'...b'9' | b'a'...b'f' | b'A'...b'F'))
+        .last()
+        .map(|(i, _)| i + 1)
+        .map(|n| ((0, n), n))
+}
+
+fn match_oct_int(s: &str) -> Option<((usize, usize), usize)> {
+    s.bytes().enumerate()
+        .take_while(|&(_, b)| matches!(b, b'0'...b'7'))
+        .last()
+        .map(|(i, _)| i + 1)
+        .map(|n| ((0, n), n))
+}
+
+fn match_sinteger(s: &str) -> Option<((usize, usize), usize)> {
+    let mut ibs = s.bytes().enumerate().peekable();
+
+    match ibs.peek().map(|&(_, b)| b) {
+        Some(b'-') | Some(b'+') => { ibs.next(); },
+        _ => (),
+    }
+
+    ibs.take_while(|&(_, b)| matches!(b, b'0'...b'9'))
+        .last()
+        .map(|(i, _)| i + 1)
+        .map(|n| ((0, n), n))
+}
+
+fn match_uinteger(s: &str) -> Option<((usize, usize), usize)> {
+    let mut ibs = s.bytes().enumerate().peekable();
+
+    match ibs.peek().map(|&(_, b)| b) {
+        Some(b'+') => { ibs.next(); },
+        _ => (),
+    }
+
+    ibs.take_while(|&(_, b)| matches!(b, b'0'...b'9'))
+        .last()
+        .map(|(i, _)| i + 1)
+        .map(|n| ((0, n), n))
 }

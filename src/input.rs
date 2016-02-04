@@ -21,17 +21,7 @@ The short version is this:
 use std::borrow::Cow;
 use std::marker::PhantomData;
 use itertools::Itertools;
-use regex::Regex;
 use ::ScanError;
-
-lazy_static! {
-    /**
-    This regex defines what the default literal matching code considers a "part" for the purposes of comparison.
-
-    Specifically, it should be a contiguous sequence of letters *or* a single, non-whitespace character.
-    */
-    static ref LITERAL_PART_RE: Regex = Regex::new(r"(\w+|\S)").unwrap();
-}
 
 /**
 Conversion into a `ScanCursor`.
@@ -162,28 +152,44 @@ Basic cursor implementation wrapping a string slice.
 The `Cmp` parameter can be used to control the string comparison logic used.
 */
 #[derive(Debug)]
-pub struct StrCursor<'a, Cmp=ExactCompare>
-where Cmp: StrCompare {
+pub struct StrCursor<'a, Cmp=ExactCompare, Space=IgnoreSpace, Word=Wordish>
+where
+    Cmp: StrCompare,
+    Space: SkipSpace,
+    Word: SliceWord,
+{
     offset: usize,
     slice: &'a str,
-    _marker: PhantomData<Cmp>,
+    _marker: PhantomData<(Cmp, Space, Word)>,
 }
 
 /*
 These have to be spelled out to avoid erroneous constraints on the type parameters.
 */
-impl<'a, Cmp> Copy for StrCursor<'a, Cmp>
-where Cmp: StrCompare {}
+impl<'a, Cmp, Space, Word> Copy for StrCursor<'a, Cmp, Space, Word>
+where
+    Cmp: StrCompare,
+    Space: SkipSpace,
+    Word: SliceWord,
+{}
 
-impl<'a, Cmp> Clone for StrCursor<'a, Cmp>
-where Cmp: StrCompare {
+impl<'a, Cmp, Space, Word> Clone for StrCursor<'a, Cmp, Space, Word>
+where
+    Cmp: StrCompare,
+    Space: SkipSpace,
+    Word: SliceWord,
+{
     fn clone(&self) -> Self {
         *self
     }
 }
 
-impl<'a, Cmp> StrCursor<'a, Cmp>
-where Cmp: StrCompare {
+impl<'a, Cmp, Space, Word> StrCursor<'a, Cmp, Space, Word>
+where
+    Cmp: StrCompare,
+    Space: SkipSpace,
+    Word: SliceWord,
+{
     /**
     Construct a new `StrCursor` with a specific `offset`.
 
@@ -216,12 +222,16 @@ where Cmp: StrCompare {
     }
 }
 
-impl<'a, Cmp> ScanCursor<'a> for StrCursor<'a, Cmp>
-where Cmp: StrCompare {
+impl<'a, Cmp, Space, Word> ScanCursor<'a> for StrCursor<'a, Cmp, Space, Word>
+where
+    Cmp: StrCompare,
+    Space: SkipSpace,
+    Word: SliceWord,
+{
     type ScanInput = Self;
 
     fn try_end(self) -> Result<(), (ScanError, Self)> {
-        if (skip_space(self.slice).0).len() == 0 {
+        if Space::skip_space(self.slice) == self.slice.len() {
             Ok(())
         } else {
             Err((ScanError::expected_end().add_offset(self.offset()), self))
@@ -230,7 +240,7 @@ where Cmp: StrCompare {
 
     fn try_scan<F, Out>(self, f: F) -> Result<(Out, Self), (ScanError, Self)>
     where F: FnOnce(Self::ScanInput) -> Result<(Out, usize), ScanError> {
-        let (_, tmp_off) = skip_space(self.slice);
+        let tmp_off = Space::skip_space(self.slice);
         let tmp = self.advance_by(tmp_off);
         match f(tmp) {
             Ok((out, off)) => Ok((out, tmp.advance_by(off))),
@@ -247,25 +257,57 @@ where Cmp: StrCompare {
     }
 
     fn try_match_literal(self, lit: &str) -> Result<Self, (ScanError, Self)> {
-        use itertools::EitherOrBoth::{Both, Left};
-        let (tmp, tmp_off) = skip_space(self.slice);
-        let tmp_cur = self.advance_by(tmp_off); // for errors
-        let (lit, _) = skip_space(lit);
-        let inp_parts = LITERAL_PART_RE.find_iter(tmp);
-        let lit_parts = LITERAL_PART_RE.find_iter(lit);
-        let mut last_pos = 0;
-        for ilp in inp_parts.zip_longest(lit_parts) {
-            let (i1, ip, lp) = match ilp {
-                Both((i0, i1), (l0, l1)) => (i1, &tmp[i0..i1], &lit[l0..l1]),
-                Left(_) => break,
-                _ => return Err((ScanError::literal_mismatch().add_offset(tmp_cur.offset()), self))
-            };
-            if !Cmp::compare(ip, lp) {
-                return Err((ScanError::literal_mismatch().add_offset(tmp_cur.offset()), self));
+        let mut tmp_off = Space::skip_space(self.slice);
+        let mut tmp = &self.slice[tmp_off..];
+        let mut lit = lit;
+
+        while lit.len() > 0 {
+            // Match leading spaces.
+            match Space::match_spaces(tmp, lit) {
+                Ok((a, b)) => {
+                    tmp = &tmp[a..];
+                    tmp_off += a;
+                    lit = &lit[b..];
+                },
+                Err(off) => {
+                    return Err((
+                        ScanError::literal_mismatch()
+                            .add_offset(self.offset() + tmp_off + off),
+                        self
+                    ));
+                },
             }
-            last_pos = i1;
+
+            if lit.len() == 0 { break; }
+
+            // Pull out the leading wordish things.
+            let lit_word = match Word::slice_word(lit) {
+                Some(0) | None => panic!("literal {:?} begins with a non-space, non-word", lit),
+                Some(b) => &lit[..b],
+            };
+            let tmp_word = match Word::slice_word(tmp) {
+                Some(b) => &tmp[..b],
+                None => return Err((
+                    ScanError::literal_mismatch()
+                        .add_offset(self.offset() + tmp_off),
+                    self
+                )),
+            };
+
+            if !Cmp::compare(tmp_word, lit_word) {
+                return Err((
+                    ScanError::literal_mismatch()
+                        .add_offset(self.offset() + tmp_off),
+                    self
+                ));
+            }
+
+            tmp = &tmp[tmp_word.len()..];
+            tmp_off += tmp_word.len();
+            lit = &lit[lit_word.len()..];
         }
-        Ok(self.advance_by(tmp_off + last_pos))
+
+        Ok(self.advance_by(tmp_off))
     }
 
     fn as_str(self) -> &'a str {
@@ -277,8 +319,12 @@ where Cmp: StrCompare {
     }
 }
 
-impl<'a, Cmp> ScanInput<'a> for StrCursor<'a, Cmp>
-where Cmp: StrCompare {
+impl<'a, Cmp, Space, Word> ScanInput<'a> for StrCursor<'a, Cmp, Space, Word>
+where
+    Cmp: StrCompare,
+    Space: SkipSpace,
+    Word: SliceWord,
+{
     type ScanCursor = Self;
     type StrCompare = Cmp;
 
@@ -341,6 +387,69 @@ fn skip_space(s: &str) -> (&str, usize) {
 }
 
 /**
+Defines an interface for skipping whitespace.
+*/
+pub trait SkipSpace: 'static {
+    /**
+    Given two strings, does the leading whitespace match?
+
+    If so, how many leading bytes from each should be dropped?
+
+    If not, after many bytes into `a` do they disagree?
+    */
+    fn match_spaces(a: &str, b: &str) -> Result<(usize, usize), usize>;
+
+    /**
+    Return the number of bytes of leading whitespace in `a` that should be skipped.
+    */
+    fn skip_space(a: &str) -> usize;
+}
+
+/**
+Ignores all whitespace entirely.
+*/
+#[derive(Debug)]
+pub enum IgnoreSpace {}
+
+impl SkipSpace for IgnoreSpace {
+    fn match_spaces(a: &str, b: &str) -> Result<(usize, usize), usize> {
+        let (_, a_off) = skip_space(a);
+        let (_, b_off) = skip_space(b);
+        Ok((a_off, b_off))
+    }
+
+    fn skip_space(s: &str) -> usize {
+        s.char_indices()
+            .take_while(|&(_, c)| c.is_whitespace())
+            .map(|(i, c)| i + c.len_utf8())
+            .last()
+            .unwrap_or(0)
+    }
+}
+
+/**
+Defines an interface for slicing words out of input and literal text.
+*/
+pub trait SliceWord: 'static {
+    /**
+    If `s` starts with a word, how long is it?
+    */
+    fn slice_word(s: &str) -> Option<usize>;
+}
+
+/**
+Treat any contiguous sequence of "word" characters (according to Unicode's definition of the `\w` regular expression class) *or* any other single character as a word.
+*/
+#[derive(Debug)]
+pub enum Wordish {}
+
+impl SliceWord for Wordish {
+    fn slice_word(s: &str) -> Option<usize> {
+        slice_wordish(s)
+    }
+}
+
+/**
 Defines an interface for comparing two strings for equality.
 
 This is used to allow `StrCursor` to be parametrised on different kinds of string comparisons: case-sensitive, case-insensitive, canonicalising, *etc.*
@@ -380,5 +489,20 @@ impl StrCompare for IgnoreAsciiCase {
     fn compare(a: &str, b: &str) -> bool {
         use std::ascii::AsciiExt;
         a.eq_ignore_ascii_case(b)
+    }
+}
+
+fn slice_wordish(s: &str) -> Option<usize> {
+    use ::util::TableUtil;
+    use ::unicode::regex::PERLW;
+
+    let word_len = s.char_indices()
+        .take_while(|&(_, c)| PERLW.span_table_contains(&c))
+        .map(|(i, c)| i + c.len_utf8())
+        .last();
+
+    match word_len {
+        Some(n) => Some(n),
+        None => s.chars().next().map(|c| c.len_utf8()),
     }
 }

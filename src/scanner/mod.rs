@@ -62,13 +62,17 @@ pub use self::misc::{
     Inferred, KeyValuePair, QuotedString,
     Binary, Octal, Hex,
 };
+
 #[doc(inline)] pub use self::runtime::{
     exact_width, exact_width_a,
     max_width, max_width_a,
     min_width, min_width_a,
-    re, re_a, re_str,
     scan_a,
 };
+
+#[cfg(feature="regex")]
+#[doc(inline)]
+pub use self::runtime::{re, re_a, re_str};
 
 #[macro_use] mod macros;
 
