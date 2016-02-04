@@ -62,7 +62,7 @@ v0.0.4 was tested against `rustc` versions 1.6.0, 1.7.0-beta.1, and nightly 2016
 
 ## Features
 
-The following optional features are available:
+The following [optional features](http://doc.crates.io/manifest.html#the-features-section) are available:
 
 * `arrays-32`: implement scanning for arrays of up to 32 elements.  The default is up to 8 elements.
 
@@ -166,14 +166,15 @@ fn main() {
 This example demonstrates using runtime scanners and the `let_scan!` convenience macro.  You can run this using `cargo run --example runtime_scanners`.
 
 ```ignore
+//! **NOTE**: requires the `regex` feature.
 #[macro_use] extern crate scan_rules;
 
-use scan_rules::scanner::{
-    NonSpace, Number, Word,             // static scanners
-    max_width_a, exact_width_a, re_str, // runtime scanners
-};
-
 fn main() {
+    use scan_rules::scanner::{
+        NonSpace, Number, Word,             // static scanners
+        max_width_a, exact_width_a, re_str, // runtime scanners
+    };
+
     // Adapted example from <http://en.cppreference.com/w/cpp/io/c/fscanf>.
     let inp = "25 54.32E-1 Thompson 56789 0123 56ß水";
 

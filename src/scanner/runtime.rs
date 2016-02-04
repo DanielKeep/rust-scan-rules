@@ -209,6 +209,8 @@ fn test_min_width() {
 /**
 Creates a runtime scanner that extracts a slice of the input using a regular expression, then scans the result using `Then`.
 
+**Note**: requires the `regex` feature.
+
 If the regular expression defines a group named `scan`, then it will extract the contents of that group.  Failing that, it will use the the first capturing group.  If there are no capturing groups, it will extract the entire match.
 
 Irrespective of the amount of input provided by the regex scanner to the inner scanner, the regex scanner will only consume the portion that the inner scanner did.
@@ -225,6 +227,8 @@ pub fn re<Then>(s: &str, then: Then) -> ScanRegex<Then> {
 /**
 Creates a runtime regex scanner that passes the matched input to a static scanner `S`.
 
+**Note**: requires the `regex` feature.
+
 See: [`re`](fn.re_a.html).
 */
 #[cfg(feature="regex")]
@@ -235,6 +239,8 @@ pub fn re_a<S>(s: &str) -> ScanRegex<ScanA<S>> {
 /**
 Creates a runtime regex scanner that yields the matched input as a string slice.
 
+**Note**: requires the `regex` feature.
+
 See: [`re`](fn.re_a.html).
 */
 #[cfg(feature="regex")]
@@ -244,6 +250,8 @@ pub fn re_str(s: &str) -> ScanRegex<ScanA<::scanner::Everything<&str>>> {
 
 /**
 Runtime scanner that slices the input based on a regular expression.
+
+**Note**: requires the `regex` feature.
 
 See: [`re`](../fn.re.html), [`re_a`](../fn.re_a.html), [`re_str`](../fn.re_str.html).
 */
