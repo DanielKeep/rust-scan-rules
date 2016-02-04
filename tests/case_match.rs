@@ -80,31 +80,21 @@ fn test_case_match() {
 }
 
 /**
-This makes sure that case sensitivity works for the std enums, if nothing else.
+Make sure the "official" API style for new code works.
 */
 #[test]
-fn test_case_match_option() {
+fn test_case_match_stable_api() {
+    let inp = "UPPERCASE lowercase mIxeDcAsE TitleCase";
+
     assert_match!(
-        scan!(StrCursor::<ExactCompare>::new("Some(42)");
-            (let _: Option<i32>) => ()),
+        scan!(StrCursor::<ExactCompare>::new(inp);
+            ("UPPERCASE", "lowercase", "mIxeDcAsE", "TitleCase") => ()),
         Ok(())
     );
 
     assert_match!(
-        scan!(StrCursor::<ExactCompare>::new("some(42)");
-            (let _: Option<i32>) => ()),
-        Err(SE { ref at, kind: SEK::LiteralMismatch, .. }) if at.offset() == 0
-    );
-
-    assert_match!(
-        scan!(StrCursor::<IgnoreAsciiCase>::new("Some(42)");
-            (let _: Option<i32>) => ()),
-        Ok(())
-    );
-
-    assert_match!(
-        scan!(StrCursor::<IgnoreAsciiCase>::new("some(42)");
-            (let _: Option<i32>) => ()),
+        scan!(StrCursor::<IgnoreAsciiCase>::new(inp);
+            ("UPPERCASE", "lowercase", "mIxeDcAsE", "TitleCase") => ()),
         Ok(())
     );
 }
