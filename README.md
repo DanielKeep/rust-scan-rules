@@ -20,7 +20,7 @@ The available abstract scanners can be found in the `scanner` module.
 
 ## Compatibility
 
-v0.0.4 was tested against `rustc` versions 1.6.0, 1.7.0-beta.1, and nightly 2016-01-20.
+v0.1.0 was tested against `rustc` versions 1.3.0-1.6.0, 1.7.0-beta.1, and nightly 2016-01-20.
 
 * `rustc` < 1.7 will have only concrete implementations of `ScanFromStr` for the `Everything`, `Ident`, `Line`, `NonSpace`, `Number`, `Word`, and `Wordish` scanners for `&str` and `String` output types.  1.7 and higher will have generic implementations for all output types such that `&str: Into<Output>`.
 
