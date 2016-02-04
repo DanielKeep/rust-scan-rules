@@ -1,6 +1,6 @@
 [package]
 name = "scan-rules"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Daniel Keep <daniel.keep@gmail.com>"]
 
 description = "This crate provides some macros for quickly parsing values out of text.  Roughly speaking, it does the inverse of the print!/format! macros; or, in other words, a similar job to scanf from C."
