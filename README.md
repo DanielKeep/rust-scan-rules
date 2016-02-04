@@ -8,6 +8,10 @@ The macros of interest are:
 * `try_readln!` - like `readln!`, except it returns a `Result` instead of panicking.
 * `scan!` - scans the provided string.
 
+Plus a convenience macro:
+
+* `let_scan!` - scans a string and binds captured values directly to local variables.  Only supports *one* pattern and panics if it doesn't match.
+
 If you are interested in implementing support for your own types, see the `ScanFromStr` trait.
 
 The available abstract scanners can be found in the `scanner` module.
@@ -118,14 +122,15 @@ fn main() {
 This example demonstrates using runtime scanners and the `let_scan!` convenience macro.  You can run this using `cargo run --example runtime_scanners`.
 
 ```rust
+//! **NOTE**: requires the `regex` feature.
 #[macro_use] extern crate scan_rules;
 
-use scan_rules::scanner::{
-    NonSpace, Number, Word,             // static scanners
-    max_width_a, exact_width_a, re_str, // runtime scanners
-};
-
 fn main() {
+    use scan_rules::scanner::{
+        NonSpace, Number, Word,             // static scanners
+        max_width_a, exact_width_a, re_str, // runtime scanners
+    };
+
     // Adapted example from <http://en.cppreference.com/w/cpp/io/c/fscanf>.
     let inp = "25 54.32E-1 Thompson 56789 0123 56ß水";
 
