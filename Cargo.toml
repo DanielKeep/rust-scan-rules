@@ -12,6 +12,7 @@ license = "MIT/Apache-2.0"
 
 build = "build.rs"
 exclude = [
+    ".clog.toml",
     "scripts/*",
     "update-docs.py",
 ]
