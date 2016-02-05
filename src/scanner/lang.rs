@@ -97,11 +97,17 @@ fn match_float(s: &str) -> Option<((usize, usize), usize)> {
     }
 
     // Skip over leading integer part.
-    let _ = (&mut ibs)
+    let int_end = ibs
         .take_while_ref(|&(_, b)| matches!(b, b'0'...b'9'))
-        .count();
+        .last()
+        .map(|(i, _)| i + 1)
+        .map(|n| ((0, n), n));
 
-    // At this point, we *must* get *either* a decimal point *or* an "e".
+    if let None = int_end {
+        return None;
+    }
+
+    // At this point, we get a decimal point, an "e", or the end of input.
     fn match_exp<I: Iterator<Item=(usize, u8)>>(mut ibs: Peekable<I>)
     -> Option<((usize, usize), usize)> {
 
@@ -126,9 +132,8 @@ fn match_float(s: &str) -> Option<((usize, usize), usize)> {
                 .unwrap_or(i + 1);
             
             // Finally, there *might* be an exponent
-            match ibs.peek().map(|&(_, b)| b) {
+            match ibs.next().map(|(_, b)| b) {
                 Some(b'e') | Some(b'E') => {
-                    ibs.next();
                     match_exp(ibs)
                 },
                 _ => Some(((0, end), end))
@@ -137,7 +142,7 @@ fn match_float(s: &str) -> Option<((usize, usize), usize)> {
 
         Some((_, b'e')) | Some((_, b'E')) => match_exp(ibs),
 
-        _ => None
+        _ => int_end
     }
 }
 
@@ -166,6 +171,10 @@ fn test_scan_f64() {
     assert_match!(<f64>::scan_from("x"), Err(SE { kind: SEK::Syntax(_), .. }));
     assert_match!(<f64>::scan_from(" "), Err(SE { kind: SEK::Syntax(_), .. }));
     assert_match!(<f64>::scan_from(" 0"), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(<f64>::scan_from("0"), Ok((0.0, 1)));
+    assert_match!(<f64>::scan_from("0x"), Ok((0.0, 1)));
+    assert_match!(<f64>::scan_from("0."), Ok((0.0, 2)));
+    assert_match!(<f64>::scan_from("0.x"), Ok((0.0, 2)));
 
     assert_match!(<f64>::scan_from("inf"), Ok((::std::f64::INFINITY, 3)));
     assert_match!(<f64>::scan_from("-inf"), Ok((::std::f64::NEG_INFINITY, 4)));
