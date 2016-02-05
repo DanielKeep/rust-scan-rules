@@ -18,6 +18,8 @@ Note that this macro automatically flushes standard output.  As a result, if you
 
 If you wish to read from standard input whilst manually locking standard output, you should use `scan!` directly.
 
+This macro *cannot* be used to capture slices of the input; all captured values must be owned.
+
 See also: [Pattern Syntax](index.html#pattern-syntax), [`try_readln!`](macro.try_readln!.html).
 
 # Panics
