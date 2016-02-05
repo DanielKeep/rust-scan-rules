@@ -97,11 +97,9 @@ fn match_float(s: &str) -> Option<((usize, usize), usize)> {
     }
 
     // Skip over leading integer part.
-    println!("before: {:?}", ibs.peek());
     let _ = (&mut ibs)
         .take_while_ref(|&(_, b)| matches!(b, b'0'...b'9'))
         .count();
-    println!("after:  {:?}", ibs.peek());
 
     // At this point, we *must* get *either* a decimal point *or* an "e".
     fn match_exp<I: Iterator<Item=(usize, u8)>>(mut ibs: Peekable<I>)

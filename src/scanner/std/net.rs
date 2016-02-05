@@ -119,7 +119,6 @@ fn match_ipv6(s: &str) -> Option<((usize, usize), usize)> {
     }
 
     fn start<I: Clone + Iterator<Item=(usize, u8)>>(ibs: &mut I) -> Option<((usize, usize), usize)> {
-        println!("start");
         if let Some(_) = eat_hex(ibs) {
             one(ibs)
         } else if let Some(end) = eat_dbl_colon(ibs) {
@@ -130,7 +129,6 @@ fn match_ipv6(s: &str) -> Option<((usize, usize), usize)> {
     }
 
     fn one<I: Clone + Iterator<Item=(usize, u8)>>(ibs: &mut I) -> Option<((usize, usize), usize)> {
-        println!("one");
         if let Some(end) = eat_colon_hex(ibs) {
             one_plus(ibs, end)
         } else {
@@ -140,7 +138,6 @@ fn match_ipv6(s: &str) -> Option<((usize, usize), usize)> {
 
     fn one_plus<I: Clone + Iterator<Item=(usize, u8)>>(ibs: &mut I, mut end: ((usize, usize), usize)) -> Option<((usize, usize), usize)> {
         loop {
-            println!("one_plus");
             if let Some(end) = eat_colon_ipv4(ibs) {
                 return Some(end);
             } else if let Some(end) = eat_dbl_colon(ibs) {
@@ -155,7 +152,6 @@ fn match_ipv6(s: &str) -> Option<((usize, usize), usize)> {
     }
 
     fn dbl_colon<I: Clone + Iterator<Item=(usize, u8)>>(ibs: &mut I, end: ((usize, usize), usize)) -> Option<((usize, usize), usize)> {
-        println!("dbl_colon");
         if let Some(end) = eat_ipv4(ibs) {
             Some(end)
         } else if let Some(end) = eat_hex(ibs) {
@@ -167,7 +163,6 @@ fn match_ipv6(s: &str) -> Option<((usize, usize), usize)> {
 
     fn dbl_colon_plus<I: Clone + Iterator<Item=(usize, u8)>>(ibs: &mut I, mut end: ((usize, usize), usize)) -> Option<((usize, usize), usize)> {
         loop {
-            println!("dbl_colon_plus");
             if let Some(end) = eat_colon_ipv4(ibs) {
                 return Some(end);
             } else if let Some(new_end) = eat_colon_hex(ibs) {
@@ -179,11 +174,9 @@ fn match_ipv6(s: &str) -> Option<((usize, usize), usize)> {
         }
     }
 
-    println!("match_ipv6({:?})", s);
     let mut ibs = s.bytes().enumerate();
     match start(&mut ibs) {
         res => {
-            println!("-> {:?}", res);
             res
         }
     }
