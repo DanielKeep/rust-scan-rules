@@ -443,6 +443,18 @@ pub trait SliceWord: 'static {
 }
 
 /**
+Treat any contiguous sequence of non-space characters (according to Unicode's definition of the `\s` regular expression class) as a word.
+*/
+#[derive(Debug)]
+pub enum NonSpace {}
+
+impl SliceWord for NonSpace {
+    fn slice_word(s: &str) -> Option<usize> {
+        slice_non_space(s)
+    }
+}
+
+/**
 Treat any contiguous sequence of "word" characters (according to Unicode's definition of the `\w` regular expression class) *or* any other single character as a word.
 */
 #[derive(Debug)]
@@ -495,6 +507,16 @@ impl StrCompare for IgnoreAsciiCase {
         use std::ascii::AsciiExt;
         a.eq_ignore_ascii_case(b)
     }
+}
+
+fn slice_non_space(s: &str) -> Option<usize> {
+    use ::util::TableUtil;
+    use ::unicode::property::White_Space_table as WS;
+
+    s.char_indices()
+        .take_while(|&(_, c)| !WS.span_table_contains(&c))
+        .map(|(i, c)| i + c.len_utf8())
+        .last()
 }
 
 fn slice_wordish(s: &str) -> Option<usize> {
