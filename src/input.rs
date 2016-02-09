@@ -453,6 +453,44 @@ fn test_exact_space() {
 }
 
 /**
+Requires that whitespace in the pattern exists in the input, but the exact *kind* of space doesn't matter.
+*/
+#[derive(Debug)]
+pub enum FuzzySpace {}
+
+impl SkipSpace for FuzzySpace {
+    fn match_spaces(inp: &str, pat: &str) -> Result<(usize, usize), usize> {
+        let (_, a_off) = skip_space(inp);
+        let (_, b_off) = skip_space(pat);
+
+        match (a_off, b_off) {
+            (0, 0) => Ok((0, 0)),
+            (a, b) if a != 0 && b != 0 => Ok((a, b)),
+            (_, _) => Err(0),
+        }
+    }
+
+    fn skip_space(_: &str) -> usize {
+        0
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn test_fuzzy_space() {
+    use self::FuzzySpace as FS;
+
+    assert_eq!(FS::match_spaces("x", "x"), Ok((0, 0)));
+    assert_eq!(FS::match_spaces(" x", " x"), Ok((1, 1)));
+    assert_eq!(FS::match_spaces("  x", " x"), Ok((2, 1)));
+    assert_eq!(FS::match_spaces(" x", "  x"), Ok((1, 2)));
+    assert_eq!(FS::match_spaces("\tx", " x"), Ok((1, 1)));
+    assert_eq!(FS::match_spaces(" x", "\tx"), Ok((1, 1)));
+    assert_eq!(FS::match_spaces("x", " x"), Err(0));
+    assert_eq!(FS::match_spaces(" x", "x"), Err(0));
+}
+
+/**
 Ignores all whitespace *other* than line breaks.
 */
 #[derive(Debug)]

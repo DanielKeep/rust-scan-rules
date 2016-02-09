@@ -56,6 +56,52 @@ fn test_exact_space() {
 }
 
 #[test]
+fn test_fuzzy_space() {
+    use scan_rules::ScanError as SE;
+    use scan_rules::ScanErrorKind as SEK;
+
+    type Cursor<'a> = StrCursor<'a, input::ExactCompare, input::FuzzySpace, input::Wordish>;
+
+    let inp = "one ,two \tbuckle\nmy  shoe ";
+
+    assert_match!(
+        scan!(inp;
+            ("one", ",", "two", "buckle", "my", "shoe") => ()),
+        Ok(())
+    );
+
+    assert_match!(
+        scan!(Cursor::new(inp);
+            ("one", ",", "two", "buckle", "my", "shoe") => ()),
+        Err(SE { ref at, kind: SEK::LiteralMismatch, .. }) if at.offset() == 3
+    );
+
+    assert_match!(
+        scan!(Cursor::new(inp);
+            ("one ,two \tbuckle\nmy  shoe ") => ()),
+        Ok(())
+    );
+
+    assert_match!(
+        scan!(Cursor::new(inp);
+            ("one\t,two\n buckle\rmy\t shoe\n") => ()),
+        Ok(())
+    );
+
+    assert_match!(
+        scan!(Cursor::new(inp);
+            ("one , two \tbuckle\nmy  shoe ") => ()),
+        Err(SE { ref at, kind: SEK::LiteralMismatch, .. }) if at.offset() == 5
+    );
+
+    assert_match!(
+        scan!(Cursor::new(inp);
+            ("one ,two \tbuckle\nmy  shoe") => ()),
+        Err(SE { ref at, kind: SEK::ExpectedEnd, .. }) if at.offset() == 25
+    );
+}
+
+#[test]
 fn test_ignore_non_line() {
     type Cursor<'a> = StrCursor<'a, input::ExactCompare, input::IgnoreNonLine, input::Wordish>;
 
