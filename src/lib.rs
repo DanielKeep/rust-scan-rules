@@ -70,6 +70,8 @@ The following [optional features](http://doc.crates.io/manifest.html#the-feature
 
 * `tuples-16`: implement scanning for tuples of up to 16 elements.  The default is up to 4 elements.
 
+* `unicode-normalization`: include support for `Normalized` and `IgnoreCaseNormalized` cursor types.  Adds a dependency on the `unicode-normalization` crate.
+
 ## Important Notes
 
 * There are no default scanners for `&str` or `String`; if you want a string, you should pick an appropriate abstract scanner from the [`scanner`](scanner/index.html) module.
@@ -270,6 +272,7 @@ A scanning pattern is made up of one or more pattern terms, separated by commas.
 extern crate itertools;
 extern crate strcursor;
 #[cfg(feature="regex")] extern crate regex;
+#[cfg(feature="unicode-normalization")] extern crate unicode_normalization;
 
 #[macro_use] mod macros;
 

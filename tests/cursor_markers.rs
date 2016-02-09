@@ -139,3 +139,50 @@ fn test_non_space() {
         Ok(())
     );
 }
+
+#[cfg(feature="unicode-normalization")]
+#[test]
+fn test_normalized() {
+    use scan_rules::ScanError as SE;
+    use scan_rules::ScanErrorKind as SEK;
+
+    type Cursor<'a> = StrCursor<'a, input::Normalized, input::IgnoreSpace, input::Wordish>;
+
+    let inp = "café bäbe";
+
+    assert_match!(
+        scan!(inp;
+            ("café bäbe") => ()),
+        Ok(())
+    );
+
+    assert_match!(
+        scan!(inp;
+            ("café bäbe") => ()),
+        Err(SE { ref at, kind: SEK::LiteralMismatch, .. }) if at.offset() == 0
+    );
+
+    assert_match!(
+        scan!(inp;
+            ("café bäbe") => ()),
+        Err(SE { ref at, kind: SEK::LiteralMismatch, .. }) if at.offset() == 6
+    );
+
+    assert_match!(
+        scan!(Cursor::new(inp);
+            ("café bäbe") => ()),
+        Ok(())
+    );
+
+    assert_match!(
+        scan!(Cursor::new(inp);
+            ("café bäbe") => ()),
+        Ok(())
+    );
+
+    assert_match!(
+        scan!(Cursor::new(inp);
+            ("café bäbe") => ()),
+        Ok(())
+    );
+}

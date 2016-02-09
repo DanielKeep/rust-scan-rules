@@ -19,7 +19,7 @@ exclude = [
 
 [features]
 default = []
-all = ["arrays-32", "tuples-16", "regex"]
+all = ["arrays-32", "tuples-16", "regex", "unicode-normalization"]
 "tuples-16" = []
 "arrays-32" = []
 
@@ -29,6 +29,7 @@ lazy_static = "0.1.14"
 strcursor = "0.2.2"
 
 regex = { version = "0.1.41", optional = true }
+unicode-normalization = { version = "0.1.2", optional = true }
 
 [dev-dependencies]
 bitflags = "0.4.0"

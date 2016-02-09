@@ -650,6 +650,43 @@ impl StrCompare for IgnoreAsciiCase {
     }
 }
 
+/**
+Marker type used to do normalized string comparisons.
+
+Specifically, this type will compare strings based on the result of a NFD transform.
+*/
+#[cfg(feature="unicode-normalization")]
+#[derive(Debug)]
+pub enum Normalized {}
+
+#[cfg(feature="unicode-normalization")]
+impl StrCompare for Normalized {
+    fn compare(a: &str, b: &str) -> bool {
+        use unicode_normalization::UnicodeNormalization;
+
+        let mut acs = a.nfd();
+        let mut bcs = b.nfd();
+        loop {
+            match (acs.next(), bcs.next()) {
+                (Some(a), Some(b)) if a == b => (),
+                (None, None) => return true,
+                _ => return false
+            }
+        }
+    }
+}
+
+#[cfg(feature="unicode-normalization")]
+#[cfg(test)]
+#[test]
+fn test_normalized() {
+    use self::Normalized as N;
+
+    assert_eq!(N::compare("hi", "hi"), true);
+    assert_eq!(N::compare("café", "cafe\u{301}"), true);
+    assert_eq!(N::compare("cafe\u{301}", "café"), true);
+}
+
 fn slice_non_space(s: &str) -> Option<usize> {
     use ::util::TableUtil;
     use ::unicode::property::White_Space_table as WS;
