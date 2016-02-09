@@ -14,6 +14,9 @@ use scan_rules::ScanError as SE;
 use scan_rules::ScanErrorKind as SEK;
 use scan_rules::input::{StrCursor, ExactCompare, IgnoreCase, IgnoreAsciiCase};
 
+#[cfg(feature="unicode-normalization")]
+use scan_rules::input::IgnoreCaseNormalized;
+
 #[test]
 fn test_case_match() {
     let inp = "UPPERCASE lowercase mIxeDcAsE TitleCase";
@@ -104,6 +107,42 @@ fn test_case_match() {
 
     assert_match!(
         scan!(StrCursor::<IgnoreAsciiCase>::new(inp);
+            ("UPPERCASE", "lowercase", "mIxeDcAsE", "TitLecAse") => ()),
+        Ok(())
+    );
+}
+
+#[cfg(feature="unicode-normalization")]
+#[test]
+fn test_case_match_normalized() {
+    let inp = "UPPERCASE lowercase mIxeDcAsE TitleCase";
+
+    assert_match!(
+        scan!(StrCursor::<IgnoreCaseNormalized>::new(inp);
+            ("UPPERCASE", "lowercase", "mIxeDcAsE", "TitleCase") => ()),
+        Ok(())
+    );
+
+    assert_match!(
+        scan!(StrCursor::<IgnoreCaseNormalized>::new(inp);
+            ("UPPERCaSE", "lowercase", "mIxeDcAsE", "TitleCase") => ()),
+        Ok(())
+    );
+
+    assert_match!(
+        scan!(StrCursor::<IgnoreCaseNormalized>::new(inp);
+            ("UPPERCASE", "lowerCase", "mIxeDcAsE", "TitleCase") => ()),
+        Ok(())
+    );
+
+    assert_match!(
+        scan!(StrCursor::<IgnoreCaseNormalized>::new(inp);
+            ("UPPERCASE", "lowercase", "mIxEdcAsE", "TitleCase") => ()),
+        Ok(())
+    );
+
+    assert_match!(
+        scan!(StrCursor::<IgnoreCaseNormalized>::new(inp);
             ("UPPERCASE", "lowercase", "mIxeDcAsE", "TitLecAse") => ()),
         Ok(())
     );

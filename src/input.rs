@@ -634,6 +634,49 @@ fn test_ignore_case() {
 }
 
 /**
+Marker type used to do case-insensitive, normalized string comparisons.
+
+Specifically, this type will compare strings based on the result of a NFD transform, followed by conversion to lower-case.
+
+Note that this *does not* take any locale information into account.  It is only as correct as a call to `char::to_lowercase`.
+*/
+#[cfg(feature="unicode-normalization")]
+#[derive(Debug)]
+pub enum IgnoreCaseNormalized {}
+
+#[cfg(feature="unicode-normalization")]
+impl StrCompare for IgnoreCaseNormalized {
+    fn compare(a: &str, b: &str) -> bool {
+        use unicode_normalization::UnicodeNormalization;
+
+        let mut acs = a.nfd().flat_map(char::to_lowercase);
+        let mut bcs = b.nfd().flat_map(char::to_lowercase);
+        loop {
+            match (acs.next(), bcs.next()) {
+                (Some(a), Some(b)) if a == b => (),
+                (None, None) => return true,
+                _ => return false
+            }
+        }
+    }
+}
+
+#[cfg(feature="unicode-normalization")]
+#[cfg(test)]
+#[test]
+fn test_ignore_case_normalized() {
+    use self::IgnoreCaseNormalized as ICN;
+
+    assert_eq!(ICN::compare("hi", "hi"), true);
+    assert_eq!(ICN::compare("Hi", "hI"), true);
+    assert_eq!(ICN::compare("hI", "Hi"), true);
+    assert_eq!(ICN::compare("café", "cafe\u{301}"), true);
+    assert_eq!(ICN::compare("cafe\u{301}", "café"), true);
+    assert_eq!(ICN::compare("CafÉ", "CafE\u{301}"), true);
+    assert_eq!(ICN::compare("CAFÉ", "cafe\u{301}"), true);
+}
+
+/**
 Marker type used to do ASCII case-insensitive string comparisons.
 
 Note that this is *only correct* for pure, ASCII-only strings.  To get less incorrect case-insensitive comparisons, you will need to use a Unicode-aware comparison.
