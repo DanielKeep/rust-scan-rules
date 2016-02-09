@@ -600,6 +600,40 @@ impl StrCompare for ExactCompare {
 }
 
 /**
+Marker type used to do case-insensitive string comparisons.
+
+Note that this *does not* take any locale information into account.  It is only as correct as a call to `char::to_lowercase`.
+*/
+#[derive(Debug)]
+pub enum IgnoreCase {}
+
+impl StrCompare for IgnoreCase {
+    fn compare(a: &str, b: &str) -> bool {
+        let mut acs = a.chars().flat_map(char::to_lowercase);
+        let mut bcs = b.chars().flat_map(char::to_lowercase);
+        loop {
+            match (acs.next(), bcs.next()) {
+                (Some(a), Some(b)) if a == b => (),
+                (None, None) => return true,
+                _ => return false
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn test_ignore_case() {
+    use self::IgnoreCase as IC;
+
+    assert_eq!(IC::compare("hi", "hi"), true);
+    assert_eq!(IC::compare("Hi", "hI"), true);
+    assert_eq!(IC::compare("hI", "Hi"), true);
+    assert_eq!(IC::compare("ẞß", "ßẞ"), true);
+    assert_eq!(IC::compare("ßẞ", "ẞß"), true);
+}
+
+/**
 Marker type used to do ASCII case-insensitive string comparisons.
 
 Note that this is *only correct* for pure, ASCII-only strings.  To get less incorrect case-insensitive comparisons, you will need to use a Unicode-aware comparison.

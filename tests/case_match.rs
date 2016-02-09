@@ -12,7 +12,7 @@ or distributed except according to those terms.
 
 use scan_rules::ScanError as SE;
 use scan_rules::ScanErrorKind as SEK;
-use scan_rules::input::{StrCursor, ExactCompare, IgnoreAsciiCase};
+use scan_rules::input::{StrCursor, ExactCompare, IgnoreCase, IgnoreAsciiCase};
 
 #[test]
 fn test_case_match() {
@@ -46,6 +46,36 @@ fn test_case_match() {
         scan!(StrCursor::<ExactCompare>::new(inp);
             ("UPPERCASE", "lowercase", "mIxeDcAsE", "TitLecAse") => ()),
         Err(SE { ref at, kind: SEK::LiteralMismatch, .. }) if at.offset() == 30
+    );
+
+    assert_match!(
+        scan!(StrCursor::<IgnoreCase>::new(inp);
+            ("UPPERCASE", "lowercase", "mIxeDcAsE", "TitleCase") => ()),
+        Ok(())
+    );
+
+    assert_match!(
+        scan!(StrCursor::<IgnoreCase>::new(inp);
+            ("UPPERCaSE", "lowercase", "mIxeDcAsE", "TitleCase") => ()),
+        Ok(())
+    );
+
+    assert_match!(
+        scan!(StrCursor::<IgnoreCase>::new(inp);
+            ("UPPERCASE", "lowerCase", "mIxeDcAsE", "TitleCase") => ()),
+        Ok(())
+    );
+
+    assert_match!(
+        scan!(StrCursor::<IgnoreCase>::new(inp);
+            ("UPPERCASE", "lowercase", "mIxEdcAsE", "TitleCase") => ()),
+        Ok(())
+    );
+
+    assert_match!(
+        scan!(StrCursor::<IgnoreCase>::new(inp);
+            ("UPPERCASE", "lowercase", "mIxeDcAsE", "TitLecAse") => ()),
+        Ok(())
     );
 
     assert_match!(
@@ -88,6 +118,12 @@ fn test_case_match_stable_api() {
 
     assert_match!(
         scan!(StrCursor::<ExactCompare>::new(inp);
+            ("UPPERCASE", "lowercase", "mIxeDcAsE", "TitleCase") => ()),
+        Ok(())
+    );
+
+    assert_match!(
+        scan!(StrCursor::<IgnoreCase>::new(inp);
             ("UPPERCASE", "lowercase", "mIxeDcAsE", "TitleCase") => ()),
         Ok(())
     );
