@@ -453,6 +453,33 @@ fn test_exact_space() {
 }
 
 /**
+Ignores all whitespace *other* than line breaks.
+*/
+#[derive(Debug)]
+pub enum IgnoreNonLine {}
+
+impl SkipSpace for IgnoreNonLine {
+    fn match_spaces(a: &str, b: &str) -> Result<(usize, usize), usize> {
+        let a_off = skip_space_non_line(a);
+        let b_off = skip_space_non_line(b);
+        Ok((a_off, b_off))
+    }
+
+    fn skip_space(s: &str) -> usize {
+        skip_space_non_line(s)
+    }
+}
+
+fn skip_space_non_line(s: &str) -> usize {
+    s.char_indices()
+        .take_while(|&(_, c)| c.is_whitespace()
+            && c != '\r' && c != '\n')
+        .last()
+        .map(|(i, c)| i + c.len_utf8())
+        .unwrap_or(0)
+}
+
+/**
 Ignores all whitespace entirely.
 */
 #[derive(Debug)]

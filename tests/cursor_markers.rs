@@ -56,6 +56,25 @@ fn test_exact_space() {
 }
 
 #[test]
+fn test_ignore_non_line() {
+    type Cursor<'a> = StrCursor<'a, input::ExactCompare, input::IgnoreNonLine, input::Wordish>;
+
+    let inp = "0 1 2\n 3 4 5 \n6 7 8";
+
+    assert_match!(
+        scan!(inp;
+            ([[let xss: i32]+]+) => xss),
+        Ok(ref xss) if *xss == vec![vec![0, 1, 2, 3, 4, 5, 6, 7, 8]]
+    );
+
+    assert_match!(
+        scan!(Cursor::new(inp);
+            ([[let xss: i32]+]("\n")+) => xss),
+        Ok(ref xss) if *xss == vec![vec![0, 1, 2], vec![3, 4, 5], vec![6, 7, 8]]
+    );
+}
+
+#[test]
 fn test_non_space() {
     type Cursor<'a> = StrCursor<'a, input::ExactCompare, input::IgnoreSpace, input::NonSpace>;
 
