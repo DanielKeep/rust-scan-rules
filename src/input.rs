@@ -411,6 +411,48 @@ pub trait SkipSpace: 'static {
 }
 
 /**
+Matches all whitespace *exactly*, and does not skip any.
+*/
+#[derive(Debug)]
+pub enum ExactSpace {}
+
+impl SkipSpace for ExactSpace {
+    fn match_spaces(a: &str, b: &str) -> Result<(usize, usize), usize> {
+        let mut acs = a.char_indices();
+        let mut bcs = b.char_indices();
+        let (mut last_ai, mut last_bi) = (0, 0);
+        while let (Some((ai, ac)), Some((bi, bc))) = (acs.next(), bcs.next()) {
+            if !ac.is_whitespace() {
+                return Ok((ai, bi));
+            } else if ac != bc {
+                return Err(ai);
+            } else {
+                last_ai = ai + ac.len_utf8();
+                last_bi = bi + ac.len_utf8();
+            }
+        }
+        Ok((last_ai, last_bi))
+    }
+
+    fn skip_space(_: &str) -> usize {
+        0
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn test_exact_space() {
+    use self::ExactSpace as ES;
+
+    assert_eq!(ES::match_spaces("", ""), Ok((0, 0)));
+    assert_eq!(ES::match_spaces(" ", " "), Ok((1, 1)));
+    assert_eq!(ES::match_spaces(" x", " x"), Ok((1, 1)));
+    assert_eq!(ES::match_spaces(" ", " x"), Ok((1, 1)));
+    assert_eq!(ES::match_spaces(" x", " "), Ok((1, 1)));
+    assert_eq!(ES::match_spaces(" \t ", "   "), Err(1));
+}
+
+/**
 Ignores all whitespace entirely.
 */
 #[derive(Debug)]

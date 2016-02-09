@@ -13,6 +13,49 @@ or distributed except according to those terms.
 use scan_rules::input::{self, StrCursor};
 
 #[test]
+fn test_exact_space() {
+    use scan_rules::ScanError as SE;
+    use scan_rules::ScanErrorKind as SEK;
+
+    type Cursor<'a> = StrCursor<'a, input::ExactCompare, input::ExactSpace, input::Wordish>;
+
+    let inp = "one ,two \tbuckle\nmy  shoe ";
+
+    assert_match!(
+        scan!(inp;
+            ("one", ",", "two", "buckle", "my", "shoe") => ()),
+        Ok(())
+    );
+
+    assert_match!(
+        scan!(Cursor::new(inp);
+            ("one", ",", "two", "buckle", "my", "shoe") => ()),
+        Err(SE { ref at, kind: SEK::LiteralMismatch, .. }) if at.offset() == 3
+    );
+
+    assert_match!(
+        scan!(Cursor::new(inp);
+            ("one", " ", ",", "two", " \t", "buckle",
+                "\n", "my", "  ", "shoe", " ") => ()),
+        Ok(())
+    );
+
+    assert_match!(
+        scan!(Cursor::new(inp);
+            ("one", " ", ",", "two", " \t", "buckle",
+                "\n", "my", "  ", "shoe") => ()),
+        Err(SE { ref at, kind: SEK::ExpectedEnd, .. }) if at.offset() == 25
+    );
+
+    assert_match!(
+        scan!(Cursor::new(inp);
+            ("one", " ", ",", "two", " ", "\t", "buckle",
+                "\n", "my", " ", " ", "shoe", " ") => ()),
+        Ok(())
+    );
+}
+
+#[test]
 fn test_non_space() {
     type Cursor<'a> = StrCursor<'a, input::ExactCompare, input::IgnoreSpace, input::NonSpace>;
 
