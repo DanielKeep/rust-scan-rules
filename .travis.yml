@@ -1,0 +1,12 @@
+language: rust
+script: cargo build --verbose --features=all && cargo test --verbose --features=all
+rust:
+  - 1.3.0
+  - 1.4.0
+  - 1.5.0
+  - stable
+  - beta
+  - nightly
+matrix:
+  allow_failures:
+    - rust: nightly
