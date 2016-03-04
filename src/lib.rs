@@ -266,6 +266,7 @@ A scanning pattern is made up of one or more pattern terms, separated by commas.
   *E.g.* `[ let nums: i32 ],+`, `[ "pretty" ]*, "please"`.
 
 */
+#![cfg_attr(feature="nightly-pattern", feature(pattern))]
 #![forbid(missing_docs)]
 #![recursion_limit="128"]
 #[macro_use] extern crate lazy_static;

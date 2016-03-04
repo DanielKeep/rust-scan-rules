@@ -74,6 +74,10 @@ pub use self::misc::{
 #[doc(inline)]
 pub use self::runtime::{re, re_a, re_str};
 
+#[cfg(feature="nightly-pattern")]
+#[doc(inline)]
+pub use self::runtime::{until_pat, until_pat_a, until_pat_str};
+
 #[macro_use] mod macros;
 
 pub mod runtime;

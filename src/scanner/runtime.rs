@@ -338,3 +338,143 @@ where S: ScanFromStr<'a> {
         <S as ScanFromStr<'a>>::wants_leading_junk_stripped()
     }
 }
+
+/**
+Creates a runtime scanner that will extract a slice of the input up to, but *not* including, a specified string pattern.
+
+**Note**: requires the `nightly-pattern` feature and a nightly compiler.
+
+Note that this scanner *does not* respect the case sensitivity of the input.
+
+See: [`until_pat_a`](fn.until_pat_a.html), [`until_pat_str`](fn.until_pat_str.html).
+*/
+#[cfg(feature="nightly-pattern")]
+pub fn until_pat<Then, P>(pat: P, then: Then) -> UntilPat<Then, P> {
+    UntilPat(pat, then)
+}
+
+/**
+Creates a runtime scanner that will extract a slice of the input up to, but *not* including, a specified string pattern, and passes it to the static scanner `S`.
+
+**Note**: requires the `nightly-pattern` feature and a nightly compiler.
+
+Note that this scanner *does not* respect the case sensitivity of the input.
+
+See: [`until_pat`](fn.until_pat.html).
+*/
+#[cfg(feature="nightly-pattern")]
+pub fn until_pat_a<S, P>(pat: P) -> UntilPat<ScanA<S>, P> {
+    until_pat(pat, scan_a::<S>())
+}
+
+/**
+Creates a runtime scanner that will extract a slice of the input up to, but *not* including, a specified string pattern.
+
+**Note**: requires the `nightly-pattern` feature and a nightly compiler.
+
+Note that this scanner *does not* respect the case sensitivity of the input.
+
+See: [`until_pat`](fn.until_pat.html).
+*/
+#[cfg(feature="nightly-pattern")]
+pub fn until_pat_str<'a, P>(pat: P) -> UntilPat<ScanA<::scanner::Everything<'a, &'a str>>, P> {
+    until_pat_a::<::scanner::Everything<&str>, _>(pat)
+}
+
+/**
+Runtime scanner that slices the input based on a string pattern.
+
+**Note**: requires the `nightly-pattern` feature and a nightly compiler.
+
+See: [`until_pat`](../fn.until_pat.html).
+*/
+#[cfg(feature="nightly-pattern")]
+pub struct UntilPat<Then, P>(P, Then);
+
+/**
+# Why This Bound?
+
+Ideally, `P: Pattern` would imply `&P: Pattern`, but it doesn't.  As such, we have to choose from one of two alternatives:
+
+- `for<'b> P: Copy + Pattern<'b>`
+- `for<'b, 'c> &'b P: Pattern<'c>`
+
+The first allows us to use (as of 2016-03-05) all `Pattern` impls *except* the `F: FnMut(char) -> bool` one; the second only allows us to use `&&str`.
+
+This is a bit disappointing, since the biggest draw for `Pattern` is definitely using callables (*e.g.* `until_str(char::is_whitespace)`), but it currently can't be helped.
+
+## Why Not `Clone`?
+
+This makes me a bit nervous.  The `clone` would need to happen on every scan; if this is inside a loop, this could happen *a lot*.  As such, I felt it was a better idea to restrict this to patterns which are guaranteed to be cheap to copy.
+*/
+#[cfg(feature="nightly-pattern")]
+impl<'a, Then, P> ScanStr<'a> for UntilPat<Then, P>
+where
+    Then: ScanStr<'a>,
+    for<'b> P: Copy + ::std::str::pattern::Pattern<'b>,
+{
+    type Output = Then::Output;
+
+    fn scan<I: ScanInput<'a>>(&mut self, s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s_str = s.as_str();
+        let off = match s_str.find(self.0) {
+            Some(off) => off,
+            None => return Err(ScanError::syntax("no match for pattern")),
+        };
+
+        let sl = &s_str[..off];
+        let sl = s.from_subslice(sl);
+
+        self.1.scan(sl)
+    }
+
+    fn wants_leading_junk_stripped(&self) -> bool {
+        self.1.wants_leading_junk_stripped()
+    }
+}
+
+#[cfg(feature="nightly-pattern")]
+#[cfg(test)]
+#[test]
+fn test_until() {
+    use ::ScanError as SE;
+    use ::ScanErrorKind as SEK;
+
+    #[allow(non_snake_case)]
+    fn S(s: &str) -> String { String::from(s) }
+
+    assert_match!(until_pat_str("x").scan(""), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(until_pat_str("x").scan("a"), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(until_pat_str("x").scan("ab"), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(until_pat_str("x").scan("x"), Ok(("", 0)));
+    assert_match!(until_pat_str("x").scan("ax"), Ok(("a", 1)));
+    assert_match!(until_pat_str("x").scan("abx"), Ok(("ab", 2)));
+
+    assert_match!(until_pat_str(&"x").scan(""), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(until_pat_str(&"x").scan("a"), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(until_pat_str(&"x").scan("ab"), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(until_pat_str(&"x").scan("x"), Ok(("", 0)));
+    assert_match!(until_pat_str(&"x").scan("ax"), Ok(("a", 1)));
+    assert_match!(until_pat_str(&"x").scan("abx"), Ok(("ab", 2)));
+
+    assert_match!(until_pat_str(&S("x")).scan(""), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(until_pat_str(&S("x")).scan("a"), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(until_pat_str(&S("x")).scan("ab"), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(until_pat_str(&S("x")).scan("x"), Ok(("", 0)));
+    assert_match!(until_pat_str(&S("x")).scan("ax"), Ok(("a", 1)));
+    assert_match!(until_pat_str(&S("x")).scan("abx"), Ok(("ab", 2)));
+
+    assert_match!(until_pat_str('x').scan(""), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(until_pat_str('x').scan("a"), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(until_pat_str('x').scan("ab"), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(until_pat_str('x').scan("x"), Ok(("", 0)));
+    assert_match!(until_pat_str('x').scan("ax"), Ok(("a", 1)));
+    assert_match!(until_pat_str('x').scan("abx"), Ok(("ab", 2)));
+
+    assert_match!(until_pat_str(&['x'][..]).scan(""), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(until_pat_str(&['x'][..]).scan("a"), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(until_pat_str(&['x'][..]).scan("ab"), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(until_pat_str(&['x'][..]).scan("x"), Ok(("", 0)));
+    assert_match!(until_pat_str(&['x'][..]).scan("ax"), Ok(("a", 1)));
+    assert_match!(until_pat_str(&['x'][..]).scan("abx"), Ok(("ab", 2)));
+}

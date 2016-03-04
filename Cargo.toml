@@ -18,9 +18,10 @@ exclude = [
 
 [features]
 default = []
-all = ["arrays-32", "tuples-16", "regex", "unicode-normalization"]
+all = ["arrays-32", "tuples-16", "regex", "unicode-normalization", "nightly-pattern"]
 "tuples-16" = []
 "arrays-32" = []
+nightly-pattern = []
 
 [dependencies]
 itertools = "0.4.0"
