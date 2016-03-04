@@ -10,7 +10,7 @@ or distributed except according to those terms.
 #[macro_use] extern crate scan_rules;
 #[macro_use] mod util;
 
-use scan_rules::scanner::{Space, max_width_a};
+use scan_rules::scanner::{HorSpace, Newline, Space, max_width_a};
 
 #[test]
 fn test_scan_space() {
@@ -34,5 +34,15 @@ fn test_scan_space() {
     assert_match!(
         scan!(inp; (let a <| max_width_a::<Space>(3), let b: Space, "x", ..tail) => (a, b, tail)),
         Ok(("  \t", " \n ", "\r\n y z \t\r "))
+    );
+
+    assert_match!(
+        scan!(inp; (
+            let a: HorSpace, let b: Newline, let c: HorSpace, "x",
+            let d: Newline, "y",
+            let e: Space, "z",
+            let f: Space
+        ) => (a, b, c, d, e, f)),
+        Ok(("  \t ", "\n", " ", "\r\n", " ", " \t\r "))
     );
 }

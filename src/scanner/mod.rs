@@ -57,7 +57,7 @@ Functions ending in `_a` are a shorthand for the common case of wrapping a runti
 It is also where implementations for existing standard and external types are kept, though these do not appear in the documentation.
 */
 pub use self::misc::{
-    Everything, NonSpace, Space,
+    Everything, HorSpace, Newline, NonSpace, Space,
     Ident, Line, Number, Word, Wordish,
     Inferred, KeyValuePair, QuotedString,
     Binary, Octal, Hex,

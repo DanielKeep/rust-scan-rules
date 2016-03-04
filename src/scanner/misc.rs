@@ -109,6 +109,107 @@ fn test_hex() {
 }
 
 /**
+Scans a sequence of horizontal (non-newline) space characters into a string.
+
+This *will not* match an empty sequence; there must be at least one space character for the scan to succeed.
+*/
+pub struct HorSpace<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
+
+// FIXME: Error message omitted due to https://github.com/rust-lang/rust/issues/26448.
+#[cfg(str_into_output_extra_broken)]
+impl<'a> ScanFromStr<'a> for HorSpace<'a, &'a str> {
+    type Output = &'a str;
+
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s = s.as_str();
+        match match_hor_space(s) {
+            Some(b) => {
+                let word = &s[..b];
+                let tail = &s[b..];
+                Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
+            },
+            // None => Err(ScanError::syntax("expected a space")),
+            None => Err(ScanError::syntax_no_message()),
+        }
+    }
+
+    fn wants_leading_junk_stripped() -> bool { false }
+}
+
+// FIXME: Error message omitted due to https://github.com/rust-lang/rust/issues/26448.
+#[cfg(str_into_output_extra_broken)]
+impl<'a> ScanFromStr<'a> for HorSpace<'a, String> {
+    type Output = String;
+
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s = s.as_str();
+        match match_hor_space(s) {
+            Some(b) => {
+                let word = &s[..b];
+                let tail = &s[b..];
+                Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
+            },
+            // None => Err(ScanError::syntax("expected a space")),
+            None => Err(ScanError::syntax_no_message()),
+        }
+    }
+
+    fn wants_leading_junk_stripped() -> bool { false }
+}
+
+// FIXME: Error message omitted due to https://github.com/rust-lang/rust/issues/26448.
+#[cfg(not(str_into_output_extra_broken))]
+impl<'a, Output> ScanFromStr<'a> for HorSpace<'a, Output>
+where &'a str: Into<Output> {
+    type Output = Output;
+
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s = s.as_str();
+        match match_hor_space(s) {
+            Some(b) => {
+                let word = &s[..b];
+                let tail = &s[b..];
+                Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
+            },
+            // None => Err(ScanError::syntax("expected a space")),
+            None => Err(ScanError::syntax_no_message()),
+        }
+    }
+
+    fn wants_leading_junk_stripped() -> bool { false }
+}
+
+fn match_hor_space(s: &str) -> Option<usize> {
+    use ::util::TableUtil;
+    use ::unicode::property::White_Space_table as WS;
+
+    s.char_indices()
+        .take_while(|&(_, c)| match c {
+            '\x0a'...'\x0d' | '\u{85}' | '\u{2028}' | '\u{2029}' => false,
+            c => WS.span_table_contains(&c)
+        })
+        .map(|(i, c)| i + c.len_utf8())
+        .last()
+}
+
+#[cfg(test)]
+#[test]
+fn test_hor_space() {
+    use ::ScanError as SE;
+    use ::ScanErrorKind as SEK;
+
+    assert_match!(HorSpace::<&str>::scan_from(""), Err(SE { kind: SEK::SyntaxNoMessage, .. }));
+    assert_match!(HorSpace::<&str>::scan_from("a"), Err(SE { kind: SEK::SyntaxNoMessage, .. }));
+    assert_match!(HorSpace::<&str>::scan_from("0"), Err(SE { kind: SEK::SyntaxNoMessage, .. }));
+    assert_match!(HorSpace::<&str>::scan_from(" "), Ok((" ", 1)));
+    assert_match!(HorSpace::<&str>::scan_from("\t"), Ok(("\t", 1)));
+    assert_match!(HorSpace::<&str>::scan_from("\r"), Err(SE { kind: SEK::SyntaxNoMessage, .. }));
+    assert_match!(HorSpace::<&str>::scan_from("\n"), Err(SE { kind: SEK::SyntaxNoMessage, .. }));
+    assert_match!(HorSpace::<&str>::scan_from("\r\n"), Err(SE { kind: SEK::SyntaxNoMessage, .. }));
+    assert_match!(HorSpace::<&str>::scan_from("  \t \n \t\t "), Ok(("  \t ", 4)));
+}
+
+/**
 Scans a single identifier into a string.
 
 Specifically, this will match a single `XID_Start` character (or underscore) followed by zero or more `XID_Continue` characters.
@@ -303,6 +404,111 @@ fn test_line() {
     assert_match!(Line::<&str>::scan_from("abc\ndef"), Ok(("abc", 4)));
     assert_match!(Line::<&str>::scan_from("abc\r\ndef"), Ok(("abc", 5)));
     assert_match!(Line::<&str>::scan_from("abc\rdef"), Ok(("abc", 4)));
+}
+
+/**
+Scans a single newline into a string.
+
+This *will not* match an empty sequence, and will not match more than one newline.
+*/
+pub struct Newline<'a, Output=&'a str>(PhantomData<(&'a (), Output)>);
+
+// FIXME: Error message omitted due to https://github.com/rust-lang/rust/issues/26448.
+#[cfg(str_into_output_extra_broken)]
+impl<'a> ScanFromStr<'a> for Newline<'a, &'a str> {
+    type Output = &'a str;
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s = s.as_str();
+        match match_newline(s) {
+            Some(b) => {
+                let word = &s[..b];
+                let tail = &s[b..];
+                Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
+            },
+            // None => Err(ScanError::syntax("expected at least one non-space character")),
+            None => Err(ScanError::syntax_no_message())
+        }
+    }
+
+    fn wants_leading_junk_stripped() -> bool { false }
+}
+
+// FIXME: Error message omitted due to https://github.com/rust-lang/rust/issues/26448.
+#[cfg(str_into_output_extra_broken)]
+impl<'a> ScanFromStr<'a> for Newline<'a, String> {
+    type Output = String;
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s = s.as_str();
+        match match_newline(s) {
+            Some(b) => {
+                let word = &s[..b];
+                let tail = &s[b..];
+                Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
+            },
+            // None => Err(ScanError::syntax("expected at least one non-space character")),
+            None => Err(ScanError::syntax_no_message())
+        }
+    }
+
+    fn wants_leading_junk_stripped() -> bool { false }
+}
+
+// FIXME: Error message omitted due to https://github.com/rust-lang/rust/issues/26448.
+#[cfg(not(str_into_output_extra_broken))]
+impl<'a, Output> ScanFromStr<'a> for Newline<'a, Output>
+where &'a str: Into<Output> {
+    type Output = Output;
+    fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
+        let s = s.as_str();
+        match match_newline(s) {
+            Some(b) => {
+                let word = &s[..b];
+                let tail = &s[b..];
+                Ok((word.into(), s.subslice_offset_stable(tail).unwrap()))
+            },
+            // None => Err(ScanError::syntax("expected at least one non-space character")),
+            None => Err(ScanError::syntax_no_message())
+        }
+    }
+
+    fn wants_leading_junk_stripped() -> bool { false }
+}
+
+fn match_newline(s: &str) -> Option<usize> {
+    // See: <http://www.unicode.org/reports/tr18/#RL1.6>.
+    println!("match_newline({:?})", s);
+    let mut cis = s.char_indices();
+
+    let r = match cis.next() {
+        Some((_, '\x0a')) => Some(1),
+        Some((_, '\x0b')) => Some(1),
+        Some((_, '\x0c')) => Some(1),
+        Some((_, '\x0d')) => match cis.next() {
+            Some((_, '\x0a')) => Some(2),
+            _ => Some(1)
+        },
+        Some((_, c @ '\u{85}')) => Some(c.len_utf8()),
+        Some((_, c @ '\u{2028}')) => Some(c.len_utf8()),
+        Some((_, c @ '\u{2029}')) => Some(c.len_utf8()),
+        _ => None
+    };
+
+    println!("-> {:?}", r);
+    r
+}
+
+#[cfg(test)]
+#[test]
+fn test_newline() {
+    use ::ScanError as SE;
+    use ::ScanErrorKind as SEK;
+
+    assert_match!(Newline::<&str>::scan_from(""), Err(SE { kind: SEK::SyntaxNoMessage, .. }));
+    assert_match!(Newline::<&str>::scan_from("x"), Err(SE { kind: SEK::SyntaxNoMessage, .. }));
+    assert_match!(Newline::<&str>::scan_from("\rx"), Ok(("\r", 1)));
+    assert_match!(Newline::<&str>::scan_from("\nx"), Ok(("\n", 1)));
+    assert_match!(Newline::<&str>::scan_from("\r\nx"), Ok(("\r\n", 2)));
+    assert_match!(Newline::<&str>::scan_from("\n\rx"), Ok(("\n", 1)));
 }
 
 /**
