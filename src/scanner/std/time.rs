@@ -15,6 +15,7 @@ use strcursor::StrCursor;
 use ::ScanError;
 use ::input::ScanInput;
 use ::scanner::ScanFromStr;
+use ::util::MsgErr;
 
 /**
 Parses an ISO 8601 format duration into a `std::time::Duration`.
@@ -391,7 +392,7 @@ fn scan_8601(cur: StrCursor) -> ScanResult<Duration, StrCursor> {
             .and_then(|lhs| checked_add_dur(lhs, mins_dur))
             .and_then(|lhs| checked_add_dur(lhs, secs_dur))
             .map(|dur| (dur, time_cur))
-            .ok_or_else(|| ScanError::other("overflow in duration"))
+            .ok_or_else(|| ScanError::other(MsgErr("overflow in duration")))
     }
 
     #[cfg(feature="duration-iso8601-dates")]
@@ -478,7 +479,7 @@ fn scan_8601(cur: StrCursor) -> ScanResult<Duration, StrCursor> {
     macro_rules! add_dur {
         ($a:expr, $b:expr) => {
             try!(checked_add_dur($a, try!($b))
-                .ok_or_else(|| ScanError::other("duration overflowed")))
+                .ok_or_else(|| ScanError::other(MsgErr("duration overflowed"))))
         };
     }
 
@@ -592,11 +593,11 @@ macro_rules! dur_conv {
                     $name, " into seconds");
                 assert!(0.0f64 <= frac && frac < 1.0f64);
                 let secs = try!(int.checked_mul($scale)
-                    .ok_or_else(|| ScanError::other(MSG)));
+                    .ok_or_else(|| ScanError::other(MsgErr(MSG))));
                 
                 let nanos = frac * ($scale as f64);
                 let secs = try!(secs.checked_add(nanos as u64)
-                    .ok_or_else(|| ScanError::other(MSG)));
+                    .ok_or_else(|| ScanError::other(MsgErr(MSG))));
                 let nanos = (nanos.fract() * (NANOS_IN_SEC as f64)) as u32;
 
                 Ok(Duration::new(secs, nanos))

@@ -15,6 +15,32 @@ use std::fmt::{self, Display};
 use strcursor::StrCursor;
 
 /**
+String error message.
+
+This exists because `Error` is not implemented for `&str` in Rust < 1.6.
+*/
+#[derive(Copy, Clone)]
+pub struct MsgErr(pub &'static str);
+
+impl fmt::Debug for MsgErr {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Debug::fmt(&self.0, fmt)
+    }
+}
+
+impl Display for MsgErr {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        Display::fmt(&self.0, fmt)
+    }
+}
+
+impl Error for MsgErr {
+    fn description(&self) -> &str {
+        self.0
+    }
+}
+
+/**
 Various string utility methods.
 */
 pub trait StrUtil {
