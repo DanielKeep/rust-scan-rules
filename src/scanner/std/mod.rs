@@ -10,8 +10,11 @@ or distributed except according to those terms.
 /*!
 Scanner implementations for standard library (and other "official" crates) types.
 */
+pub use self::time::Iso8601Duration;
+
 mod collections;
 mod net;
+mod time;
 
 use std::ops::{Range, RangeFrom, RangeFull, RangeTo};
 use ::ScanError;

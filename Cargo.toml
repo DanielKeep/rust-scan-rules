@@ -18,9 +18,16 @@ exclude = [
 
 [features]
 default = []
-all = ["arrays-32", "tuples-16", "regex", "unicode-normalization", "nightly-pattern"]
+all = [
+    "arrays-32", "tuples-16",
+    "duration-iso8601-dates",
+    "nightly-pattern",
+    "regex",
+    "unicode-normalization",
+]
 "tuples-16" = []
 "arrays-32" = []
+duration-iso8601-dates = []
 nightly-pattern = []
 
 [dependencies]

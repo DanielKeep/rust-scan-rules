@@ -81,10 +81,10 @@ pub use self::runtime::{until_pat, until_pat_a, until_pat_str};
 #[macro_use] mod macros;
 
 pub mod runtime;
+pub mod std;
 
 mod lang;
 mod misc;
-mod std;
 
 use ::ScanError;
 use ::input::ScanInput;
