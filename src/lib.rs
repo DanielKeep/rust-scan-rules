@@ -50,7 +50,7 @@ The provided scanners can be found in the [`scanner`](scanner/index.html) module
 
 ## Compatibility
 
-v0.1.0 was tested against `rustc` versions 1.3.0-1.6.0, 1.7.0-beta.1, and nightly 2016-01-20.
+v0.1.2 was tested against `rustc` versions 1.3.0-1.6.0, 1.8.0-beta.1, and nightly 2016-03-04.
 
 * `rustc` < 1.7 will have only concrete implementations of `ScanFromStr` for the `Everything`, `Ident`, `Line`, `NonSpace`, `Number`, `Word`, and `Wordish` scanners for `&str` and `String` output types.  1.7 and higher will have generic implementations for all output types such that `&str: Into<Output>`.
 
@@ -66,11 +66,17 @@ The following [optional features](http://doc.crates.io/manifest.html#the-feature
 
 * `arrays-32`: implement scanning for arrays of up to 32 elements.  The default is up to 8 elements.
 
+* `duration-iso8601-dates`: support scanning ISO 8601 durations with date components.
+
 * `regex`: include support for the `re`, `re_a`, and `re_str` regular expression-based runtime scanners.  Adds a dependency on the `regex` crate.
 
 * `tuples-16`: implement scanning for tuples of up to 16 elements.  The default is up to 4 elements.
 
 * `unicode-normalization`: include support for `Normalized` and `IgnoreCaseNormalized` cursor types.  Adds a dependency on the `unicode-normalization` crate.
+
+The following are only supported on nightly compilers, and may disappear/change at any time:
+
+* `nightly-pattern`: adds the `until_pat`, `until_pat_a`, and `until_pat_str` runtime scanners using `Pattern`s.
 
 ## Important Notes
 
