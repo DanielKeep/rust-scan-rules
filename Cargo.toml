@@ -21,10 +21,13 @@ default = []
 all = [
     "arrays-32", "tuples-16",
     "duration-iso8601-dates",
-    "nightly-pattern",
     "regex",
     "unicode-normalization",
 ]
+all-nightly = [
+    "nightly-pattern",
+]
+
 "tuples-16" = []
 "arrays-32" = []
 duration-iso8601-dates = []
