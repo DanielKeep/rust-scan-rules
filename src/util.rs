@@ -1,15 +1,13 @@
-/*
-Copyright ⓒ 2016 Daniel Keep.
-
-Licensed under the MIT license (see LICENSE or <http://opensource.org
-/licenses/MIT>) or the Apache License, Version 2.0 (see LICENSE of
-<http://www.apache.org/licenses/LICENSE-2.0>), at your option. All
-files in the project carrying such notice may not be copied, modified,
-or distributed except according to those terms.
-*/
-/*!
-Internal utilities.
-*/
+// Copyright ⓒ 2016 Daniel Keep.
+//
+// Licensed under the MIT license (see LICENSE or <http://opensource.org
+// /licenses/MIT>) or the Apache License, Version 2.0 (see LICENSE of
+// <http://www.apache.org/licenses/LICENSE-2.0>), at your option. All
+// files in the project carrying such notice may not be copied, modified,
+// or distributed except according to those terms.
+//
+//! Internal utilities.
+//!
 use std::error::Error;
 use std::fmt::{self, Display};
 use strcursor::StrCursor;
@@ -83,7 +81,7 @@ impl StrUtil for str {
             'r' => return Ok(('\r', cur.slice_after())),
             'u' => false,
             'x' => true,
-            cp => return Err(UnknownEscape(cp))
+            cp => return Err(UnknownEscape(cp)),
         };
 
         let s = cur.slice_after();
@@ -92,7 +90,11 @@ impl StrUtil for str {
         } else {
             match_uni_esc
         };
-        let err = if is_x_esc { MalformedHex } else { MalformedUnicode };
+        let err = if is_x_esc {
+            MalformedHex
+        } else {
+            MalformedUnicode
+        };
         let (hex, tail) = try!(esc(s).ok_or(err));
         let hex = &s[(hex.0)..(hex.1)];
         let tail = &s[tail..];
@@ -144,7 +146,7 @@ impl<T: Ord> TableUtil<T> for [(T, T)] {
 #[cfg(test)]
 #[test]
 fn test_span_table_contains() {
-    use ::unicode::general_category::Nd_table as Nd;
+    use unicode::general_category::Nd_table as Nd;
 
     // ('\u{30}', '\u{39}')
     assert_eq!(Nd.span_table_contains(&'/'), false);
@@ -282,9 +284,10 @@ fn match_uni_esc(s: &str) -> Option<((usize, usize), usize)> {
         _ => return None,
     }
     while let Some((i, b)) = bs.next() {
-        if is_xdigit(b) { /* do nothing */ }
-        else if b == b'}' {
-            return Some(((1, i), i+1));
+        if is_xdigit(b) {
+            // do nothing
+        } else if b == b'}' {
+            return Some(((1, i), i + 1));
         } else {
             return None;
         }

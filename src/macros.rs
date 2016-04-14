@@ -1,31 +1,29 @@
-/*
-Copyright ⓒ 2016 Daniel Keep.
-
-Licensed under the MIT license (see LICENSE or <http://opensource.org
-/licenses/MIT>) or the Apache License, Version 2.0 (see LICENSE of
-<http://www.apache.org/licenses/LICENSE-2.0>), at your option. All
-files in the project carrying such notice may not be copied, modified,
-or distributed except according to those terms.
-*/
-/*!
-This module contains the public and crate-wide macros.
-
-## Where is `let_readln!`?
-
-There are *two* things independently preventing this from being written.
-
-1.  `scan!` doesn't support owned scan inputs.
-
-    Theoretically, this shouldn't be an issue: you could just bind the input to a name and borrow from that.
-
-    The problem is that without specialisation, I can't write the necessary implementations of `IntoScanCursor` to allow both owned and borrowed inputs to end up with the "correct" lifetime.
-
-2.  `macro_rules!` statement macros are broken.
-
-    Specifically, individual statements are isolated from each other by hygiene.  This means it's impossible to bind a value to a name in one statement, and then *use* that name in the next.
-
-If either of those gets fixed, `let_readln!` can be written.
-*/
+// Copyright ⓒ 2016 Daniel Keep.
+//
+// Licensed under the MIT license (see LICENSE or <http://opensource.org
+// /licenses/MIT>) or the Apache License, Version 2.0 (see LICENSE of
+// <http://www.apache.org/licenses/LICENSE-2.0>), at your option. All
+// files in the project carrying such notice may not be copied, modified,
+// or distributed except according to those terms.
+//
+//! This module contains the public and crate-wide macros.
+//!
+//! ## Where is `let_readln!`?
+//!
+//! There are *two* things independently preventing this from being written.
+//!
+//! 1.  `scan!` doesn't support owned scan inputs.
+//!
+//! Theoretically, this shouldn't be an issue: you could just bind the input to a name and borrow from that.
+//!
+//! The problem is that without specialisation, I can't write the necessary implementations of `IntoScanCursor` to allow both owned and borrowed inputs to end up with the "correct" lifetime.
+//!
+//! 2.  `macro_rules!` statement macros are broken.
+//!
+//! Specifically, individual statements are isolated from each other by hygiene.  This means it's impossible to bind a value to a name in one statement, and then *use* that name in the next.
+//!
+//! If either of those gets fixed, `let_readln!` can be written.
+//!
 
 /**
 Reads a line of text from standard input, then scans it using the provided rules.  The result of the `readln!` invocation is the type of the rule bodies; just as with `match`, all bodies must agree on their result type.
@@ -161,15 +159,12 @@ macro_rules! scan {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! scan_rules_impl {
-    /*
+// # `@scan` - parse scan pattern.
+//
+//
 
-    # `@scan` - parse scan pattern.
-
-    */
-
-    /*
-    ## Termination rule.
-    */
+// ## Termination rule.
+//
     (@scan ($cur:expr); () => $body:expr) => {
         {
             match $crate::input::ScanCursor::try_end($cur) {
@@ -179,9 +174,8 @@ macro_rules! scan_rules_impl {
         }
     };
 
-    /*
-    ## Tail capture.
-    */
+// ## Tail capture.
+//
     (@scan ($cur:expr); (.._,) => $body:expr) => {
         {
             match $crate::input::ScanCursor::try_scan_raw(
@@ -212,9 +206,8 @@ macro_rules! scan_rules_impl {
         }
     };
 
-    /*
-    ## Anchor capture.
-    */
+// ## Anchor capture.
+//
     (@scan ($cur:expr); (^..$name:ident,) => $body:expr) => {
         {
             let $name = $cur;
@@ -222,9 +215,8 @@ macro_rules! scan_rules_impl {
         }
     };
 
-    /*
-    ## Value capture.
-    */
+// ## Value capture.
+//
     (@scan ($cur:expr); (let _: $t:ty, $($tail:tt)*) => $body:expr) => {
         {
             match $crate::internal::try_scan_static::<_, $t>($cur) {
@@ -270,18 +262,16 @@ macro_rules! scan_rules_impl {
         }
     };
 
-    /*
-    ## Repeating entry.
-
-    This is a *tremendous* discomfort in the posterior.  Without alternation, the only way to get the desired syntax is to exhaustively *list* the various combinations, recursing into another invocation to normalise everything.
-
-    It's a small miracle that the ascription syntax works, though I daresay any user who accidentally types `[...]*: T: U` is going to be *very* confused.
-
-    The next few sections are divided first by separator, then by repetition count control.
-    */
-    /*
-    ### No separator.
-    */
+// ## Repeating entry.
+//
+// This is a *tremendous* discomfort in the posterior.  Without alternation, the only way to get the desired syntax is to exhaustively *list* the various combinations, recursing into another invocation to normalise everything.
+//
+// It's a small miracle that the ascription syntax works, though I daresay any user who accidentally types `[...]*: T: U` is going to be *very* confused.
+//
+// The next few sections are divided first by separator, then by repetition count control.
+//
+// ### No separator.
+//
     (@scan ($cur:expr); ([$($pat:tt)*]? $(: $col_ty:ty)*, $($tail:tt)*) => $body:expr) => {
         scan_rules_impl!(@repeat ($cur), [$($pat)*], (), {0, Some(1)}, ($($col_ty)*); ($($tail)*) => $body)
     };
@@ -310,9 +300,8 @@ macro_rules! scan_rules_impl {
         scan_rules_impl!(@repeat ($cur), [$($pat)*], (), {$min, Some($max)}, ($($col_ty)*); ($($tail)*) => $body)
     };
 
-    /*
-    ### Comma separator.
-    */
+// ### Comma separator.
+//
     (@scan ($cur:expr); ([$($pat:tt)*],? $(: $col_ty:ty)*, $($tail:tt)*) => $body:expr) => {
         scan_rules_impl!(@repeat ($cur), [$($pat)*], (","), {0, Some(1)}, ($($col_ty)*); ($($tail)*) => $body)
     };
@@ -341,9 +330,8 @@ macro_rules! scan_rules_impl {
         scan_rules_impl!(@repeat ($cur), [$($pat)*], (","), {$min, Some($max)}, ($($col_ty)*); ($($tail)*) => $body)
     };
 
-    /*
-    ### Sub-pattern separator.
-    */
+// ### Sub-pattern separator.
+//
     (@scan ($cur:expr); ([$($pat:tt)*]($($sep:tt)*)? $(: $col_ty:ty)*, $($tail:tt)*) => $body:expr) => {
         scan_rules_impl!(@repeat ($cur), [$($pat)*], ($($sep)*), {0, Some(1)}, ($($col_ty)*); ($($tail)*) => $body)
     };
@@ -372,9 +360,8 @@ macro_rules! scan_rules_impl {
         scan_rules_impl!(@repeat ($cur), [$($pat)*], ($($sep)*), {$min, Some($max)}, ($($col_ty)*); ($($tail)*) => $body)
     };
 
-    /*
-    ## Literal match.
-    */
+// ## Literal match.
+//
     (@scan ($cur:expr); ($lit:expr, $($tail:tt)*) => $body:expr) => {
         match $crate::input::ScanCursor::try_match_literal($cur, $lit) {
             Ok(new_cur) => scan_rules_impl!(@scan (new_cur); ($($tail)*) => $body),
@@ -382,13 +369,11 @@ macro_rules! scan_rules_impl {
         }
     };
 
-    /*
-
-    # `@repeat` - Repetition expansion.
-
-    The first step here is to handle a missing `$col_ty` by replacing it with `Vec<_>`.  We delegate to `.with_col_ty` to handle the rest.
-
-    */
+// # `@repeat` - Repetition expansion.
+//
+// The first step here is to handle a missing `$col_ty` by replacing it with `Vec<_>`.  We delegate to `.with_col_ty` to handle the rest.
+//
+//
     (@repeat ($cur:expr),
         [$($pat:tt)*], ($($sep:tt)*), {$min:expr, $max:expr}, ();
         $($tail:tt)*
@@ -403,13 +388,12 @@ macro_rules! scan_rules_impl {
         scan_rules_impl!(@repeat.with_col_ty ($cur), [$($pat)*], ($($sep)*), {$min, $max}, $col_ty; $($tail)*)
     };
 
-    /*
-    ## `.with_col_ty`
-
-    This handles the bulk of the repetition expansion.  The only somewhat obtuse part is how captures are handled: we have to define a collection to hold every value captured in both the repeating and separator sub-patterns.
-
-    This will go rather *poorly* if someone is silly enough to use the same name more than once... but then, that's a bad idea in general.
-    */
+// ## `.with_col_ty`
+//
+// This handles the bulk of the repetition expansion.  The only somewhat obtuse part is how captures are handled: we have to define a collection to hold every value captured in both the repeating and separator sub-patterns.
+//
+// This will go rather *poorly* if someone is silly enough to use the same name more than once... but then, that's a bad idea in general.
+//
     (@repeat.with_col_ty ($cur:expr),
         [$($pat:tt)*], ($($sep:tt)*), {$min:expr, $max:expr}, $col_ty:ty;
         $($tail:tt)*
@@ -427,14 +411,14 @@ macro_rules! scan_rules_impl {
                 _ => ()
             }
 
-            // If we broke out of the loop due to a scanning error, what was it?
+// If we broke out of the loop due to a scanning error, what was it?
             let mut break_err: Option<$crate::ScanError> = None;
 
-            // Did we break due to a scanning error *after* having successfully scanned a separator?
+// Did we break due to a scanning error *after* having successfully scanned a separator?
             let mut break_after_sep: bool;
 
             loop {
-                // Doing this here prevents an "does not need to be mut" warning.
+// Doing this here prevents an "does not need to be mut" warning.
                 break_after_sep = false;
 
                 match max {
@@ -442,7 +426,7 @@ macro_rules! scan_rules_impl {
                     _ => ()
                 }
 
-                // Handle the separator pattern, if there is one.
+// Handle the separator pattern, if there is one.
                 scan_rules_impl!(@if_empty.expr ($($sep)*) {
                     () // Do nothing.
                 } else {
@@ -454,7 +438,7 @@ macro_rules! scan_rules_impl {
                             }
                         ) {
                             ::std::result::Result::Ok(elems) => {
-                                // See below about black-holing.
+// See below about black-holing.
                                 let _ = elems.0;
                                 scan_rules_impl!(@with_bindings ($($sep)*), then: scan_rules_impl!(@repeat.push elems,););
                             },
@@ -466,7 +450,7 @@ macro_rules! scan_rules_impl {
                     }
                 });
 
-                // Scan the repeating pattern.
+// Scan the repeating pattern.
                 match scan_rules_impl!(@scan (cur.clone());
                     ($($pat)*, ^..after,) => {
                         cur = after;
@@ -474,7 +458,7 @@ macro_rules! scan_rules_impl {
                     }
                 ) {
                     ::std::result::Result::Ok(elems) => {
-                        // Black-hole the first element to stop Rust from complaining when there are no captures.
+// Black-hole the first element to stop Rust from complaining when there are no captures.
                         let _ = elems.0;
                         scan_rules_impl!(@with_bindings ($($pat)*), then: scan_rules_impl!(@repeat.push elems,););
                         repeats += 1;
@@ -492,7 +476,7 @@ macro_rules! scan_rules_impl {
             }
 
             if repeats < min || break_after_sep {
-                // Evaluate to the last error because *either* we didn't get enough elements, *or* because we found a separator that wasn't followed by a match.
+// Evaluate to the last error because *either* we didn't get enough elements, *or* because we found a separator that wasn't followed by a match.
                 Err(break_err.unwrap())
             } else {
                 scan_rules_impl!(@scan (cur); $($tail)*)
@@ -500,33 +484,30 @@ macro_rules! scan_rules_impl {
         }
     };
 
-    /*
-    ## `.define_cols`
-
-    Define the collections that repeating variables will be collected into.
-    */
+// ## `.define_cols`
+//
+// Define the collections that repeating variables will be collected into.
+//
     (@repeat.define_cols $col_ty:ty, $(($names:ident, $_idxs:expr),)*) => {
         $(
             let mut $names: $col_ty = ::std::default::Default::default();
         )*
     };
 
-    /*
-    ## `.tuple`
-
-    Define a tuple expression that contains the names of the repeating variables.
-
-    The first element is *always* `()` so we can explicitly drop it to avoid unused variable warnings.
-    */
+// ## `.tuple`
+//
+// Define a tuple expression that contains the names of the repeating variables.
+//
+// The first element is *always* `()` so we can explicitly drop it to avoid unused variable warnings.
+//
     (@repeat.tuple $(($names:ident, $_idxs:expr),)*) => {
         ((), $($names,)*)
     };
 
-    /*
-    ## `.push`
-
-    Push captured values into their respective collections.
-    */
+// ## `.push`
+//
+// Push captured values into their respective collections.
+//
     (@repeat.push $elems:expr, $(($names:ident, $idxs:tt),)*) => {
         $(
             ::std::iter::Extend::extend(
@@ -536,13 +517,11 @@ macro_rules! scan_rules_impl {
         )*
     };
 
-    /*
-
-    # `@let_bindings`
-
-    This is a callback designed to continue from `@with_bindings`.  It takes the list of binding names, and defines local variables for them, and sets up the pattern body to return them.
-
-    */
+// # `@let_bindings`
+//
+// This is a callback designed to continue from `@with_bindings`.  It takes the list of binding names, and defines local variables for them, and sets up the pattern body to return them.
+//
+//
 
     (@let_bindings.panic $input:expr, $pattern:tt, $(($ns:ident, $_is:tt),)*) => {
         scan_rules_impl!(
@@ -556,17 +535,15 @@ macro_rules! scan_rules_impl {
         );
     };
 
-    /*
-
-    # `@with_bindings` - Extract all binding names from pattern.
-
-    The callback will be invoked with `(a, 1), (x, 2), (vvv, 3), ...,` appended to the argument.  This will be a list of every binding name in the pattern in lexical order, plus a matching ordinal.
-
-    **Note**: The first element of the tuple will be a `()` which we can explicitly drop to avoid unused variable warnings.  As such, the index counter starts at `1`, not `0`.
-
-    **Note**: tail and anchor captures aren't valid inside repeats, so they are *not* handled by this macro.
-
-    */
+// # `@with_bindings` - Extract all binding names from pattern.
+//
+// The callback will be invoked with `(a, 1), (x, 2), (vvv, 3), ...,` appended to the argument.  This will be a list of every binding name in the pattern in lexical order, plus a matching ordinal.
+//
+// Note**: The first element of the tuple will be a `()` which we can explicitly drop to avoid unused variable warnings.  As such, the index counter starts at `1`, not `0`.
+//
+// Note**: tail and anchor captures aren't valid inside repeats, so they are *not* handled by this macro.
+//
+//
     (@with_bindings ($($pat:tt)*), then: $cb_name:ident!$cb_arg:tt) => {
         scan_rules_impl!(@with_bindings.step 1, (), ($cb_name $cb_arg); $($pat)*,)
     };
@@ -575,13 +552,12 @@ macro_rules! scan_rules_impl {
         scan_rules_impl!(@with_bindings.step 1, (), ($cb_name $cb_arg;); $($pat)*,)
     };
 
-    /*
-    ## `.step`
-
-    Step over the next part of the pattern.  If it has a binding, extract it and increment `$i`.
-
-    If there's nothing left in the input, invoke the callback.
-    */
+// ## `.step`
+//
+// Step over the next part of the pattern.  If it has a binding, extract it and increment `$i`.
+//
+// If there's nothing left in the input, invoke the callback.
+//
     (@with_bindings.step
         $_i:expr,
         ($($names:tt)*),
@@ -670,11 +646,10 @@ macro_rules! scan_rules_impl {
         scan_rules_impl!(@with_bindings.step $i, $names, $cb; $($tail)*)
     };
 
-    /*
-    ## `.inc`
-
-    Increment the index counter.  Because `macro_rules!` is stupid, this is *very* limited in how many identifiers can be transitively within a repeating pattern.
-    */
+// ## `.inc`
+//
+// Increment the index counter.  Because `macro_rules!` is stupid, this is *very* limited in how many identifiers can be transitively within a repeating pattern.
+//
     (@with_bindings.inc  1, $($tail:tt)*) => { scan_rules_impl!(@with_bindings.step  2, $($tail)*) };
     (@with_bindings.inc  2, $($tail:tt)*) => { scan_rules_impl!(@with_bindings.step  3, $($tail)*) };
     (@with_bindings.inc  3, $($tail:tt)*) => { scan_rules_impl!(@with_bindings.step  4, $($tail)*) };
@@ -708,11 +683,9 @@ macro_rules! scan_rules_impl {
     (@with_bindings.inc 31, $($tail:tt)*) => { scan_rules_impl!(@with_bindings.step 32, $($tail)*) };
     (@with_bindings.inc 32, $($tail:tt)*) => { scan_rules_impl!(@with_bindings.step 33, $($tail)*) };
 
-    /*
-
-    # Miscellaneous
-
-    */
+// # Miscellaneous
+//
+//
     (@as_expr $e:expr) => {$e};
     (@as_stmt $s:stmt) => {$s};
 

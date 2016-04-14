@@ -1,22 +1,21 @@
-/*
-Copyright ⓒ 2016 Daniel Keep.
-
-Licensed under the MIT license (see LICENSE or <http://opensource.org
-/licenses/MIT>) or the Apache License, Version 2.0 (see LICENSE of
-<http://www.apache.org/licenses/LICENSE-2.0>), at your option. All
-files in the project carrying such notice may not be copied, modified,
-or distributed except according to those terms.
-*/
-/*!
-Types and constructors for various runtime scanners.
-*/
+// Copyright ⓒ 2016 Daniel Keep.
+//
+// Licensed under the MIT license (see LICENSE or <http://opensource.org
+// /licenses/MIT>) or the Apache License, Version 2.0 (see LICENSE of
+// <http://www.apache.org/licenses/LICENSE-2.0>), at your option. All
+// files in the project carrying such notice may not be copied, modified,
+// or distributed except according to those terms.
+//
+//! Types and constructors for various runtime scanners.
+//!
 use std::marker::PhantomData;
 use strcursor::StrCursor;
-use ::ScanError;
-use ::input::ScanInput;
-use ::scanner::{ScanFromStr, ScanStr};
+use ScanError;
+use input::ScanInput;
+use scanner::{ScanFromStr, ScanStr};
 
-#[cfg(feature="regex")] use regex::Regex;
+#[cfg(feature="regex")]
+use regex::Regex;
 
 /**
 Creates a runtime scanner that forces *exactly* `width` bytes to be consumed.
@@ -46,7 +45,8 @@ See: [`exact_width`](fn.exact_width.html), [`exact_width_a`](fn.exact_width_a.ht
 pub struct ExactWidth<Then>(usize, Then);
 
 impl<'a, Then> ScanStr<'a> for ExactWidth<Then>
-where Then: ScanStr<'a> {
+    where Then: ScanStr<'a>
+{
     type Output = Then::Output;
 
     fn scan<I: ScanInput<'a>>(&mut self, s: I) -> Result<(Self::Output, usize), ScanError> {
@@ -58,9 +58,11 @@ where Then: ScanStr<'a> {
         let sl = s.from_subslice(&s_str[..self.0]);
 
         match self.1.scan(sl) {
-            Ok((_, n)) if n != self.0 => Err(ScanError::syntax("value did not consume enough characters")),
+            Ok((_, n)) if n != self.0 => {
+                Err(ScanError::syntax("value did not consume enough characters"))
+            }
             Err(err) => Err(err),
-            Ok((v, _)) => Ok((v, self.0))
+            Ok((v, _)) => Ok((v, self.0)),
         }
     }
 
@@ -72,14 +74,14 @@ where Then: ScanStr<'a> {
 #[cfg(test)]
 #[test]
 fn test_exact_width() {
-    use ::ScanError as SE;
-    use ::ScanErrorKind as SEK;
-    use ::scanner::Word;
+    use ScanError as SE;
+    use ScanErrorKind as SEK;
+    use scanner::Word;
     let scan = exact_width_a::<Word>;
 
-    assert_match!(scan(2).scan(""), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(scan(2).scan("a"), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(scan(2).scan("a b"), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(scan(2).scan(""), Err());
+    assert_match!(scan(2).scan("a"), Err());
+    assert_match!(scan(2).scan("a b"), Err());
     assert_match!(scan(2).scan("ab"), Ok(("ab", 2)));
     assert_match!(scan(2).scan("abc"), Ok(("ab", 2)));
 }
@@ -112,7 +114,8 @@ See: [`max_width`](fn.max_width.html), [`max_width_a`](fn.max_width_a.html).
 pub struct MaxWidth<Then>(usize, Then);
 
 impl<'a, Then> ScanStr<'a> for MaxWidth<Then>
-where Then: ScanStr<'a> {
+    where Then: ScanStr<'a>
+{
     type Output = Then::Output;
 
     fn scan<I: ScanInput<'a>>(&mut self, s: I) -> Result<(Self::Output, usize), ScanError> {
@@ -132,12 +135,12 @@ where Then: ScanStr<'a> {
 #[cfg(test)]
 #[test]
 fn test_max_width() {
-    use ::ScanError as SE;
-    use ::ScanErrorKind as SEK;
-    use ::scanner::Word;
+    use ScanError as SE;
+    use ScanErrorKind as SEK;
+    use scanner::Word;
     let scan = max_width_a::<Word>;
 
-    assert_match!(scan(2).scan(""), Err(SE { kind: SEK::SyntaxNoMessage, .. }));
+    assert_match!(scan(2).scan(""), Err());
     assert_match!(scan(2).scan("a"), Ok(("a", 1)));
     assert_match!(scan(2).scan("a b"), Ok(("a", 1)));
     assert_match!(scan(2).scan("ab"), Ok(("ab", 2)));
@@ -172,7 +175,8 @@ See: [`min_width`](fn.min_width.html), [`min_width_a`](fn.min_width_a.html).
 pub struct MinWidth<Then>(usize, Then);
 
 impl<'a, Then> ScanStr<'a> for MinWidth<Then>
-where Then: ScanStr<'a> {
+    where Then: ScanStr<'a>
+{
     type Output = Then::Output;
 
     fn scan<I: ScanInput<'a>>(&mut self, s: I) -> Result<(Self::Output, usize), ScanError> {
@@ -182,7 +186,7 @@ where Then: ScanStr<'a> {
         }
         match self.1.scan(s) {
             Ok((_, n)) if n < self.0 => Err(ScanError::syntax("scanned value too short")),
-            other => other
+            other => other,
         }
     }
 
@@ -194,14 +198,14 @@ where Then: ScanStr<'a> {
 #[cfg(test)]
 #[test]
 fn test_min_width() {
-    use ::ScanError as SE;
-    use ::ScanErrorKind as SEK;
-    use ::scanner::Word;
+    use ScanError as SE;
+    use ScanErrorKind as SEK;
+    use scanner::Word;
     let scan = min_width_a::<Word>;
 
-    assert_match!(scan(2).scan(""), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(scan(2).scan("a"), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(scan(2).scan("a b"), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(scan(2).scan(""), Err());
+    assert_match!(scan(2).scan("a"), Err());
+    assert_match!(scan(2).scan("a b"), Err());
     assert_match!(scan(2).scan("ab"), Ok(("ab", 2)));
     assert_match!(scan(2).scan("abc"), Ok(("abc", 3)));
 }
@@ -260,7 +264,8 @@ pub struct ScanRegex<Then>(Regex, Then);
 
 #[cfg(feature="regex")]
 impl<'a, Then> ScanStr<'a> for ScanRegex<Then>
-where Then: ScanStr<'a> {
+    where Then: ScanStr<'a>
+{
     type Output = Then::Output;
 
     fn scan<I: ScanInput<'a>>(&mut self, s: I) -> Result<(Self::Output, usize), ScanError> {
@@ -280,7 +285,7 @@ where Then: ScanStr<'a> {
         } else if let Some((a, b)) = cap.pos(1) {
             &s_str[a..b]
         } else {
-            &s_str[cover.0 .. cover.1]
+            &s_str[cover.0..cover.1]
         };
 
         let sl = s.from_subslice(sl);
@@ -300,13 +305,13 @@ where Then: ScanStr<'a> {
 #[cfg(test)]
 #[test]
 fn test_re() {
-    use ::ScanError as SE;
-    use ::ScanErrorKind as SEK;
+    use ScanError as SE;
+    use ScanErrorKind as SEK;
     let scan = re_str;
 
-    assert_match!(scan("[a-z][0-9]").scan(""), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(scan("[a-z][0-9]").scan("a"), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(scan("[a-z][0-9]").scan("a 0"), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(scan("[a-z][0-9]").scan(""), Err());
+    assert_match!(scan("[a-z][0-9]").scan("a"), Err());
+    assert_match!(scan("[a-z][0-9]").scan("a 0"), Err());
     assert_match!(scan("[a-z][0-9]").scan("a0"), Ok(("a0", 2)));
     assert_match!(scan("[a-z][0-9]").scan("a0c"), Ok(("a0", 2)));
     assert_match!(scan("[a-z][0-9]").scan(" a0"), Ok(("a0", 3)));
@@ -327,7 +332,8 @@ See: [`scan_a`](../fn.scan_a.html).
 pub struct ScanA<S>(PhantomData<S>);
 
 impl<'a, S> ScanStr<'a> for ScanA<S>
-where S: ScanFromStr<'a> {
+    where S: ScanFromStr<'a>
+{
     type Output = S::Output;
 
     fn scan<I: ScanInput<'a>>(&mut self, s: I) -> Result<(Self::Output, usize), ScanError> {
@@ -409,9 +415,8 @@ This makes me a bit nervous.  The `clone` would need to happen on every scan; if
 */
 #[cfg(feature="nightly-pattern")]
 impl<'a, Then, P> ScanStr<'a> for UntilPat<Then, P>
-where
-    Then: ScanStr<'a>,
-    for<'b> P: Copy + ::std::str::pattern::Pattern<'b>,
+    where Then: ScanStr<'a>,
+          for<'b> P: Copy + ::std::str::pattern::Pattern<'b>
 {
     type Output = Then::Output;
 
@@ -437,43 +442,45 @@ where
 #[cfg(test)]
 #[test]
 fn test_until() {
-    use ::ScanError as SE;
-    use ::ScanErrorKind as SEK;
+    use ScanError as SE;
+    use ScanErrorKind as SEK;
 
     #[allow(non_snake_case)]
-    fn S(s: &str) -> String { String::from(s) }
+    fn S(s: &str) -> String {
+        String::from(s)
+    }
 
-    assert_match!(until_pat_str("x").scan(""), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(until_pat_str("x").scan("a"), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(until_pat_str("x").scan("ab"), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(until_pat_str("x").scan(""), Err());
+    assert_match!(until_pat_str("x").scan("a"), Err());
+    assert_match!(until_pat_str("x").scan("ab"), Err());
     assert_match!(until_pat_str("x").scan("x"), Ok(("", 0)));
     assert_match!(until_pat_str("x").scan("ax"), Ok(("a", 1)));
     assert_match!(until_pat_str("x").scan("abx"), Ok(("ab", 2)));
 
-    assert_match!(until_pat_str(&"x").scan(""), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(until_pat_str(&"x").scan("a"), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(until_pat_str(&"x").scan("ab"), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(until_pat_str(&"x").scan(""), Err());
+    assert_match!(until_pat_str(&"x").scan("a"), Err());
+    assert_match!(until_pat_str(&"x").scan("ab"), Err());
     assert_match!(until_pat_str(&"x").scan("x"), Ok(("", 0)));
     assert_match!(until_pat_str(&"x").scan("ax"), Ok(("a", 1)));
     assert_match!(until_pat_str(&"x").scan("abx"), Ok(("ab", 2)));
 
-    assert_match!(until_pat_str(&S("x")).scan(""), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(until_pat_str(&S("x")).scan("a"), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(until_pat_str(&S("x")).scan("ab"), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(until_pat_str(&S("x")).scan(""), Err());
+    assert_match!(until_pat_str(&S("x")).scan("a"), Err());
+    assert_match!(until_pat_str(&S("x")).scan("ab"), Err());
     assert_match!(until_pat_str(&S("x")).scan("x"), Ok(("", 0)));
     assert_match!(until_pat_str(&S("x")).scan("ax"), Ok(("a", 1)));
     assert_match!(until_pat_str(&S("x")).scan("abx"), Ok(("ab", 2)));
 
-    assert_match!(until_pat_str('x').scan(""), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(until_pat_str('x').scan("a"), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(until_pat_str('x').scan("ab"), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(until_pat_str('x').scan(""), Err());
+    assert_match!(until_pat_str('x').scan("a"), Err());
+    assert_match!(until_pat_str('x').scan("ab"), Err());
     assert_match!(until_pat_str('x').scan("x"), Ok(("", 0)));
     assert_match!(until_pat_str('x').scan("ax"), Ok(("a", 1)));
     assert_match!(until_pat_str('x').scan("abx"), Ok(("ab", 2)));
 
-    assert_match!(until_pat_str(&['x'][..]).scan(""), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(until_pat_str(&['x'][..]).scan("a"), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(until_pat_str(&['x'][..]).scan("ab"), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(until_pat_str(&['x'][..]).scan(""), Err());
+    assert_match!(until_pat_str(&['x'][..]).scan("a"), Err());
+    assert_match!(until_pat_str(&['x'][..]).scan("ab"), Err());
     assert_match!(until_pat_str(&['x'][..]).scan("x"), Ok(("", 0)));
     assert_match!(until_pat_str(&['x'][..]).scan("ax"), Ok(("a", 1)));
     assert_match!(until_pat_str(&['x'][..]).scan("abx"), Ok(("ab", 2)));

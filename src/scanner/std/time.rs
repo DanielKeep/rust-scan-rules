@@ -1,21 +1,19 @@
-/*
-Copyright ⓒ 2016 Daniel Keep.
-
-Licensed under the MIT license (see LICENSE or <http://opensource.org
-/licenses/MIT>) or the Apache License, Version 2.0 (see LICENSE of
-<http://www.apache.org/licenses/LICENSE-2.0>), at your option. All
-files in the project carrying such notice may not be copied, modified,
-or distributed except according to those terms.
-*/
-/*!
-Scanner implementations for `std::time` types.
-*/
+// Copyright ⓒ 2016 Daniel Keep.
+//
+// Licensed under the MIT license (see LICENSE or <http://opensource.org
+// /licenses/MIT>) or the Apache License, Version 2.0 (see LICENSE of
+// <http://www.apache.org/licenses/LICENSE-2.0>), at your option. All
+// files in the project carrying such notice may not be copied, modified,
+// or distributed except according to those terms.
+//
+//! Scanner implementations for `std::time` types.
+//!
 use std::time::Duration;
 use strcursor::StrCursor;
-use ::ScanError;
-use ::input::ScanInput;
-use ::scanner::ScanFromStr;
-use ::util::MsgErr;
+use ScanError;
+use input::ScanInput;
+use scanner::ScanFromStr;
+use util::MsgErr;
 
 /**
 Parses an ISO 8601 format duration into a `std::time::Duration`.
@@ -62,10 +60,14 @@ const SECS_IN_SEC: u64 = 1;
 const SECS_IN_MIN: u64 = 60;
 const SECS_IN_HOUR: u64 = 60 * SECS_IN_MIN;
 
-#[cfg(feature="duration-iso8601-dates")] const SECS_IN_DAY: u64 = 24 * SECS_IN_HOUR;
-#[cfg(feature="duration-iso8601-dates")] const SECS_IN_WEEK: u64 = 7 * SECS_IN_DAY;
-#[cfg(feature="duration-iso8601-dates")] const SECS_IN_MONTH: u64 = 30 * SECS_IN_DAY + 10 * SECS_IN_HOUR + 30 * SECS_IN_MIN;
-#[cfg(feature="duration-iso8601-dates")] const SECS_IN_YEAR: u64 = 365 * SECS_IN_DAY + 6 * SECS_IN_HOUR;
+#[cfg(feature="duration-iso8601-dates")]
+const SECS_IN_DAY: u64 = 24 * SECS_IN_HOUR;
+#[cfg(feature="duration-iso8601-dates")]
+const SECS_IN_WEEK: u64 = 7 * SECS_IN_DAY;
+#[cfg(feature="duration-iso8601-dates")]
+const SECS_IN_MONTH: u64 = 30 * SECS_IN_DAY + 10 * SECS_IN_HOUR + 30 * SECS_IN_MIN;
+#[cfg(feature="duration-iso8601-dates")]
+const SECS_IN_YEAR: u64 = 365 * SECS_IN_DAY + 6 * SECS_IN_HOUR;
 
 const NANOS_IN_SEC: u32 = 1_000_000_000;
 
@@ -73,8 +75,8 @@ const NANOS_IN_SEC: u32 = 1_000_000_000;
 #[cfg(test)]
 #[test]
 fn test_iso_8601_duration_dates() {
-    use ::ScanError as SE;
-    use ::ScanErrorKind as SEK;
+    use ScanError as SE;
+    use ScanErrorKind as SEK;
 
     let scan = Iso8601Duration::scan_from;
 
@@ -162,8 +164,8 @@ fn test_iso_8601_duration_dates() {
 #[cfg(test)]
 #[test]
 fn test_iso_8601_duration() {
-    use ::ScanError as SE;
-    use ::ScanErrorKind as SEK;
+    use ScanError as SE;
+    use ScanErrorKind as SEK;
 
     let scan = Iso8601Duration::scan_from;
 
@@ -217,65 +219,33 @@ fn test_iso_8601_duration() {
         Ok((d, 33)) if d == Duration::new(0, 1)
     );
 
-    assert_match!(
-        scan(""),
-        Err(SE { kind: SEK::Syntax(_), .. })
-    );
-    assert_match!(
-        scan("a while"),
-        Err(SE { kind: SEK::Syntax(_), .. })
-    );
-    assert_match!(
-        scan("P"),
-        Err(SE { kind: SEK::Syntax(_), .. })
-    );
-    assert_match!(
-        scan("Px"),
-        Err(SE { kind: SEK::Syntax(_), .. })
-    );
-    assert_match!(
-        scan("PY"),
-        Err(SE { kind: SEK::Syntax(_), .. })
-    );
-    assert_match!(
-        scan("PM"),
-        Err(SE { kind: SEK::Syntax(_), .. })
-    );
-    assert_match!(
-        scan("PD"),
-        Err(SE { kind: SEK::Syntax(_), .. })
-    );
-    assert_match!(
-        scan("PW"),
-        Err(SE { kind: SEK::Syntax(_), .. })
-    );
-    assert_match!(
-        scan("P1H"),
-        Err(SE { kind: SEK::Syntax(_), .. })
-    );
-    assert_match!(
-        scan("P1S"),
-        Err(SE { kind: SEK::Syntax(_), .. })
-    );
+    assert_match!(scan(""), Err());
+    assert_match!(scan("a while"), Err());
+    assert_match!(scan("P"), Err());
+    assert_match!(scan("Px"), Err());
+    assert_match!(scan("PY"), Err());
+    assert_match!(scan("PM"), Err());
+    assert_match!(scan("PD"), Err());
+    assert_match!(scan("PW"), Err());
+    assert_match!(scan("P1H"), Err());
+    assert_match!(scan("P1S"), Err());
 }
 
-type ScanResult<T, L=usize> = Result<(T, L), ScanError>;
+type ScanResult<T, L = usize> = Result<(T, L), ScanError>;
 
 fn scan_8601(cur: StrCursor) -> ScanResult<Duration, StrCursor> {
-    /*
-    See: <https://en.wikipedia.org/wiki/ISO_8601#Durations>,
-    <https://html.spec.whatwg.org/multipage/infrastructure.html
-     #valid-duration-string>.
-    */
+    // See: <https://en.wikipedia.org/wiki/ISO_8601#Durations>,
+    // <https://html.spec.whatwg.org/multipage/infrastructure.html
+    // #valid-duration-string>.
+    //
     let cur = match cur.next_cp() {
         Some(('P', cur)) => cur,
-        _ => return Err(ScanError::syntax("expected `P`")
-            .add_offset(cur.byte_pos()))
+        _ => return Err(ScanError::syntax("expected `P`").add_offset(cur.byte_pos())),
     };
 
     return match cur.next_cp() {
         Some(('T', cur)) => given_date(Duration::new(0, 0), cur),
-        _ => date(cur)
+        _ => date(cur),
     };
 
     #[cfg(not(feature="duration-iso8601-dates"))]
@@ -293,35 +263,38 @@ fn scan_8601(cur: StrCursor) -> ScanResult<Duration, StrCursor> {
             Some(('T', cur)) => {
                 if int_len != "YYYYMMDD".len() {
                     return Err(ScanError::syntax("expected date in `YYYYMMDD` format")
-                        .add_offset(cur.byte_pos()));
+                                   .add_offset(cur.byte_pos()));
                 }
                 time_compound(int, cur)
-            },
+            }
             Some(('-', cur)) => {
                 if int_len != "YYYY".len() {
                     return Err(ScanError::syntax("expected year in `YYYY-MM-DD` format")
-                        .add_offset(cur.byte_pos()));
+                                   .add_offset(cur.byte_pos()));
                 }
                 date_split_month(try!(dur_years(int, 0.0)), cur)
-            },
+            }
             Some(('Y', cur)) => {
                 let y = try!(dur_years(int, 0.0));
                 given_year(y, cur)
-            },
+            }
             Some(('M', cur)) => {
                 let m = try!(dur_months(int, 0.0));
                 given_month(m, cur)
-            },
+            }
             Some(('D', cur)) => {
                 let d = try!(dur_days(int, 0.0));
                 given_day(d, cur)
-            },
+            }
             Some(('W', cur)) => {
                 let w = try!(dur_weeks(int, 0.0));
                 Ok((w, cur))
-            },
-            _ => Err(ScanError::syntax("expected number followed by one of `T`, `Y`, `M`, `D`, or `W`")
-                .add_offset(cur.byte_pos()))
+            }
+            _ => {
+                Err(ScanError::syntax("expected number followed by one of `T`, `Y`, `M`, `D`, or \
+                                       `W`")
+                        .add_offset(cur.byte_pos()))
+            }
         }
     }
 
@@ -335,9 +308,12 @@ fn scan_8601(cur: StrCursor) -> ScanResult<Duration, StrCursor> {
             Some(('W', cur)) => {
                 let w = try!(dur_weeks(int, frac));
                 Ok((w, cur))
-            },
-            _ => Err(ScanError::syntax("expected real number followed by one of `Y`, `M`, `D`, or `W`")
-                .add_offset(cur.byte_pos()))
+            }
+            _ => {
+                Err(ScanError::syntax("expected real number followed by one of `Y`, `M`, `D`, or \
+                                       `W`")
+                        .add_offset(cur.byte_pos()))
+            }
         }
     }
 
@@ -348,7 +324,7 @@ fn scan_8601(cur: StrCursor) -> ScanResult<Duration, StrCursor> {
 
         if time_len != "HHMMSS".len() {
             return Err(ScanError::syntax("expected time in `hhmmss` format")
-                .add_offset(cur.byte_pos()));
+                           .add_offset(cur.byte_pos()));
         }
 
         let years = date / 1_00_00;
@@ -402,13 +378,15 @@ fn scan_8601(cur: StrCursor) -> ScanResult<Duration, StrCursor> {
 
         if months_len != "MM".len() {
             return Err(ScanError::syntax("expected month in `YYYY-MM-DD` format")
-                .add_offset(cur.byte_pos()));
+                           .add_offset(cur.byte_pos()));
         }
 
         match months_cur.next_cp() {
             Some(('-', cur)) => date_split_day(dur + try!(dur_months(months, 0.0)), cur),
-            _ => Err(ScanError::syntax("expected `-` after month in `YYYY-MM-DD` format")
-                .add_offset(cur.byte_pos()))
+            _ => {
+                Err(ScanError::syntax("expected `-` after month in `YYYY-MM-DD` format")
+                        .add_offset(cur.byte_pos()))
+            }
         }
     }
 
@@ -419,13 +397,12 @@ fn scan_8601(cur: StrCursor) -> ScanResult<Duration, StrCursor> {
 
         if days_len != "DD".len() {
             return Err(ScanError::syntax("expected day in `YYYY-MM-DD` format")
-                .add_offset(cur.byte_pos()));
+                           .add_offset(cur.byte_pos()));
         }
 
         match days_cur.next_cp() {
             Some(('T', cur)) => date_split_hour(dur + try!(dur_days(days, 0.0)), cur),
-            _ => Err(ScanError::syntax("expected `T` following date")
-                .add_offset(cur.byte_pos()))
+            _ => Err(ScanError::syntax("expected `T` following date").add_offset(cur.byte_pos())),
         }
     }
 
@@ -436,13 +413,15 @@ fn scan_8601(cur: StrCursor) -> ScanResult<Duration, StrCursor> {
 
         if hours_len != "hh".len() {
             return Err(ScanError::syntax("expected time in `hh:mm:ss` format")
-                .add_offset(cur.byte_pos()));
+                           .add_offset(cur.byte_pos()));
         }
 
         match hours_cur.next_cp() {
             Some((':', cur)) => date_split_min(dur + try!(dur_hours(hours, 0.0)), cur),
-            _ => Err(ScanError::syntax("expected time in `hh:mm:ss` format")
-                .add_offset(cur.byte_pos()))
+            _ => {
+                Err(ScanError::syntax("expected time in `hh:mm:ss` format")
+                        .add_offset(cur.byte_pos()))
+            }
         }
     }
 
@@ -453,13 +432,15 @@ fn scan_8601(cur: StrCursor) -> ScanResult<Duration, StrCursor> {
 
         if mins_len != "mm".len() {
             return Err(ScanError::syntax("expected time in `hh:mm:ss` format")
-                .add_offset(cur.byte_pos()));
+                           .add_offset(cur.byte_pos()));
         }
 
         match mins_cur.next_cp() {
             Some((':', cur)) => date_split_sec(dur + try!(dur_mins(mins, 0.0)), cur),
-            _ => Err(ScanError::syntax("expected time in `hh:mm:ss` format")
-                .add_offset(cur.byte_pos()))
+            _ => {
+                Err(ScanError::syntax("expected time in `hh:mm:ss` format")
+                        .add_offset(cur.byte_pos()))
+            }
         }
     }
 
@@ -470,7 +451,7 @@ fn scan_8601(cur: StrCursor) -> ScanResult<Duration, StrCursor> {
 
         if secs_len != "ss".len() {
             return Err(ScanError::syntax("expected time in `hh:mm:ss` format")
-                .add_offset(cur.byte_pos()));
+                           .add_offset(cur.byte_pos()));
         }
 
         Ok((dur + try!(dur_secs(secs, 0.0)), secs_cur))
@@ -488,15 +469,17 @@ fn scan_8601(cur: StrCursor) -> ScanResult<Duration, StrCursor> {
         match cur.next_cp() {
             Some(('0'...'9', _)) => (),
             Some(('T', cur)) => return given_date(dur, cur),
-            _ => return Ok((dur, cur))
+            _ => return Ok((dur, cur)),
         }
 
         let ((int, frac), cur) = try!(scan_real(cur));
         match cur.next_cp() {
             Some(('M', cur)) => given_month(add_dur!(dur, dur_months(int, frac)), cur),
             Some(('D', cur)) => given_day(add_dur!(dur, dur_days(int, frac)), cur),
-            _ => Err(ScanError::syntax("expected number followed by one of `M`, or `D`")
-                .add_offset(cur.byte_pos()))
+            _ => {
+                Err(ScanError::syntax("expected number followed by one of `M`, or `D`")
+                        .add_offset(cur.byte_pos()))
+            }
         }
     }
 
@@ -505,14 +488,15 @@ fn scan_8601(cur: StrCursor) -> ScanResult<Duration, StrCursor> {
         match cur.next_cp() {
             Some(('0'...'9', _)) => (),
             Some(('T', cur)) => return given_date(dur, cur),
-            _ => return Ok((dur, cur))
+            _ => return Ok((dur, cur)),
         }
 
         let ((int, frac), cur) = try!(scan_real(cur));
         match cur.next_cp() {
             Some(('D', cur)) => given_day(add_dur!(dur, dur_days(int, frac)), cur),
-            _ => Err(ScanError::syntax("expected number followed by `D`")
-                .add_offset(cur.byte_pos()))
+            _ => {
+                Err(ScanError::syntax("expected number followed by `D`").add_offset(cur.byte_pos()))
+            }
         }
     }
 
@@ -520,7 +504,7 @@ fn scan_8601(cur: StrCursor) -> ScanResult<Duration, StrCursor> {
     fn given_day(dur: Duration, cur: StrCursor) -> ScanResult<Duration, StrCursor> {
         match cur.next_cp() {
             Some(('T', cur)) => given_date(dur, cur),
-            _ => Ok((dur, cur))
+            _ => Ok((dur, cur)),
         }
     }
 
@@ -530,37 +514,42 @@ fn scan_8601(cur: StrCursor) -> ScanResult<Duration, StrCursor> {
             Some(('H', cur)) => given_hour(add_dur!(dur, dur_hours(int, frac)), cur),
             Some(('M', cur)) => given_min(add_dur!(dur, dur_mins(int, frac)), cur),
             Some(('S', cur)) => given_sec(add_dur!(dur, dur_secs(int, frac)), cur),
-            _ => Err(ScanError::syntax("expected number followed by one of `H`, `M`, or `S`")
-                .add_offset(cur.byte_pos()))
+            _ => {
+                Err(ScanError::syntax("expected number followed by one of `H`, `M`, or `S`")
+                        .add_offset(cur.byte_pos()))
+            }
         }
     }
 
     fn given_hour(dur: Duration, cur: StrCursor) -> ScanResult<Duration, StrCursor> {
         match cur.next_cp() {
             Some(('0'...'9', _)) => (),
-            _ => return Ok((dur, cur))
+            _ => return Ok((dur, cur)),
         }
 
         let ((int, frac), cur) = try!(scan_real(cur));
         match cur.next_cp() {
             Some(('M', cur)) => given_min(add_dur!(dur, dur_mins(int, frac)), cur),
             Some(('S', cur)) => given_sec(add_dur!(dur, dur_secs(int, frac)), cur),
-            _ => Err(ScanError::syntax("expected number followed by one of `M`, or `S`")
-                .add_offset(cur.byte_pos()))
+            _ => {
+                Err(ScanError::syntax("expected number followed by one of `M`, or `S`")
+                        .add_offset(cur.byte_pos()))
+            }
         }
     }
 
     fn given_min(dur: Duration, cur: StrCursor) -> ScanResult<Duration, StrCursor> {
         match cur.next_cp() {
             Some(('0'...'9', _)) => (),
-            _ => return Ok((dur, cur))
+            _ => return Ok((dur, cur)),
         }
 
         let ((int, frac), cur) = try!(scan_real(cur));
         match cur.next_cp() {
             Some(('S', cur)) => given_sec(add_dur!(dur, dur_secs(int, frac)), cur),
-            _ => Err(ScanError::syntax("expected number followed by `S`")
-                .add_offset(cur.byte_pos()))
+            _ => {
+                Err(ScanError::syntax("expected number followed by `S`").add_offset(cur.byte_pos()))
+            }
         }
     }
 
@@ -575,11 +564,11 @@ fn checked_add_dur(a: Duration, b: Duration) -> Option<Duration> {
     let c_ns = a_ns + b_ns;
     let (c_ns, c_carry) = match c_ns {
         c_ns if c_ns > NANOS_IN_SEC => (c_ns - NANOS_IN_SEC, 1),
-        c_ns => (c_ns, 0)
+        c_ns => (c_ns, 0),
     };
     a_s.checked_add(b_s)
-        .and_then(|c_s| c_s.checked_add(c_carry))
-        .map(|c_s| Duration::new(c_s, c_ns))
+       .and_then(|c_s| c_s.checked_add(c_carry))
+       .map(|c_s| Duration::new(c_s, c_ns))
 }
 
 macro_rules! dur_conv {
@@ -621,35 +610,34 @@ fn scan_integer(cur: StrCursor) -> ScanResult<u64, StrCursor> {
     let start = cur;
     let mut cur = match cur.next_cp() {
         Some(('0'...'9', cur)) => cur,
-        _ => return Err(ScanError::syntax("expected digit")
-            .add_offset(cur.byte_pos()))
+        _ => return Err(ScanError::syntax("expected digit").add_offset(cur.byte_pos())),
     };
 
     loop {
         cur = match cur.next_cp() {
             Some(('0'...'9', cur)) => cur,
             _ => {
-                let v = try!(start.slice_between(cur).unwrap().parse()
-                    .map_err(|e| ScanError::int(e)
-                        .add_offset(cur.byte_pos())));
+                let v = try!(start.slice_between(cur)
+                                  .unwrap()
+                                  .parse()
+                                  .map_err(|e| ScanError::int(e).add_offset(cur.byte_pos())));
                 return Ok((v, cur));
             }
         }
     }
 }
 
-/*
-**NOTE**: This is pretty horrible.  The issue is that because `,` is a valid decimal point, we can't just use `f64::from_str`.  One possibility would be to throw the string into a stack array, mutate it, *then* pass it on... but that means *yet another dependency*.  I'm not sure it's worth it for the moderate horribleness of the following code.
-
-So yes, I know this sucks, but it's *calculated suckage*.
-
-Also, it would be nice if this could accurately parse (say) nanoseconds as fractional years... but that would again require us to forward to `f64::from_str` for the fractional part.  That's why this function returns `(u64, f64)`; it's essentially that way on the hope that one day it'll actually be able to *use* that precision.  :P
-*/
+// NOTE**: This is pretty horrible.  The issue is that because `,` is a valid decimal point, we can't just use `f64::from_str`.  One possibility would be to throw the string into a stack array, mutate it, *then* pass it on... but that means *yet another dependency*.  I'm not sure it's worth it for the moderate horribleness of the following code.
+//
+// So yes, I know this sucks, but it's *calculated suckage*.
+//
+// Also, it would be nice if this could accurately parse (say) nanoseconds as fractional years... but that would again require us to forward to `f64::from_str` for the fractional part.  That's why this function returns `(u64, f64)`; it's essentially that way on the hope that one day it'll actually be able to *use* that precision.  :P
+//
 fn scan_real(cur: StrCursor) -> ScanResult<(u64, f64), StrCursor> {
     let (int, cur) = try!(scan_integer(cur));
     let cur = match cur.next_cp() {
         Some(('.', cur)) | Some((',', cur)) => cur,
-        _ => return Ok(((int, 0.0), cur))
+        _ => return Ok(((int, 0.0), cur)),
     };
     scan_real_frac(int, cur)
 }

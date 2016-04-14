@@ -1,19 +1,17 @@
-/*
-Copyright ⓒ 2016 Daniel Keep.
-
-Licensed under the MIT license (see LICENSE or <http://opensource.org
-/licenses/MIT>) or the Apache License, Version 2.0 (see LICENSE of
-<http://www.apache.org/licenses/LICENSE-2.0>), at your option. All
-files in the project carrying such notice may not be copied, modified,
-or distributed except according to those terms.
-*/
-/*!
-Implementations of `ScanFromStr` for primitive language types.
-*/
+// Copyright ⓒ 2016 Daniel Keep.
+//
+// Licensed under the MIT license (see LICENSE or <http://opensource.org
+// /licenses/MIT>) or the Apache License, Version 2.0 (see LICENSE of
+// <http://www.apache.org/licenses/LICENSE-2.0>), at your option. All
+// files in the project carrying such notice may not be copied, modified,
+// or distributed except according to those terms.
+//
+//! Implementations of `ScanFromStr` for primitive language types.
+//!
 use itertools::Itertools;
 use strcursor::StrCursor;
-use ::ScanError;
-use ::input::ScanInput;
+use ScanError;
+use input::ScanInput;
 use super::ScanFromStr;
 use super::misc::Word;
 
@@ -22,28 +20,29 @@ parse_scanner! { impl<'a> for bool, from Word, err desc "expected `true` or `fal
 #[cfg(test)]
 #[test]
 fn test_scan_bool() {
-    use ::ScanError as SE;
-    use ::ScanErrorKind as SEK;
+    use ScanError as SE;
+    use ScanErrorKind as SEK;
 
-    assert_match!(<bool>::scan_from(""), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(<bool>::scan_from("y"), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(<bool>::scan_from("n"), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(<bool>::scan_from("yes"), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(<bool>::scan_from("no"), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(<bool>::scan_from(" "), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(<bool>::scan_from(" true"), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(<bool>::scan_from(" false"), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(<bool>::scan_from(""), Err());
+    assert_match!(<bool>::scan_from("y"), Err());
+    assert_match!(<bool>::scan_from("n"), Err());
+    assert_match!(<bool>::scan_from("yes"), Err());
+    assert_match!(<bool>::scan_from("no"), Err());
+    assert_match!(<bool>::scan_from(" "), Err());
+    assert_match!(<bool>::scan_from(" true"), Err());
+    assert_match!(<bool>::scan_from(" false"), Err());
     assert_match!(<bool>::scan_from("true"), Ok((true, 4)));
     assert_match!(<bool>::scan_from("false"), Ok((false, 5)));
-    assert_match!(<bool>::scan_from("True"), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(<bool>::scan_from("False"), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(<bool>::scan_from("True"), Err());
+    assert_match!(<bool>::scan_from("False"), Err());
 }
 
 impl<'a> ScanFromStr<'a> for char {
     type Output = char;
     fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
-        let cur = try!(StrCursor::new_at_start(s.as_str()).at_next_cp()
-            .ok_or(ScanError::syntax("expected a character")));
+        let cur = try!(StrCursor::new_at_start(s.as_str())
+                           .at_next_cp()
+                           .ok_or(ScanError::syntax("expected a character")));
         Ok((cur.cp_before().unwrap(), cur.byte_pos()))
     }
 }
@@ -51,10 +50,10 @@ impl<'a> ScanFromStr<'a> for char {
 #[cfg(test)]
 #[test]
 fn test_scan_char() {
-    use ::ScanError as SE;
-    use ::ScanErrorKind as SEK;
+    use ScanError as SE;
+    use ScanErrorKind as SEK;
 
-    assert_match!(<char>::scan_from(""), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(<char>::scan_from(""), Err());
     assert_match!(<char>::scan_from(" "), Ok((' ', 1)));
     assert_match!(<char>::scan_from("x"), Ok(('x', 1)));
     assert_match!(<char>::scan_from("xy"), Ok(('x', 1)));
@@ -92,65 +91,66 @@ fn match_float(s: &str) -> Option<((usize, usize), usize)> {
     let mut ibs = s.bytes().enumerate().peekable();
 
     match ibs.peek().map(|&(_, b)| b) {
-        Some(b'-') | Some(b'+') => { ibs.next(); },
-        _ => ()
+        Some(b'-') | Some(b'+') => {
+            ibs.next();
+        }
+        _ => (),
     }
 
     // Skip over leading integer part.
-    let int_end = ibs
-        .take_while_ref(|&(_, b)| matches!(b, b'0'...b'9'))
-        .last()
-        .map(|(i, _)| i + 1)
-        .map(|n| ((0, n), n));
+    let int_end = ibs.take_while_ref(|&(_, b)| matches!(b, b'0'...b'9'))
+                     .last()
+                     .map(|(i, _)| i + 1)
+                     .map(|n| ((0, n), n));
 
     if let None = int_end {
         return None;
     }
 
     // At this point, we get a decimal point, an "e", or the end of input.
-    fn match_exp<I: Iterator<Item=(usize, u8)>>(mut ibs: Peekable<I>)
-    -> Option<((usize, usize), usize)> {
+    fn match_exp<I: Iterator<Item = (usize, u8)>>(mut ibs: Peekable<I>)
+                                                  -> Option<((usize, usize), usize)> {
 
         match ibs.peek().map(|&(_, b)| b) {
-            Some(b'-') | Some(b'+') => { ibs.next(); },
-            _ => ()
+            Some(b'-') | Some(b'+') => {
+                ibs.next();
+            }
+            _ => (),
         }
 
         ibs.take_while(|&(_, b)| matches!(b, b'0'...b'9'))
-            .last()
-            .map(|(i, _)| i + 1)
-            .map(|n| ((0, n), n))
+           .last()
+           .map(|(i, _)| i + 1)
+           .map(|n| ((0, n), n))
     }
 
     match ibs.next() {
         Some((i, b'.')) => {
             // There *might* be another sequence of digits.
             let end = (&mut ibs)
-                .take_while_ref(|&(_, b)| matches!(b, b'0'...b'9'))
-                .map(|(i, _)| i + 1)
-                .last()
-                .unwrap_or(i + 1);
-            
+                          .take_while_ref(|&(_, b)| matches!(b, b'0'...b'9'))
+                          .map(|(i, _)| i + 1)
+                          .last()
+                          .unwrap_or(i + 1);
+
             // Finally, there *might* be an exponent
             match ibs.next().map(|(_, b)| b) {
-                Some(b'e') | Some(b'E') => {
-                    match_exp(ibs)
-                },
-                _ => Some(((0, end), end))
+                Some(b'e') | Some(b'E') => match_exp(ibs),
+                _ => Some(((0, end), end)),
             }
-        },
+        }
 
         Some((_, b'e')) | Some((_, b'E')) => match_exp(ibs),
 
-        _ => int_end
+        _ => int_end,
     }
 }
 
 #[cfg(test)]
 #[test]
 fn test_scan_f64() {
-    use ::ScanError as SE;
-    use ::ScanErrorKind as SEK;
+    use ScanError as SE;
+    use ScanErrorKind as SEK;
 
     macro_rules! check_f64 {
         ($f:expr) => {
@@ -165,12 +165,12 @@ fn test_scan_f64() {
         };
     }
 
-    assert_match!(<f64>::scan_from(""), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(<f64>::scan_from("-"), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(<f64>::scan_from("+"), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(<f64>::scan_from("x"), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(<f64>::scan_from(" "), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(<f64>::scan_from(" 0"), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(<f64>::scan_from(""), Err());
+    assert_match!(<f64>::scan_from("-"), Err());
+    assert_match!(<f64>::scan_from("+"), Err());
+    assert_match!(<f64>::scan_from("x"), Err());
+    assert_match!(<f64>::scan_from(" "), Err());
+    assert_match!(<f64>::scan_from(" 0"), Err());
     assert_match!(<f64>::scan_from("0"), Ok((0.0, 1)));
     assert_match!(<f64>::scan_from("0x"), Ok((0.0, 1)));
     assert_match!(<f64>::scan_from("0."), Ok((0.0, 2)));
@@ -253,15 +253,15 @@ parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for isize, matcher match_he
 #[cfg(test)]
 #[test]
 fn test_scan_i32() {
-    use ::ScanError as SE;
-    use ::ScanErrorKind as SEK;
+    use ScanError as SE;
+    use ScanErrorKind as SEK;
 
-    assert_match!(<i32>::scan_from(""), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(<i32>::scan_from("-"), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(<i32>::scan_from("+"), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(<i32>::scan_from("x"), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(<i32>::scan_from(" "), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(<i32>::scan_from(" 0"), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(<i32>::scan_from(""), Err());
+    assert_match!(<i32>::scan_from("-"), Err());
+    assert_match!(<i32>::scan_from("+"), Err());
+    assert_match!(<i32>::scan_from("x"), Err());
+    assert_match!(<i32>::scan_from(" "), Err());
+    assert_match!(<i32>::scan_from(" 0"), Err());
     assert_match!(<i32>::scan_from("0"), Ok((0, 1)));
     assert_match!(<i32>::scan_from("42"), Ok((42, 2)));
     assert_match!(<i32>::scan_from("-312"), Ok((-312, 4)));
@@ -295,70 +295,76 @@ parse_scanner! { impl<'a> ScanFromHex::scan_from_hex for usize, matcher match_he
 #[cfg(test)]
 #[test]
 fn test_scan_u32() {
-    use ::ScanError as SE;
-    use ::ScanErrorKind as SEK;
+    use ScanError as SE;
+    use ScanErrorKind as SEK;
 
-    assert_match!(<u32>::scan_from(""), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(<u32>::scan_from("-"), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(<u32>::scan_from("+"), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(<u32>::scan_from("x"), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(<u32>::scan_from(" "), Err(SE { kind: SEK::Syntax(_), .. }));
-    assert_match!(<u32>::scan_from(" 0"), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(<u32>::scan_from(""), Err());
+    assert_match!(<u32>::scan_from("-"), Err());
+    assert_match!(<u32>::scan_from("+"), Err());
+    assert_match!(<u32>::scan_from("x"), Err());
+    assert_match!(<u32>::scan_from(" "), Err());
+    assert_match!(<u32>::scan_from(" 0"), Err());
     assert_match!(<u32>::scan_from("0"), Ok((0, 1)));
     assert_match!(<u32>::scan_from("42"), Ok((42, 2)));
-    assert_match!(<u32>::scan_from("-312"), Err(SE { kind: SEK::Syntax(_), .. }));
+    assert_match!(<u32>::scan_from("-312"), Err());
     assert_match!(<u32>::scan_from("1_234"), Ok((1, 1)));
 }
 
 fn match_bin_int(s: &str) -> Option<((usize, usize), usize)> {
-    s.bytes().enumerate()
-        .take_while(|&(_, b)| matches!(b, b'0' | b'1'))
-        .last()
-        .map(|(i, _)| i + 1)
-        .map(|n| ((0, n), n))
+    s.bytes()
+     .enumerate()
+     .take_while(|&(_, b)| matches!(b, b'0' | b'1'))
+     .last()
+     .map(|(i, _)| i + 1)
+     .map(|n| ((0, n), n))
 }
 
 fn match_hex_int(s: &str) -> Option<((usize, usize), usize)> {
-    s.bytes().enumerate()
-        .take_while(|&(_, b)|
-            matches!(b, b'0'...b'9' | b'a'...b'f' | b'A'...b'F'))
-        .last()
-        .map(|(i, _)| i + 1)
-        .map(|n| ((0, n), n))
+    s.bytes()
+     .enumerate()
+     .take_while(|&(_, b)| matches!(b, b'0'...b'9' | b'a'...b'f' | b'A'...b'F'))
+     .last()
+     .map(|(i, _)| i + 1)
+     .map(|n| ((0, n), n))
 }
 
 fn match_oct_int(s: &str) -> Option<((usize, usize), usize)> {
-    s.bytes().enumerate()
-        .take_while(|&(_, b)| matches!(b, b'0'...b'7'))
-        .last()
-        .map(|(i, _)| i + 1)
-        .map(|n| ((0, n), n))
+    s.bytes()
+     .enumerate()
+     .take_while(|&(_, b)| matches!(b, b'0'...b'7'))
+     .last()
+     .map(|(i, _)| i + 1)
+     .map(|n| ((0, n), n))
 }
 
 fn match_sinteger(s: &str) -> Option<((usize, usize), usize)> {
     let mut ibs = s.bytes().enumerate().peekable();
 
     match ibs.peek().map(|&(_, b)| b) {
-        Some(b'-') | Some(b'+') => { ibs.next(); },
+        Some(b'-') | Some(b'+') => {
+            ibs.next();
+        }
         _ => (),
     }
 
     ibs.take_while(|&(_, b)| matches!(b, b'0'...b'9'))
-        .last()
-        .map(|(i, _)| i + 1)
-        .map(|n| ((0, n), n))
+       .last()
+       .map(|(i, _)| i + 1)
+       .map(|n| ((0, n), n))
 }
 
 fn match_uinteger(s: &str) -> Option<((usize, usize), usize)> {
     let mut ibs = s.bytes().enumerate().peekable();
 
     match ibs.peek().map(|&(_, b)| b) {
-        Some(b'+') => { ibs.next(); },
+        Some(b'+') => {
+            ibs.next();
+        }
         _ => (),
     }
 
     ibs.take_while(|&(_, b)| matches!(b, b'0'...b'9'))
-        .last()
-        .map(|(i, _)| i + 1)
-        .map(|n| ((0, n), n))
+       .last()
+       .map(|(i, _)| i + 1)
+       .map(|n| ((0, n), n))
 }

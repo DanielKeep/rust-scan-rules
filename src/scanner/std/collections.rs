@@ -1,23 +1,16 @@
-/*
-Copyright ⓒ 2016 Daniel Keep.
-
-Licensed under the MIT license (see LICENSE or <http://opensource.org
-/licenses/MIT>) or the Apache License, Version 2.0 (see LICENSE of
-<http://www.apache.org/licenses/LICENSE-2.0>), at your option. All
-files in the project carrying such notice may not be copied, modified,
-or distributed except according to those terms.
-*/
-/*!
-Scanner implementations for `std::collections::*`.
-*/
-use std::collections::{
-    BTreeMap, BTreeSet, BinaryHeap,
-    HashMap, HashSet,
-    LinkedList,
-    VecDeque,
-};
+// Copyright ⓒ 2016 Daniel Keep.
+//
+// Licensed under the MIT license (see LICENSE or <http://opensource.org
+// /licenses/MIT>) or the Apache License, Version 2.0 (see LICENSE of
+// <http://www.apache.org/licenses/LICENSE-2.0>), at your option. All
+// files in the project carrying such notice may not be copied, modified,
+// or distributed except according to those terms.
+//
+//! Scanner implementations for `std::collections::*`.
+//!
+use std::collections::{BTreeMap, BTreeSet, BinaryHeap, HashMap, HashSet, LinkedList, VecDeque};
 use std::hash::Hash;
-use ::scanner::KeyValuePair;
+use scanner::KeyValuePair;
 
 scanner! { impl<'a, K, V> ScanFromStr for BTreeMap<K, V> => BTreeMap, where {K: Ord} {
     ("{", [ let es: KeyValuePair<K, V> ],*: BTreeMap<K, V>, "}", ..tail) => (es, tail)
@@ -54,7 +47,7 @@ scanner! { impl<'a, T> ScanFromStr for VecDeque<T> => VecDeque {
 #[cfg(test)]
 #[test]
 fn test_btreemap() {
-    use ::scanner::ScanFromStr;
+    use scanner::ScanFromStr;
 
     macro_rules! check {
         (<$k:ty, $v:ty> $s:expr, Ok($r:expr, $n:expr)) => {
@@ -81,7 +74,7 @@ fn test_btreemap() {
 #[cfg(test)]
 #[test]
 fn test_btreeset() {
-    use ::scanner::ScanFromStr;
+    use scanner::ScanFromStr;
 
     macro_rules! check {
         (<$ty:ty> $s:expr, Ok($v:expr, $n:expr)) => {
@@ -109,7 +102,7 @@ fn test_btreeset() {
 #[cfg(test)]
 #[test]
 fn test_binaryheap() {
-    use ::scanner::ScanFromStr;
+    use scanner::ScanFromStr;
 
     macro_rules! check {
         (<$ty:ty> $s:expr, Ok($v:expr, $n:expr)) => {
@@ -136,7 +129,7 @@ fn test_binaryheap() {
 #[cfg(test)]
 #[test]
 fn test_hashmap() {
-    use ::scanner::ScanFromStr;
+    use scanner::ScanFromStr;
 
     macro_rules! check {
         (<$k:ty, $v:ty> $s:expr, Ok($r:expr, $n:expr)) => {
@@ -163,7 +156,7 @@ fn test_hashmap() {
 #[cfg(test)]
 #[test]
 fn test_hashset() {
-    use ::scanner::ScanFromStr;
+    use scanner::ScanFromStr;
 
     macro_rules! check {
         (<$ty:ty> $s:expr, Ok($v:expr, $n:expr)) => {
@@ -190,7 +183,7 @@ fn test_hashset() {
 #[cfg(test)]
 #[test]
 fn test_linkedlist() {
-    use ::scanner::ScanFromStr;
+    use scanner::ScanFromStr;
 
     macro_rules! check {
         (<$ty:ty> $s:expr, Ok($v:expr, $n:expr)) => {
@@ -217,7 +210,7 @@ fn test_linkedlist() {
 #[cfg(test)]
 #[test]
 fn test_vec() {
-    use ::scanner::ScanFromStr;
+    use scanner::ScanFromStr;
 
     macro_rules! check {
         (<$ty:ty> $s:expr, Ok($v:expr, $n:expr)) => {
@@ -244,7 +237,7 @@ fn test_vec() {
 #[cfg(test)]
 #[test]
 fn test_vecdeque() {
-    use ::scanner::ScanFromStr;
+    use scanner::ScanFromStr;
 
     macro_rules! check {
         (<$ty:ty> $s:expr, Ok($v:expr, $n:expr)) => {
@@ -270,7 +263,8 @@ fn test_vecdeque() {
 
 #[cfg(test)]
 fn sorted<It: Iterator>(it: It) -> Vec<It::Item>
-where It::Item: Ord {
+    where It::Item: Ord
+{
     let mut v: Vec<_> = it.collect();
     v.sort();
     v

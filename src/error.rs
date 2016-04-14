@@ -1,15 +1,13 @@
-/*
-Copyright ⓒ 2016 Daniel Keep.
-
-Licensed under the MIT license (see LICENSE or <http://opensource.org
-/licenses/MIT>) or the Apache License, Version 2.0 (see LICENSE of
-<http://www.apache.org/licenses/LICENSE-2.0>), at your option. All
-files in the project carrying such notice may not be copied, modified,
-or distributed except according to those terms.
-*/
-/*!
-Defines error types used by the crate.
-*/
+// Copyright ⓒ 2016 Daniel Keep.
+//
+// Licensed under the MIT license (see LICENSE or <http://opensource.org
+// /licenses/MIT>) or the Apache License, Version 2.0 (see LICENSE of
+// <http://www.apache.org/licenses/LICENSE-2.0>), at your option. All
+// files in the project carrying such notice may not be copied, modified,
+// or distributed except according to those terms.
+//
+//! Defines error types used by the crate.
+//!
 use std::error::Error;
 use std::fmt;
 use std::io;
@@ -150,11 +148,10 @@ impl Error for ScanError {
 /**
 Represents the position at which an error occurred.
 */
-/*
-This exists because I'm still considering including the input which generated the error, for the sake of nice error messages.
-
-I'm not using `StrCursor`, because I don't want errors tied to a specific input wrapper.
-*/
+// This exists because I'm still considering including the input which generated the error, for the sake of nice error messages.
+//
+// I'm not using `StrCursor`, because I don't want errors tied to a specific input wrapper.
+//
 #[derive(Debug)]
 pub struct ScanErrorAt {
     /// Offset in bytes.
@@ -226,7 +223,7 @@ impl fmt::Display for ScanErrorKind {
                 try!("syntax error: ".fmt(fmt));
                 try!(desc.fmt(fmt));
                 Ok(())
-            },
+            }
             SyntaxNoMessage => "unknown syntax error".fmt(fmt),
             ExpectedEnd => "expected end of input".fmt(fmt),
             Float(ref err) => err.fmt(fmt),
@@ -242,11 +239,7 @@ impl Error for ScanErrorKind {
     fn cause(&self) -> Option<&Error> {
         use self::ScanErrorKind::*;
         match *self {
-            LiteralMismatch 
-            | Syntax(_)
-            | SyntaxNoMessage
-            | ExpectedEnd
-            => None,
+            LiteralMismatch | Syntax(_) | SyntaxNoMessage | ExpectedEnd => None,
             Float(ref err) => err.cause(),
             Int(ref err) => err.cause(),
             Io(ref err) => err.cause(),

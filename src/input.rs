@@ -1,27 +1,25 @@
-/*
-Copyright ⓒ 2016 Daniel Keep.
-
-Licensed under the MIT license (see LICENSE or <http://opensource.org
-/licenses/MIT>) or the Apache License, Version 2.0 (see LICENSE of
-<http://www.apache.org/licenses/LICENSE-2.0>), at your option. All
-files in the project carrying such notice may not be copied, modified,
-or distributed except according to those terms.
-*/
-/*!
-This module contains items related to input handling.
-
-The short version is this:
-
-* Values provided as input to the user-facing scanning macros must implement `IntoScanCursor`, which converts them into something that implements `ScanCursor`.
-
-* The input provided to actual type scanners will be something that implements the `ScanInput` trait.
-
-`IntoScanCursor` will be of interest if you are implementing a type which you want to be scannable.  `StrCursor` will be of interest if you want to construct a specialised cursor.  `ScanCursor` will be of interest if you are using a `^..cursor` pattern to capture a cursor.
-*/
+// Copyright ⓒ 2016 Daniel Keep.
+//
+// Licensed under the MIT license (see LICENSE or <http://opensource.org
+// /licenses/MIT>) or the Apache License, Version 2.0 (see LICENSE of
+// <http://www.apache.org/licenses/LICENSE-2.0>), at your option. All
+// files in the project carrying such notice may not be copied, modified,
+// or distributed except according to those terms.
+//
+//! This module contains items related to input handling.
+//!
+//! The short version is this:
+//!
+//! Values provided as input to the user-facing scanning macros must implement `IntoScanCursor`, which converts them into something that implements `ScanCursor`.
+//!
+//! The input provided to actual type scanners will be something that implements the `ScanInput` trait.
+//!
+//! `IntoScanCursor` will be of interest if you are implementing a type which you want to be scannable.  `StrCursor` will be of interest if you want to construct a specialised cursor.  `ScanCursor` will be of interest if you are using a `^..cursor` pattern to capture a cursor.
+//!
 use std::borrow::Cow;
 use std::marker::PhantomData;
 use itertools::Itertools;
-use ::ScanError;
+use ScanError;
 
 /**
 Conversion into a `ScanCursor`.
@@ -40,7 +38,9 @@ pub trait IntoScanCursor<'a>: Sized {
     fn into_scan_cursor(self) -> Self::Output;
 }
 
-impl<'a, T> IntoScanCursor<'a> for T where T: 'a + ScanCursor<'a> {
+impl<'a, T> IntoScanCursor<'a> for T
+    where T: 'a + ScanCursor<'a>
+{
     type Output = Self;
     fn into_scan_cursor(self) -> Self::Output {
         self
@@ -88,13 +88,13 @@ pub trait ScanCursor<'a>: 'a + Sized + Clone {
     The input will have all leading whitespace removed, if applicable.
     */
     fn try_scan<F, Out>(self, f: F) -> Result<(Out, Self), (ScanError, Self)>
-    where F: FnOnce(Self::ScanInput) -> Result<(Out, usize), ScanError>;
+        where F: FnOnce(Self::ScanInput) -> Result<(Out, usize), ScanError>;
 
     /**
     Performs the same task as [`try_scan`](#tymethod.try_scan), except that it *does not* perform whitespace stripping.
     */
     fn try_scan_raw<F, Out>(self, f: F) -> Result<(Out, Self), (ScanError, Self)>
-    where F: FnOnce(Self::ScanInput) -> Result<(Out, usize), ScanError>;
+        where F: FnOnce(Self::ScanInput) -> Result<(Out, usize), ScanError>;
 
     /**
     Match the provided literal term against the input.
@@ -152,46 +152,45 @@ Basic cursor implementation wrapping a string slice.
 The `Cmp` parameter can be used to control the string comparison logic used.
 */
 #[derive(Debug)]
-pub struct StrCursor<'a, Cmp=ExactCompare, Space=IgnoreSpace, Word=Wordish>
-where
-    Cmp: StrCompare,
-    Space: SkipSpace,
-    Word: SliceWord,
+pub struct StrCursor<'a, Cmp = ExactCompare, Space = IgnoreSpace, Word = Wordish>
+    where Cmp: StrCompare,
+          Space: SkipSpace,
+          Word: SliceWord
 {
     offset: usize,
     slice: &'a str,
     _marker: PhantomData<(Cmp, Space, Word)>,
 }
 
-/*
-These have to be spelled out to avoid erroneous constraints on the type parameters.
-*/
-impl<'a, Cmp=ExactCompare, Space=IgnoreSpace, Word=Wordish>
-Copy for StrCursor<'a, Cmp, Space, Word>
-where
-    Cmp: StrCompare,
-    Space: SkipSpace,
-    Word: SliceWord,
-{}
+// These have to be spelled out to avoid erroneous constraints on the type parameters.
+//
+impl<'a, Cmp = ExactCompare, Space = IgnoreSpace, Word = Wordish> Copy for StrCursor<'a,
+                                                                                     Cmp,
+                                                                                     Space,
+                                                                                     Word>
+    where Cmp: StrCompare,
+          Space: SkipSpace,
+          Word: SliceWord
+{
+}
 
-impl<'a, Cmp=ExactCompare, Space=IgnoreSpace, Word=Wordish>
-Clone for StrCursor<'a, Cmp, Space, Word>
-where
-    Cmp: StrCompare,
-    Space: SkipSpace,
-    Word: SliceWord,
+impl<'a, Cmp = ExactCompare, Space = IgnoreSpace, Word = Wordish> Clone for StrCursor<'a,
+                                                                                      Cmp,
+                                                                                      Space,
+                                                                                      Word>
+    where Cmp: StrCompare,
+          Space: SkipSpace,
+          Word: SliceWord
 {
     fn clone(&self) -> Self {
         *self
     }
 }
 
-impl<'a, Cmp=ExactCompare, Space=IgnoreSpace, Word=Wordish>
-StrCursor<'a, Cmp, Space, Word>
-where
-    Cmp: StrCompare,
-    Space: SkipSpace,
-    Word: SliceWord,
+impl<'a, Cmp = ExactCompare, Space = IgnoreSpace, Word = Wordish> StrCursor<'a, Cmp, Space, Word>
+    where Cmp: StrCompare,
+          Space: SkipSpace,
+          Word: SliceWord
 {
     /**
     Construct a new `StrCursor` with a specific `offset`.
@@ -323,12 +322,13 @@ where
     }
 }
 
-impl<'a, Cmp=ExactCompare, Space=IgnoreSpace, Word=Wordish>
-ScanInput<'a> for StrCursor<'a, Cmp, Space, Word>
-where
-    Cmp: StrCompare,
-    Space: SkipSpace,
-    Word: SliceWord,
+impl<'a, Cmp = ExactCompare, Space = IgnoreSpace, Word = Wordish> ScanInput<'a> for StrCursor<'a,
+                                                                                              Cmp,
+                                                                                              Space,
+                                                                                              Word>
+    where Cmp: StrCompare,
+          Space: SkipSpace,
+          Word: SliceWord
 {
     type ScanCursor = Self;
     type StrCompare = Cmp;
@@ -338,9 +338,10 @@ where
     }
 
     fn from_subslice(&self, subslice: &'a str) -> Self {
-        use ::util::StrUtil;
-        let offset = self.as_str().subslice_offset_stable(subslice)
-            .expect("called `StrCursor::from_subslice` with disjoint subslice");
+        use util::StrUtil;
+        let offset = self.as_str()
+                         .subslice_offset_stable(subslice)
+                         .expect("called `StrCursor::from_subslice` with disjoint subslice");
 
         StrCursor {
             offset: self.offset + offset,
@@ -350,9 +351,8 @@ where
     }
 
     fn to_cursor(&self) -> Self::ScanCursor {
-        /*
-        Note that we strip the offset information here, essentially making this a *new* cursor, not just a copy of the existing one.
-        */
+        // Note that we strip the offset information here, essentially making this a *new* cursor, not just a copy of the existing one.
+        //
         StrCursor::new(self.slice)
     }
 }
@@ -384,10 +384,10 @@ Skip all leading whitespace in a string, and return both the resulting slice and
 */
 fn skip_space(s: &str) -> (&str, usize) {
     let off = s.char_indices()
-        .take_while(|&(_, c)| c.is_whitespace())
-        .map(|(i, c)| i + c.len_utf8())
-        .last()
-        .unwrap_or(0);
+               .take_while(|&(_, c)| c.is_whitespace())
+               .map(|(i, c)| i + c.len_utf8())
+               .last()
+               .unwrap_or(0);
     (&s[off..], off)
 }
 
@@ -510,11 +510,10 @@ impl SkipSpace for IgnoreNonLine {
 
 fn skip_space_non_line(s: &str) -> usize {
     s.char_indices()
-        .take_while(|&(_, c)| c.is_whitespace()
-            && c != '\r' && c != '\n')
-        .last()
-        .map(|(i, c)| i + c.len_utf8())
-        .unwrap_or(0)
+     .take_while(|&(_, c)| c.is_whitespace() && c != '\r' && c != '\n')
+     .last()
+     .map(|(i, c)| i + c.len_utf8())
+     .unwrap_or(0)
 }
 
 /**
@@ -532,10 +531,10 @@ impl SkipSpace for IgnoreSpace {
 
     fn skip_space(s: &str) -> usize {
         s.char_indices()
-            .take_while(|&(_, c)| c.is_whitespace())
-            .map(|(i, c)| i + c.len_utf8())
-            .last()
-            .unwrap_or(0)
+         .take_while(|&(_, c)| c.is_whitespace())
+         .map(|(i, c)| i + c.len_utf8())
+         .last()
+         .unwrap_or(0)
     }
 }
 
@@ -615,7 +614,7 @@ impl StrCompare for IgnoreCase {
             match (acs.next(), bcs.next()) {
                 (Some(a), Some(b)) if a == b => (),
                 (None, None) => return true,
-                _ => return false
+                _ => return false,
             }
         }
     }
@@ -655,7 +654,7 @@ impl StrCompare for IgnoreCaseNormalized {
             match (acs.next(), bcs.next()) {
                 (Some(a), Some(b)) if a == b => (),
                 (None, None) => return true,
-                _ => return false
+                _ => return false,
             }
         }
     }
@@ -713,7 +712,7 @@ impl StrCompare for Normalized {
             match (acs.next(), bcs.next()) {
                 (Some(a), Some(b)) if a == b => (),
                 (None, None) => return true,
-                _ => return false
+                _ => return false,
             }
         }
     }
@@ -731,23 +730,23 @@ fn test_normalized() {
 }
 
 fn slice_non_space(s: &str) -> Option<usize> {
-    use ::util::TableUtil;
-    use ::unicode::property::White_Space_table as WS;
+    use util::TableUtil;
+    use unicode::property::White_Space_table as WS;
 
     s.char_indices()
-        .take_while(|&(_, c)| !WS.span_table_contains(&c))
-        .map(|(i, c)| i + c.len_utf8())
-        .last()
+     .take_while(|&(_, c)| !WS.span_table_contains(&c))
+     .map(|(i, c)| i + c.len_utf8())
+     .last()
 }
 
 fn slice_wordish(s: &str) -> Option<usize> {
-    use ::util::TableUtil;
-    use ::unicode::regex::PERLW;
+    use util::TableUtil;
+    use unicode::regex::PERLW;
 
     let word_len = s.char_indices()
-        .take_while(|&(_, c)| PERLW.span_table_contains(&c))
-        .map(|(i, c)| i + c.len_utf8())
-        .last();
+                    .take_while(|&(_, c)| PERLW.span_table_contains(&c))
+                    .map(|(i, c)| i + c.len_utf8())
+                    .last();
 
     match word_len {
         Some(n) => Some(n),

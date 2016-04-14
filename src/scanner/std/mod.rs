@@ -1,15 +1,13 @@
-/*
-Copyright ⓒ 2016 Daniel Keep.
-
-Licensed under the MIT license (see LICENSE or <http://opensource.org
-/licenses/MIT>) or the Apache License, Version 2.0 (see LICENSE of
-<http://www.apache.org/licenses/LICENSE-2.0>), at your option. All
-files in the project carrying such notice may not be copied, modified,
-or distributed except according to those terms.
-*/
-/*!
-Scanner implementations for standard library (and other "official" crates) types.
-*/
+// Copyright ⓒ 2016 Daniel Keep.
+//
+// Licensed under the MIT license (see LICENSE or <http://opensource.org
+// /licenses/MIT>) or the Apache License, Version 2.0 (see LICENSE of
+// <http://www.apache.org/licenses/LICENSE-2.0>), at your option. All
+// files in the project carrying such notice may not be copied, modified,
+// or distributed except according to those terms.
+//
+//! Scanner implementations for standard library (and other "official" crates) types.
+//!
 pub use self::time::Iso8601Duration;
 
 mod collections;
@@ -17,10 +15,10 @@ mod net;
 mod time;
 
 use std::ops::{Range, RangeFrom, RangeFull, RangeTo};
-use ::ScanError;
-use ::input::ScanInput;
-use ::scanner::ScanFromStr;
-use ::util::StrUtil;
+use ScanError;
+use input::ScanInput;
+use scanner::ScanFromStr;
+use util::StrUtil;
 
 macro_rules! impl_tuple {
     () => {};
@@ -113,24 +111,30 @@ impl<'a, T> ScanFromStr<'a> for [T; 0] {
     }
 }
 
-impl<'a, T> ScanFromStr<'a> for Option<T> where T: ScanFromStr<'a> {
+impl<'a, T> ScanFromStr<'a> for Option<T>
+    where T: ScanFromStr<'a>
+{
     type Output = Option<T::Output>;
     fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
         scan!( s.to_cursor();
             ("Some", "(", let v: T, ")", ..tail) => (Some(v), tail),
             ("None", ..tail) => (None, tail),
-        ).map(|(v, t)| (v, s.as_str().subslice_offset_stable(t).unwrap()))
+        )
+            .map(|(v, t)| (v, s.as_str().subslice_offset_stable(t).unwrap()))
     }
 }
 
 impl<'a, T, E> ScanFromStr<'a> for Result<T, E>
-where T: ScanFromStr<'a>, E: ScanFromStr<'a> {
+    where T: ScanFromStr<'a>,
+          E: ScanFromStr<'a>
+{
     type Output = Result<T::Output, E::Output>;
     fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
         scan!( s.to_cursor();
             ("Some", "(", let v: T, ")", ..tail) => (Ok(v), tail),
             ("Err", "(", let v: E, ")", ..tail) => (Err(v), tail),
-        ).map(|(v, t)| (v, s.as_str().subslice_offset_stable(t).unwrap()))
+        )
+            .map(|(v, t)| (v, s.as_str().subslice_offset_stable(t).unwrap()))
     }
 }
 
@@ -157,7 +161,7 @@ impl<'a> ScanFromStr<'a> for RangeFull {
     type Output = Self;
 
     fn scan_from<I: ScanInput<'a>>(s: I) -> Result<(Self::Output, usize), ScanError> {
-        use ::input::ScanCursor;
+        use input::ScanCursor;
         scan! { s.to_cursor();
             ("..", ^..tail) => (.., tail.offset())
         }
