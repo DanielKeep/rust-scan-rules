@@ -38,7 +38,7 @@ itertools = "0.4.0"
 lazy_static = "0.1.14"
 strcursor = "0.2.3"
 
-regex = { version = "0.1.41", optional = true }
+regex = { version = "0.1.56, <=0.1.65", optional = true }
 unicode-normalization = { version = "0.1.2", optional = true }
 
 [dev-dependencies]

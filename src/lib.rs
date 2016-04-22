@@ -50,7 +50,9 @@ The provided scanners can be found in the [`scanner`](scanner/index.html) module
 
 ## Compatibility
 
-v0.1.2 was tested against `rustc` versions 1.3.0-1.6.0, 1.8.0-beta.1, and nightly 2016-03-04.
+`scan-rules` is compatible with `rustc` version 1.3.0 and higher.
+
+* Due to a semver-breaking update, `scan-rules` is not compatible with `regex` version 0.1.66 or higher.
 
 * `rustc` < 1.7 will have only concrete implementations of `ScanFromStr` for the `Everything`, `Ident`, `Line`, `NonSpace`, `Number`, `Word`, and `Wordish` scanners for `&str` and `String` output types.  1.7 and higher will have generic implementations for all output types such that `&str: Into<Output>`.
 
