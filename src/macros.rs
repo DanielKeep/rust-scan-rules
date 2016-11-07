@@ -116,7 +116,7 @@ See also: [Pattern Syntax](index.html#pattern-syntax), [`scan!`](macro.scan!.htm
 # #[macro_use] extern crate scan_rules;
 # use scan_rules::scanner::Word;
 # fn main() {
-let_scanln!((let cost: u32, "¥,", let product: Word));
+let_readln!((let cost: u32, "¥,", let product: Word));
 println!("One {} costs {}¥.", product, cost);
 # }
 ```
@@ -127,7 +127,7 @@ Panics if an error is encountered while reading from standard input, or if the p
 */
 #[cfg(macro_inter_stmt_binding_visibility)]
 #[macro_export]
-macro_rules! let_scanln {
+macro_rules! let_readln {
     ($($pattern:tt)*) => {
         let mut line = ::std::string::String::new();
         let line = match ::std::io::Write::flush(&mut ::std::io::stdout()) {

@@ -37,7 +37,7 @@ fn main() {
 #[cfg(macro_inter_stmt_binding_visibility)]
 fn question_three() {
     print!("Ok.  What... is your favourite colour? (R, G, B): ");
-    let_scanln!(let r: f32, ",", let g: f32, ",", let b: f32);
+    let_readln!(let r: f32, ",", let g: f32, ",", let b: f32);
     //          ^~~~^            ^~~~^            ^~~~^
     // Scans and binds three variables without nesting scope.
     // Panics if *anything* goes wrong.

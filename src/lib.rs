@@ -20,7 +20,7 @@ The macros of interest are:
 Plus two convenience macros:
 
 * [`let_scan!`](macro.let_scan!.html) - scans a string and binds captured values directly to local variables.  Only supports *one* pattern and panics if it doesn't match.
-* [`let_scanln!`](macro.let_scanln!.html) - reads and scans a line from standard input, binding captured values directly to local variables.  Only supports *one* pattern and panics if it doesn't match.
+* [`let_readln!`](macro.let_readln!.html) - reads and scans a line from standard input, binding captured values directly to local variables.  Only supports *one* pattern and panics if it doesn't match.
 
 If you are interested in implementing support for your own types, see the [`ScanFromStr`](scanner/trait.ScanFromStr.html) and [`ScanStr`](scanner/trait.ScanStr.html) traits.
 
@@ -55,7 +55,7 @@ The provided scanners can be found in the [`scanner`](scanner/index.html) module
 
 * Due to a breaking change, `scan-rules` is not compatible with `regex` version 0.1.66 or higher.
 
-* `rustc` < 1.10 will not have the `let_scanln!` macro.
+* `rustc` < 1.10 will not have the `let_readln!` macro.
 
 * `rustc` < 1.7 will have only concrete implementations of `ScanFromStr` for the `Everything`, `Ident`, `Line`, `NonSpace`, `Number`, `Word`, and `Wordish` scanners for `&str` and `String` output types.  1.7 and higher will have generic implementations for all output types such that `&str: Into<Output>`.
 
@@ -116,7 +116,7 @@ fn main() {
     }
 
     print!("Ok.  What... is your favourite colour? (R, G, B): ");
-    let_scanln!(let r: f32, ",", let g: f32, ",", let b: f32);
+    let_readln!(let r: f32, ",", let g: f32, ",", let b: f32);
     //          ^~~~^            ^~~~^            ^~~~^
     // Scans and binds three variables without nesting scope.
     // Panics if *anything* goes wrong.
