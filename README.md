@@ -25,18 +25,15 @@ The available abstract scanners can be found in the `scanner` module.
 
 ## Compatibility
 
-v0.1.2 was tested against `rustc` versions 1.3.0-1.6.0, 1.8.0-beta.1, and nightly 2016-03-04.
+`scan-rules` is compatible with `rustc` version 1.6.0 and higher.
 
 * Due to a breaking change, `scan-rules` is not compatible with `regex` version 0.1.66 or higher.
 
 * `rustc` < 1.10 will not have the `let_scanln!` macro.
+
 * `rustc` < 1.7 will have only concrete implementations of `ScanFromStr` for the `Everything`, `Ident`, `Line`, `NonSpace`, `Number`, `Word`, and `Wordish` scanners for `&str` and `String` output types.  1.7 and higher will have generic implementations for all output types such that `&str: Into<Output>`.
 
-* `rustc` < 1.5 will not support scanning the `SocketAddrV4` and `SocketAddrV6` types, due to missing `FromStr` implementations.
-
-* `rustc` < 1.4 will not support scanning the `Ipv4Addr`, `Ipv6Addr` or `SocketAddr` types, due to their `FromStr` implementations producing errors that do not implement `Error`.
-
-* `rustc` < 1.3 is explicitly not supported, due to limitations in the macro syntax.
+* `rustc` < 1.6 is explicitly not supported, due to breaking changes in Rust itself.
 
 ## Quick Examples
 

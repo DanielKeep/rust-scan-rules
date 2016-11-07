@@ -195,7 +195,6 @@ fn test_scan_f64() {
     check_f64!(1.448997445238699);
 }
 
-#[cfg(f64_debug_is_roundtrip_accurate)]
 #[cfg(test)]
 #[test]
 fn test_scan_f64_debug_is_roundtrip_accurate() {

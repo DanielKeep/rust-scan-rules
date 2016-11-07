@@ -10,7 +10,6 @@ or distributed except according to those terms.
 /*!
 Scanner implementations for `std::net::*`.
 */
-#![cfg(std_net_scanners)]
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr};
 use itertools::Itertools;
 #[cfg(test)] use ::scanner::ScanFromStr;
@@ -344,7 +343,6 @@ fn test_scan_socketaddr() {
     check_sockaddr!("[2a02:6b8::11:11]:0");
 }
 
-#[cfg(socket_addr_vx_scanners)]
 mod socket_addr_vx_scanners {
     use std::net::{SocketAddrV4, SocketAddrV6};
     use super::{match_ipv4_sock, match_ipv6_sock};

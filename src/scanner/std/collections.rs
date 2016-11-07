@@ -105,7 +105,6 @@ fn test_btreeset() {
     check!(<bool> "{true, false}", Ok([false, true], 13));
 }
 
-#[cfg(binary_heap_impls_debug)]
 #[cfg(test)]
 #[test]
 fn test_binaryheap() {
