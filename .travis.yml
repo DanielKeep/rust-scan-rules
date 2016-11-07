@@ -3,6 +3,10 @@ script: cargo build --verbose --features=all && cargo test --verbose --features=
 rust:
   - 1.6.0
   - 1.7.0
+  - 1.8.0
+  - 1.9.0
+  - 1.10.0
+  - 1.11.0
   - stable
   - beta
   - nightly
