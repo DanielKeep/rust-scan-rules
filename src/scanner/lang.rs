@@ -176,8 +176,8 @@ fn test_scan_f64() {
     assert_match!(<f64>::scan_from("0."), Ok((0.0, 2)));
     assert_match!(<f64>::scan_from("0.x"), Ok((0.0, 2)));
 
-    assert_match!(<f64>::scan_from("inf"), Ok((::std::f64::INFINITY, 3)));
-    assert_match!(<f64>::scan_from("-inf"), Ok((::std::f64::NEG_INFINITY, 4)));
+    assert_match!(<f64>::scan_from("inf"), Ok((f, 3)) if f == ::std::f64::INFINITY);
+    assert_match!(<f64>::scan_from("-inf"), Ok((f, 4)) if f == ::std::f64::NEG_INFINITY);
     assert_match!(<f64>::scan_from("NaN"), Ok((v, 3)) if v.is_nan());
 
     check_f64!(0.0);

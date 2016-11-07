@@ -166,7 +166,7 @@ where
 /*
 These have to be spelled out to avoid erroneous constraints on the type parameters.
 */
-impl<'a, Cmp=ExactCompare, Space=IgnoreSpace, Word=Wordish>
+impl<'a, Cmp, Space, Word>
 Copy for StrCursor<'a, Cmp, Space, Word>
 where
     Cmp: StrCompare,
@@ -174,7 +174,7 @@ where
     Word: SliceWord,
 {}
 
-impl<'a, Cmp=ExactCompare, Space=IgnoreSpace, Word=Wordish>
+impl<'a, Cmp, Space, Word>
 Clone for StrCursor<'a, Cmp, Space, Word>
 where
     Cmp: StrCompare,
@@ -186,7 +186,7 @@ where
     }
 }
 
-impl<'a, Cmp=ExactCompare, Space=IgnoreSpace, Word=Wordish>
+impl<'a, Cmp, Space, Word>
 StrCursor<'a, Cmp, Space, Word>
 where
     Cmp: StrCompare,
@@ -225,7 +225,7 @@ where
     }
 }
 
-impl<'a, Cmp=ExactCompare, Space=IgnoreSpace, Word=Wordish>
+impl<'a, Cmp, Space, Word>
 ScanCursor<'a> for StrCursor<'a, Cmp, Space, Word>
 where
     Cmp: StrCompare,
@@ -323,7 +323,7 @@ where
     }
 }
 
-impl<'a, Cmp=ExactCompare, Space=IgnoreSpace, Word=Wordish>
+impl<'a, Cmp, Space, Word>
 ScanInput<'a> for StrCursor<'a, Cmp, Space, Word>
 where
     Cmp: StrCompare,

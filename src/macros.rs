@@ -532,7 +532,7 @@ macro_rules! scan_rules_impl {
             ::std::iter::Extend::extend(
                 &mut $names,
                 ::std::iter::once(scan_rules_impl!(@as_expr $elems.$idxs))
-            )
+            );
         )*
     };
 
@@ -714,7 +714,7 @@ macro_rules! scan_rules_impl {
 
     */
     (@as_expr $e:expr) => {$e};
-    (@as_stmt $s:stmt) => {$s};
+    (@as_stmt $s:stmt) => {$s;};
 
     (@if_empty.expr () {$($th:tt)*} else {$($_el:tt)*}) => {
         scan_rules_impl!(@as_expr $($th)*)
