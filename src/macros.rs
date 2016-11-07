@@ -9,22 +9,6 @@ or distributed except according to those terms.
 */
 /*!
 This module contains the public and crate-wide macros.
-
-## Where is `let_readln!`?
-
-There are *two* things independently preventing this from being written.
-
-1.  `scan!` doesn't support owned scan inputs.
-
-    Theoretically, this shouldn't be an issue: you could just bind the input to a name and borrow from that.
-
-    The problem is that without specialisation, I can't write the necessary implementations of `IntoScanCursor` to allow both owned and borrowed inputs to end up with the "correct" lifetime.
-
-2.  `macro_rules!` statement macros are broken.
-
-    Specifically, individual statements are isolated from each other by hygiene.  This means it's impossible to bind a value to a name in one statement, and then *use* that name in the next.
-
-If either of those gets fixed, `let_readln!` can be written.
 */
 
 /**
