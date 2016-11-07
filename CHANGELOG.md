@@ -1,3 +1,22 @@
+<a name="0.2.0"></a>
+## 0.2.0 (2016-11-07)
+
+
+#### Features
+
+*   update regex allowed versions ([0e9ae9de](0e9ae9de), closes [#7](7))
+* **macros:**  add `let_scanln!`. ([53ec7ed3](53ec7ed3))
+
+#### Breaking Changes
+
+*   forward compatibility fixes. ([88cec324](88cec324))
+
+#### Bug Fixes
+
+*   forward compatibility fixes. ([88cec324](88cec324))
+
+
+
 <a name="v0.1.3"></a>
 ## v0.1.3 (2016-04-23)
 
