@@ -20,7 +20,6 @@ The short version is this:
 */
 use std::borrow::Cow;
 use std::marker::PhantomData;
-use itertools::Itertools;
 use ::ScanError;
 
 /**
