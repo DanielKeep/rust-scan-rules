@@ -126,12 +126,12 @@ def run_script(script, rust_ver, seq_id, env):
 
     for cmd in script:
         cmd = re.sub(r"\$(?:([A-Za-z0-9_]+)|{([A-Za-z0-9_]+)})\b", sub_env, cmd)
-        cmd_str = '> multirust run %s %s' % (rust_ver, cmd)
+        cmd_str = '> rustup run %s %s' % (rust_ver, cmd)
         log_file.write(cmd_str)
         log_file.write("\n")
         log_file.flush()
         success = sh(
-            'multirust run %s %s' % (rust_ver, cmd),
+            'rustup run %s %s' % (rust_ver, cmd),
             checked=False,
             stdout=log_file, stderr=log_file,
             env=cmd_env,
