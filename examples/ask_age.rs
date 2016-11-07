@@ -29,4 +29,24 @@ fn main() {
         (..other) => println!("`{}` doesn't *look* like a number...", other),
     //   ^~~~~~^ bind to any input "left over"
     }
+
+    question_three();
 }
+
+// Only works in Rust 1.10 and up.
+#[cfg(macro_inter_stmt_binding_visibility)]
+fn question_three() {
+    print!("Ok.  What... is your favourite colour? (R, G, B): ");
+    let_scanln!(let r: f32, ",", let g: f32, ",", let b: f32);
+    //          ^~~~^            ^~~~^            ^~~~^
+    // Scans and binds three variables without nesting scope.
+    // Panics if *anything* goes wrong.
+    if !(g < r && g < b && b >= r * 0.25 && b <= r * 0.75) {
+        println!("Purple's better.");
+    } else {
+        println!("Good choice!");
+    }
+}
+
+#[cfg(not(macro_inter_stmt_binding_visibility))]
+fn question_three() {}

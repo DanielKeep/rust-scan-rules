@@ -120,6 +120,48 @@ macro_rules! let_scan {
 }
 
 /**
+Reads a line of text from standard input, then scans it using the specified pattern.  All values are bound directly to local variables.
+
+Note that this macro only supports a *single* pattern.
+
+See also: [Pattern Syntax](index.html#pattern-syntax), [`scan!`](macro.scan!.html).
+
+## Examples
+
+```ignore
+# #[macro_use] extern crate scan_rules;
+# use scan_rules::scanner::Word;
+# fn main() {
+let_scanln!((let cost: u32, "¥,", let product: Word));
+println!("One {} costs {}¥.", product, cost);
+# }
+```
+
+# Panics
+
+Panics if an error is encountered while reading from standard input, or if the pattern fails to match.
+*/
+#[cfg(macro_inter_stmt_binding_visibility)]
+#[macro_export]
+macro_rules! let_scanln {
+    ($($pattern:tt)*) => {
+        let mut line = ::std::string::String::new();
+        let line = match ::std::io::Write::flush(&mut ::std::io::stdout()) {
+            Err(err) => Err($crate::ScanError::io(err)),
+            Ok(()) => {
+                match ::std::io::Stdin::read_line(&::std::io::stdin(), &mut line) {
+                    Err(err) => Err($crate::ScanError::io(err)),
+                    Ok(_) => Ok($crate::internal::strip_line_term(&line)),
+                }
+            },
+        };
+        let line = line.unwrap();
+        scan_rules_impl!(@with_bindings ($($pattern)*),
+            then: scan_rules_impl!(@let_bindings.panic line, ($($pattern)*),);)
+    };
+}
+
+/**
 Scans the provided input, using the specified rules.  The result is a `Result<T, ScanError>` where `T` is the type of the rule bodies; just as with `match`, all bodies must agree on their result type.
 
 The input may be any value which implements `IntoScanCursor`, which includes `&str`, `String`, and `Cow<str>`.

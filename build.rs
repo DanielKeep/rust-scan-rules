@@ -32,4 +32,8 @@ fn main() {
     if version_matches("1.5.0") {
         println!("cargo:rustc-cfg=socket_addr_vx_scanners")
     }
+
+    if version_matches("1.10.0") {
+        println!("cargo:rustc-cfg=macro_inter_stmt_binding_visibility");
+    }
 }

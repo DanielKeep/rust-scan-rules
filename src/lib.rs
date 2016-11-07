@@ -17,9 +17,10 @@ The macros of interest are:
 * [`try_readln!`](macro.try_readln!.html) - like `readln!`, except it returns a `Result` instead of panicking.
 * [`scan!`](macro.scan!.html) - scans the provided string.
 
-Plus a convenience macro:
+Plus two convenience macros:
 
 * [`let_scan!`](macro.let_scan!.html) - scans a string and binds captured values directly to local variables.  Only supports *one* pattern and panics if it doesn't match.
+* [`let_scanln!`](macro.let_scanln!.html) - reads and scans a line from standard input, binding captured values directly to local variables.  Only supports *one* pattern and panics if it doesn't match.
 
 If you are interested in implementing support for your own types, see the [`ScanFromStr`](scanner/trait.ScanFromStr.html) and [`ScanStr`](scanner/trait.ScanStr.html) traits.
 
@@ -54,6 +55,7 @@ The provided scanners can be found in the [`scanner`](scanner/index.html) module
 
 * Due to a breaking change, `scan-rules` is not compatible with `regex` version 0.1.66 or higher.
 
+* `rustc` < 1.10 will not have the `let_scanln!` macro.
 * `rustc` < 1.7 will have only concrete implementations of `ScanFromStr` for the `Everything`, `Ident`, `Line`, `NonSpace`, `Number`, `Word`, and `Wordish` scanners for `&str` and `String` output types.  1.7 and higher will have generic implementations for all output types such that `&str: Into<Output>`.
 
 * `rustc` < 1.5 will not support scanning the `SocketAddrV4` and `SocketAddrV6` types, due to missing `FromStr` implementations.
@@ -114,6 +116,17 @@ fn main() {
         },
         (..other) => println!("`{}` doesn't *look* like a number...", other),
     //   ^~~~~~^ bind to any input "left over"
+    }
+
+    print!("Ok.  What... is your favourite colour? (R, G, B): ");
+    let_scanln!(let r: f32, ",", let g: f32, ",", let b: f32);
+    //          ^~~~^            ^~~~^            ^~~~^
+    // Scans and binds three variables without nesting scope.
+    // Panics if *anything* goes wrong.
+    if !(g < r && g < b && b >= r * 0.25 && b <= r * 0.75) {
+        println!("Purple's better.");
+    } else {
+        println!("Good choice!");
     }
 }
 ```
