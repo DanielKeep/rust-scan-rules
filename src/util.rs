@@ -228,10 +228,15 @@ fn test_subslice_offset() {
     let string = "a\nb\nc";
     let lines: Vec<&str> = string.lines().collect();
 
-    assert!(string.subslice_offset_stable(lines[0]) == Some(0)); // &"a"
-    assert!(string.subslice_offset_stable(lines[1]) == Some(2)); // &"b"
-    assert!(string.subslice_offset_stable(lines[2]) == Some(4)); // &"c"
-    assert!(string.subslice_offset_stable("other!") == None);
+    assert_eq!(string.subslice_offset_stable(lines[0]), Some(0)); // &"a"
+    assert_eq!(string.subslice_offset_stable(lines[1]), Some(2)); // &"b"
+    assert_eq!(string.subslice_offset_stable(lines[2]), Some(4)); // &"c"
+    assert_eq!(string[..4].subslice_offset_stable(lines[2]), Some(4));
+
+    // Offset by 1 in case `other` is adjacent to `string` in memory.
+    let other = "Xother";
+    let other = &other[1..];
+    assert_eq!(string.subslice_offset_stable(other), None);
 }
 
 #[cfg(test)]
